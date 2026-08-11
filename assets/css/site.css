@@ -1923,11 +1923,37 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
   line-height:1.35;
   transition:border-color .18s, background .18s;
 }
+/* [11.08.2026] Le survol reprend la convention du site — .rich a:hover
+   inverse déjà les liens en noir sur blanc. Il s'applique ici à la pastille
+   ENTIÈRE et non au seul texte : avant, seul le mot se peignait en noir, ce
+   qui donnait un rectangle sombre au milieu d'une case beige.
+
+   Le lien reçoit aussi le rembourrage et s'étire sur toute la case, si bien
+   que la zone cliquable est enfin celle qu'on voit. Cliquer à côté du mot
+   ne faisait rien, alors que tout indiquait le contraire. */
+.esp-ressources p.wp-block-heading,
+.esp-ressources .wp-block-column > p{
+  padding:0;
+}
+.esp-ressources p.wp-block-heading > a,
+.esp-ressources .wp-block-column > p > a{
+  display:block;
+  width:100%;
+  padding:15px 18px;
+}
 .esp-ressources p.wp-block-heading:hover,
 .esp-ressources .wp-block-column > p:hover,
 .esp-ressources .wp-block-column > a:hover{
   border-color:var(--ink);
-  background:var(--wash);
+  background:var(--ink);
+}
+.esp-ressources p.wp-block-heading:hover a,
+.esp-ressources .wp-block-column > p:hover a,
+.esp-ressources .wp-block-column > a:hover{
+  color:var(--paper);
+  /* Sans cela, .rich a:hover repeindrait un second fond noir sur le premier,
+     avec ses propres bords — un rectangle dans le rectangle. */
+  background:transparent;
 }
 .esp-ressources p.wp-block-heading a,
 .esp-ressources .wp-block-column a{
