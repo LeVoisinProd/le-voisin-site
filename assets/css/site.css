@@ -1724,3 +1724,210 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 @media (prefers-reduced-motion: reduce) {
   .esp-card { transition: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Le bas de la page « Espaces dédiés » — le texte venu du CMS.
+
+   Ce bloc est du HTML collé depuis l'ancien site WordPress : les classes
+   « wp-block-* » sont des restes, et rien ne les stylait ici. D'où l'aspect
+   d'origine — vingt-deux liens en vrac, chacun dans son paragraphe.
+
+   Le parti pris : ne RIEN demander au CMS. Aucune ressaisie, aucun bloc à
+   recréer. On se sert des restes WordPress comme de points d'accroche, et
+   de :has() pour reconnaître les paragraphes à leur contenu. Le jour où
+   quelqu'un réécrit le texte dans l'éditeur, la mise en forme suit.
+
+   La langue visuelle est celle du site, pas celle de la maquette : noir et
+   blanc, filets d'un pixel (--trait), le jaune réservé au survol. La
+   maquette proposait des cartes jaunes pleines — ici elles jureraient avec
+   les deux cartes du haut, qui portent déjà cette couleur.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* La grille de la section.
+
+   Trois colonnes, mais elles ne servent qu'à UNE rangée : le guide, le code
+   de conduite et le dispositif de signalement, qui se lisent de front parce
+   qu'ils sont de même nature — trois portes, pas trois étapes.
+
+   Tout le reste traverse la largeur. C'est le sens de la règle ci-dessous :
+   par défaut un enfant occupe toutes les colonnes, et seuls les trois blocs
+   visés reprennent une colonne chacun. Ainsi rien ne casse si quelqu'un
+   ajoute un paragraphe dans le CMS — il s'affichera pleine largeur, comme
+   les autres, sans se glisser dans la rangée. */
+.esp-ressources{
+  max-width:none;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:16px clamp(14px,1.6vw,20px);
+  align-items:stretch;
+}
+.esp-ressources > *{ grid-column:1 / -1; }
+
+/* ── 1. Le chapeau ────────────────────────────────────────────────────
+   Le premier paragraphe annonce la section. Il se lit avant les autres,
+   donc il est plus grand — et plus court en largeur, pour qu'on n'ait pas
+   à balayer la page des yeux. */
+.esp-ressources > p:first-child{
+  font-size:clamp(18px,2.2vw,23px);
+  line-height:1.55;
+  font-weight:500;
+  color:var(--grey);
+  max-width:62ch;
+  margin:0 0 clamp(32px,4vw,52px);
+}
+
+/* ── 2. Les deux documents ────────────────────────────────────────────
+   Le guide interne et le code de conduite. On les reconnaît à leur forme :
+   un paragraphe dont le lien est en gras. Le :not() écarte le bloc de
+   signalement, qui a la même forme mais porte une adresse e-mail — il a
+   son propre traitement plus bas.
+
+   Ils deviennent des blocs encadrés parce que ce sont des DOCUMENTS, pas
+   du texte courant : on vient les chercher, on ne les lit pas au fil. */
+.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])){
+  grid-column:auto;                  /* reprend UNE colonne de la rangée */
+  display:flex;
+  flex-direction:column;
+  border:var(--trait) solid var(--line);
+  border-radius:18px;
+  padding:clamp(22px,2.4vw,30px);
+  margin:0;
+  background:var(--paper);
+  transition:border-color .18s;
+}
+.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])):hover{
+  border-color:var(--ink);
+}
+/* Le titre du document : sorti du fil, posé au-dessus de sa description. */
+.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])) > strong{
+  display:block;
+  margin-bottom:8px;
+}
+.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])) > strong a{
+  font-size:clamp(17px,1.9vw,21px);
+  font-weight:700;
+  line-height:1.25;
+  text-decoration:none;
+  border-bottom:var(--trait) solid var(--ink);
+  padding-bottom:1px;
+}
+
+/* ── 3. Le dispositif de signalement ──────────────────────────────────
+   Reconnu à son adresse e-mail. C'est l'information la plus importante de
+   la page et la plus mal servie par l'original : sept lignes en gras
+   collées dans un seul paragraphe, séparées par des <br>.
+
+   Elle sort donc du fil, sur un fond lavé et derrière un filet vertical.
+   Quelqu'un qui la cherche dans un mauvais moment doit la trouver sans
+   lire le reste. Les <strong> passent en blocs pour retrouver de l'air ;
+   le gras est retiré parce que tout en gras ne met plus rien en avant. */
+.esp-ressources > p:has(a[href^="mailto"]){
+  grid-column:auto;                  /* la troisième colonne de la rangée */
+  /* Le jaune de la marque, très éclairci. Le gris lavé donnait un beige qui
+     tirait vers le terne, et ce bloc-ci ne doit pas s'effacer : c'est le
+     seul de la page qu'on cherche dans un mauvais moment.
+     La teinte se calcule depuis --yellow plutôt que d'être écrite en dur :
+     si le jaune de la charte bouge, celui-ci suit. */
+  background:#fdf6e2;                                        /* repli */
+  background:color-mix(in srgb, var(--yellow) 16%, #fff);
+  border:var(--trait) solid color-mix(in srgb, var(--yellow) 42%, #fff);
+  border-top:2px solid var(--ink);   /* le filet passe en haut : de côté, il
+                                        déséquilibrait la rangée de trois */
+  border-radius:18px;
+  padding:clamp(22px,2.4vw,30px);
+  margin:0;
+  font-size:15.5px;
+  line-height:1.65;
+}
+.esp-ressources > p:has(a[href^="mailto"]) strong{
+  display:block;
+  font-weight:400;
+}
+/* La première ligne — celle qui explique ce qu'est le dispositif — garde
+   son gras : c'est le titre de l'encadré. */
+.esp-ressources > p:has(a[href^="mailto"]) strong:first-of-type{
+  font-weight:700;
+  font-size:clamp(16px,1.8vw,19px);
+  line-height:1.35;
+  margin-bottom:14px;
+}
+.esp-ressources > p:has(a[href^="mailto"]) br{ display:none; }
+
+/* ── 4. Les références ────────────────────────────────────────────────
+   Vingt-deux liens vers des syndicats, des conventions et des barèmes.
+   En paragraphes empilés, c'était une liste de noms sans hiérarchie ni
+   forme — le mot employé était « moche », et il était juste.
+
+   Ils deviennent une grille de pastilles. Une grille parce que l'ordre
+   n'a pas de sens ici : on cherche un nom, on ne lit pas une suite. La
+   largeur minimale de 230px tient les noms longs sur deux lignes plutôt
+   que de les couper.
+
+   auto-fill et non auto-fit : avec auto-fit, trois liens restants
+   s'étirent sur toute la largeur et la grille se déforme en fin de liste. */
+/* Le collage WordPress a laissé DEUX conteneurs de colonnes, l'un sous
+   l'autre. Chacun formant sa propre grille, le dernier lien du second se
+   retrouvait seul sur sa ligne — « Suisse culture », orphelin, sans que rien
+   ne le justifie.
+
+   display:contents efface les deux conteneurs de la mise en page sans
+   toucher au HTML : leurs liens deviennent les cases de la grille de la
+   section, et coulent d'un seul tenant. La coupure entre les deux blocs
+   disparaît, et le nombre de liens cesse d'avoir de l'importance.
+
+   Effet second, voulu : les pastilles se calent sur les trois colonnes des
+   blocs du haut. La page tient un seul rythme du début à la fin. */
+.esp-ressources .wp-block-column{
+  display:contents;
+}
+.esp-ressources .wp-block-column > p,
+.esp-ressources .wp-block-column > a{
+  margin:0;
+  display:flex;
+  align-items:center;
+  min-height:100%;
+  border:var(--trait) solid var(--line);
+  border-radius:12px;
+  padding:15px 18px;
+  background:var(--paper);
+  font-size:15px;
+  line-height:1.35;
+  transition:border-color .18s, background .18s;
+}
+.esp-ressources .wp-block-column > p:hover,
+.esp-ressources .wp-block-column > a:hover{
+  border-color:var(--ink);
+  background:var(--wash);
+}
+.esp-ressources .wp-block-column a{
+  text-decoration:none;
+  font-weight:500;
+  color:var(--ink);
+}
+/* La classe WordPress rapetissait les noms au point de les rendre secondaires,
+   alors que c'est le contenu principal de cette partie. */
+.esp-ressources .wp-block-column .has-small-font-size{ font-size:15px; }
+/* Un <br> résiduel dans une pastille la ferait grandir pour rien. */
+.esp-ressources .wp-block-column br{ display:none; }
+/* Une pastille vide — un paragraphe sans lien, resté du collage. */
+.esp-ressources .wp-block-column > p:not(:has(a)){ display:none; }
+
+/* ── 5. Le fil courant ────────────────────────────────────────────────
+   Ce qui n'est ni document, ni signalement, ni référence : les phrases de
+   liaison. Elles gardent une largeur de lecture, sinon elles courent sur
+   toute la page et deviennent pénibles à suivre. */
+.esp-ressources > p:not(:has(strong)):not(:first-child){
+  max-width:68ch;
+  margin:0 0 22px;
+}
+
+/* La rangée de trois tient jusqu'à la tablette. En dessous, les blocs
+   descendent l'un sous l'autre : à trois colonnes sur un téléphone, les
+   noms des documents se couperaient au milieu d'un mot. */
+@media (max-width:900px){
+  .esp-ressources{ grid-template-columns:1fr 1fr; }
+}
+@media (max-width:640px){
+  .esp-ressources{ grid-template-columns:1fr; }
+  .esp-ressources .wp-block-column{ grid-template-columns:1fr; }
+}
