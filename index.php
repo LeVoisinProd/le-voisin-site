@@ -337,6 +337,15 @@ switch (true) {
     case $page['module'] === 'pro':
         view('pro', []);
 
+    // ----- Page « Espaces dédiés » : les deux portes d'entrée -----
+    // Une carte vers /espace/ (artistes et technicien·nes), une vers le
+    // catalogue (programmateur·rices). Le gabarit lit lui-même le réglage
+    // « catalogue_url » : tant qu'il est vide, la seconde carte affiche
+    // « Bientôt » au lieu d'un lien mort — même logique que pro.php avec
+    // pro_projects_url. Rien à passer depuis ici.
+    case $page['module'] === 'espaces':
+        view('espaces', []);
+
     // ----- Page « Administration » : connexion, puis choix tableau de bord / CMS -----
     // Une seule adresse pour toute l'équipe. Le lien n'est que dans le pied de
     // page ; la page elle-même est hors du menu (in_nav = 0). L'authentification

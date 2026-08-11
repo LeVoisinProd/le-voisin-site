@@ -69,6 +69,20 @@ return [
     'pro_projects_desc'  => 'Partage des informations de chaque projet : lieu de jeu, logistique, fiche technique, contrats.',
     'pro_projects_soon'  => 'Bientôt disponible',
 
+    // Page « Espaces dédiés » (ex-Soutien). Le h1 ne vient pas de la base :
+    // le champ title_fr sert au menu, qui doit rester court.
+    'esp_h1'            => 'Vos espaces dédiés',
+    'esp_intro'         => 'Que vous soyez artiste, technicien·ne ou programmateur·rice, accédez à un espace conçu pour vous. Suivez vos démarches en toute simplicité.',
+    'esp_membres_pour'  => 'Artistes · technicien·nes',
+    'esp_membres_title' => 'Espace Membres',
+    'esp_membres_desc'  => 'Gérez vos documents, vos notes de frais et vos factures. Suivez vos remboursements et tenez vos données à jour.',
+    'esp_acceder'       => 'Accéder à mon espace',
+    'esp_pros_pour'     => 'Programmateur·rices',
+    'esp_pros_title'    => 'Espace Pros',
+    'esp_pros_desc'     => 'Accédez aux dossiers, visuels, fiches techniques et vidéos de nos productions en tournée.',
+    'esp_acceder_cat'   => 'Accéder au catalogue',
+    'esp_soon'          => 'Bientôt',
+
     // Page « Administration » (accès de l'équipe)
     'adm_login_title' => 'Administration',
     'adm_login_intro' => 'Espace réservé à l\'équipe. Connectez-vous avec l\'adresse e-mail et le mot de passe de votre compte.',

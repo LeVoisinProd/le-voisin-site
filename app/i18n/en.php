@@ -67,6 +67,20 @@ return [
     'pro_projects_desc'  => 'Shared information for each project: performance venue, logistics, technical rider, contracts.',
     'pro_projects_soon'  => 'Coming soon',
 
+    // Page « Espaces dédiés » (ex-Soutien). Le h1 ne vient pas de la base :
+    // le champ title_en sert au menu, qui doit rester court.
+    'esp_h1'            => 'Your dedicated spaces',
+    'esp_intro'         => 'Whether you are an artist, a technician or a programmer, you have a space designed for you. Follow your steps with ease.',
+    'esp_membres_pour'  => 'Artists · technicians',
+    'esp_membres_title' => 'Members Area',
+    'esp_membres_desc'  => 'Manage your documents, expense claims and invoices. Track your reimbursements and keep your details up to date.',
+    'esp_acceder'       => 'Go to my space',
+    'esp_pros_pour'     => 'Programmers',
+    'esp_pros_title'    => 'Professionals',
+    'esp_pros_desc'     => 'Access the dossiers, images, technical riders and videos of our productions on tour.',
+    'esp_acceder_cat'   => 'Open the catalogue',
+    'esp_soon'          => 'Coming soon',
+
     // Page « Administration » (accès de l'équipe)
     'adm_login_title' => 'Administration',
     'adm_login_intro' => 'Team access only. Log in with the e-mail address and password of your account.',

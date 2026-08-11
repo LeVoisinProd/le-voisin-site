@@ -1631,3 +1631,96 @@ a.partner-logo:hover img { filter: none; opacity: 1; }
   .cookies { padding: 10px; }
   .cookies-box { padding: 22px 24px; }
 }
+
+/* ═══════════ Page « Espaces dédiés » ═══════════ */
+/* ---------- Page « Espaces dédiés » ----------
+   À coller à la fin de assets/css/site.css.
+
+   Toutes les tailles reprennent l'échelle du site, pas une échelle inventée :
+     h1        clamp(29px, 5.1vw, 71px), MAJUSCULES, 700   → site.css:88
+     .lead     clamp(18px, 2.4vw, 24px), 1.4, 500          → site.css:94
+     titre     clamp(17px, 2vw, 22px)                      → .pro-title, site.css:652
+     desc      15.5px / 1.5                                → .pro-desc, site.css:653
+     .btn      13px, MAJUSCULES, 700, ls .06em             → site.css:1291
+
+   Les préfixes sont en esp- pour ne pas entrer en collision avec .pro-* qui
+   sert la page d'administration de l'équipe. Ce sont deux choses différentes,
+   même si le mot « pro » apparaît dans les deux. */
+
+.espaces { background: var(--ink); color: var(--paper); padding-block: clamp(56px, 8vw, 110px); }
+
+.espaces-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 1.55fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: stretch;
+}
+
+.espaces-intro { display: flex; flex-direction: column; justify-content: space-between; gap: 40px; }
+.espaces-intro h1 { color: var(--paper); margin: 0; }
+/* .lead est déjà défini plus haut : on ne redéfinit que la couleur, sur fond noir. */
+.espaces-intro .lead { margin: 0; color: #b9b9b6; max-width: 34ch; }
+
+.espaces-cards { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(16px, 2vw, 26px); }
+
+.esp-card {
+  position: relative; overflow: hidden; isolation: isolate;
+  border-radius: var(--radius);
+  min-height: clamp(340px, 38vw, 470px);
+  padding: clamp(24px, 2.6vw, 38px);
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 12px;
+  text-decoration: none;
+  transition: transform .35s cubic-bezier(.22,.61,.36,1);
+}
+a.esp-card:hover, a.esp-card:focus-visible { transform: translateY(-5px); }
+a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outline-offset: 3px; }
+
+/* Les arcs : deux disques qui débordent du coin, coupés par overflow hidden.
+   Aucun dégradé — le thème du site est monochrome, un dégradé jurerait. */
+.esp-arc { position: absolute; border-radius: 50%; z-index: -1; pointer-events: none; }
+.esp-arc-1 { width: 78%; padding-top: 78%; top: -24%; right: -14%; }
+.esp-arc-2 { width: 46%; padding-top: 46%; top: -6%;  right: 6%; }
+
+.esp-card--membres { background: var(--yellow); color: var(--ink); }
+.esp-card--membres .esp-arc { background: #dcb02c; opacity: .55; }
+
+.esp-card--pros { background: var(--paper); color: var(--ink); }
+.esp-card--pros .esp-arc { background: var(--wash); }
+
+.esp-eyebrow {
+  margin: 0; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em; opacity: .62;
+}
+.esp-title { margin: 4px 0 0; font-size: clamp(17px, 2vw, 22px); text-transform: none; letter-spacing: 0; }
+.esp-desc  { margin: 0; font-size: 15.5px; line-height: 1.5; max-width: 36ch; opacity: .78; }
+
+.esp-card .btn { align-self: flex-start; margin-top: 14px; display: inline-flex; align-items: center; gap: 9px; }
+/* Sur la carte jaune, un bouton jaune serait invisible : variante encre. */
+.esp-card--membres .btn { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.esp-card--membres:hover .btn { filter: brightness(1.3); }
+
+/* Flèche en SVG : la Space Grotesk du site ne contient ni → ni ↗, ces caractères
+   tomberaient sur la police système et jureraient dans le bouton. */
+.esp-fleche {
+  width: .95em; height: .95em; flex: none;
+  stroke: currentColor; fill: none; stroke-width: 2.1;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+.esp-soon {
+  position: absolute; top: 22px; left: 22px; z-index: 1;
+  background: rgba(13,13,13,.12); border-radius: 99px; padding: 6px 13px;
+  font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+}
+
+/* Le contenu rédigé dans le CMS, sous les cartes. */
+.esp-ressources { margin-top: 0; }
+
+@media (max-width: 900px) {
+  .espaces-grid  { grid-template-columns: 1fr; }
+  .espaces-cards { grid-template-columns: 1fr; }
+  .esp-card      { min-height: 300px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esp-card { transition: none; }
+}
