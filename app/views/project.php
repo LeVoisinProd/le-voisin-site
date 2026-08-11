@@ -50,8 +50,11 @@
     $infos = sans_deux_points(infos_pratiques(f($project, 'infos')));
     // [V31-PRESSE] La revue de presse compte elle aussi : une fiche qui n'a
     // qu'un article de presse doit ouvrir la colonne de droite pour lui.
+    /* [11.08.2026] Les documents ne comptent plus pour ouvrir la colonne : ils
+       ne s'y affichent plus. Une fiche qui n'aurait QUE des documents et rien
+       d'autre ouvrait sinon une colonne vide. */
     $hasAside = trim(strip_tags($distribution)) !== '' || trim(strip_tags($infos)) !== ''
-                || !empty($press) || $documents;
+                || !empty($press);
 
     // Bios des artistes liés (extrait, avec lien vers la fiche complète)
     $bios = [];
@@ -111,12 +114,24 @@
           <?= docs_list($press, true) ?>
         </div>
         <?php endif; ?>
-        <?php if ($documents): ?>
-        <div class="aside-block">
-          <h2><?= e(t('documents')) ?></h2>
-          <?= docs_list($documents, true) /* [V31-DOCS-LISTE] en lignes */ ?>
-        </div>
-        <?php endif; ?>
+        <?php /* [11.08.2026] Le bloc « Documents » ne s'affiche plus ici.
+
+                 Mesuré le même jour sur cette fiche : six PDF s'y
+                 téléchargeaient sans aucune session, dont cinq de la fiche
+                 technique — les riders DE, FR et EN à 2 Mo chacun, le plan de
+                 lumières et la conduite. Un plan de lumières ne séduit
+                 personne : c'est ce qu'on envoie à qui a déjà dit oui.
+
+                 La revue de presse, elle, reste publique juste au-dessus :
+                 elle fait exactement le travail inverse.
+
+                 Rien n'est supprimé ni déplacé. Les documents restent dans le
+                 CMS, zone « doc », à la même place, et c'est le Catalogue qui
+                 les servira derrière son mot de passe. Le jour où il existe,
+                 il lit cette zone sans qu'on ait à reclasser un fichier.
+
+                 Pour remettre un document en public : le passer dans la zone
+                 « Presse », qui est la seule que cette page affiche. */ ?>
       </aside>
       <?php endif; ?>
     </div>
