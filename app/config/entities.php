@@ -96,6 +96,49 @@ return [
                                  'label' => ['fr' => 'Documents', 'en' => 'Documents']],
             'visible'        => ['type' => 'toggle',
                                  'label' => ['fr' => 'Publié', 'en' => 'Published']],
+
+            /* ── Catalogue ────────────────────────────────────────────────
+               [V42-CATALOGUE] L'espace privé envoyé aux programmateurs. Ces
+               champs ne changent RIEN au site public : une fiche s'y affiche
+               exactement comme avant, et « catalog_visible » vaut 0 tant que
+               personne ne coche la case. Un spectacle se saisit une seule
+               fois, ici, et les deux pages en montrent chacune sa part. */
+            'catalog_visible' => ['type' => 'toggle',
+                                 'label' => ['fr' => 'Dans le Catalogue', 'en' => 'In the Catalogue'],
+                                 'help'  => ['fr' => 'Décoché, ce spectacle n\'apparaît pas dans le Catalogue professionnel. La fiche publique, elle, ne change pas.',
+                                             'en' => 'Unticked, this show does not appear in the professional Catalogue. The public page is unaffected.']],
+            'catalog_status'  => ['type' => 'select_static',
+                                 'label' => ['fr' => 'État pour le Catalogue', 'en' => 'Catalogue status'],
+                                 'options' => [
+                                     'touring'  => ['fr' => 'En tournée',  'en' => 'On tour'],
+                                     'creation' => ['fr' => 'En création', 'en' => 'In creation'],
+                                     'archive'  => ['fr' => 'Archive',     'en' => 'Archive'],
+                                 ],
+                                 'help'  => ['fr' => 'Répond à « peut-on la programmer la saison prochaine ». C\'est le filtre du Catalogue, distinct du statut public ci-dessus.',
+                                             'en' => 'Answers "can it be programmed next season". This is the Catalogue filter, separate from the public status above.']],
+            'year_creation'   => ['type' => 'text',
+                                 'label' => ['fr' => 'Année de création', 'en' => 'Year of creation'],
+                                 'help'  => ['fr' => 'Quatre chiffres. C\'est elle qui trie le Catalogue, du plus récent au plus ancien. Laisser vide pour une pièce en création.',
+                                             'en' => 'Four digits. It sorts the Catalogue, newest first. Leave empty for a show still in creation.']],
+            'duration_min'    => ['type' => 'text',
+                                 'label' => ['fr' => 'Durée (minutes)', 'en' => 'Duration (minutes)'],
+                                 'help'  => ['fr' => 'En minutes, chiffres seuls : 75, pas « 1h15 ».',
+                                             'en' => 'In minutes, digits only: 75, not "1h15".']],
+            'capacity'        => ['type' => 'i18n_text',
+                                 'label' => ['fr' => 'Jauge', 'en' => 'Capacity'],
+                                 'help'  => ['fr' => 'En clair, comme on l\'écrirait à un programmateur : « 80 à 200 personnes », « frontal, 150 places ».',
+                                             'en' => 'In plain words, as you would write it to a programmer: "80 to 200 people", "end-on, 150 seats".']],
+            'tags'            => ['type' => 'text',
+                                 'label' => ['fr' => 'Mots-clefs', 'en' => 'Keywords'],
+                                 'help'  => ['fr' => 'Séparés par des virgules. Ils alimentent les filtres du Catalogue : jeune public, marionnette, tout terrain.',
+                                             'en' => 'Comma separated. They feed the Catalogue filters: young audiences, puppetry, all venues.']],
+            'photo_credit'    => ['type' => 'text',
+                                 'label' => ['fr' => 'Crédit photo', 'en' => 'Photo credit']],
+            'media_slug'      => ['type' => 'text',
+                                 'label' => ['fr' => 'Dossier des médias', 'en' => 'Media folder'],
+                                 'help'  => ['fr' => 'Le nom du dossier à ouvrir en FTP pour déposer teaser, captation, photos HD et fiche technique. Rempli automatiquement depuis l\'adresse française : ne le changez que si vous avez renommé le dossier sur le serveur.',
+                                             'en' => 'The folder name to open over FTP for the teaser, full recording, HD photos and technical rider. Filled automatically from the French address: change it only if you renamed the folder on the server.']],
+
             'seo'            => ['type' => 'seo',
                                  'label' => ['fr' => 'Référencement (SEO)', 'en' => 'Search engines (SEO)']],
         ],
