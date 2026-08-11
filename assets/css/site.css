@@ -1798,7 +1798,12 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 
    Ils deviennent des blocs encadrés parce que ce sont des DOCUMENTS, pas
    du texte courant : on vient les chercher, on ne les lit pas au fil. */
-.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])){
+/* [11.08.2026] Deux écritures pour la même chose : le français met le lien
+   DANS le gras, l'anglais met le gras DANS le lien. Les deux formes valent, et
+   la règle doit reconnaître les deux — sinon un document n'est encadré que
+   dans une langue. */
+.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])),
+.esp-ressources > p:has(> a > strong):not(:has(a[href^="mailto"])){
   grid-column:auto;                  /* reprend UNE colonne de la rangée */
   display:flex;
   flex-direction:column;
@@ -1813,11 +1818,13 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
   border-color:var(--ink);
 }
 /* Le titre du document : sorti du fil, posé au-dessus de sa description. */
-.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])) > strong{
+.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])) > strong,
+.esp-ressources > p:has(> a > strong):not(:has(a[href^="mailto"])) > strong{
   display:block;
   margin-bottom:8px;
 }
-.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])) > strong a{
+.esp-ressources > p:has(> strong > a):not(:has(a[href^="mailto"])) > strong a,
+.esp-ressources > p:has(> a > strong):not(:has(a[href^="mailto"])) > a strong{
   font-size:clamp(17px,1.9vw,21px);
   font-weight:700;
   line-height:1.25;
