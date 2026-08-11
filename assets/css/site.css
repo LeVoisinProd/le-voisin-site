@@ -496,8 +496,12 @@ body.has-hero main > section:first-child > .wrap > .video {
    Une phrase puis un bouton, pour qu'on sache où l'on va avant de cliquer.
    Le texte prend la hauteur disponible (flex: 1) : les deux boutons restent
    ainsi alignés même si l'une des phrases est plus longue que l'autre. */
+/* [11.08.2026] Deux colonnes fixes tant qu'il y avait deux blocs. Depuis le
+   retrait de « Espace collaborateur », il n'en reste qu'un — et une grille
+   1fr 1fr le laissait collé à gauche, la moitié droite vide.
+   auto-fit tient les deux cas : un bloc prend la largeur, deux se partagent. */
 .access-blocks {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 26px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 26px;
   max-width: 980px; margin: 34px 0 10px;
 }
 .access-block {
@@ -1890,8 +1894,16 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 .esp-ressources .wp-block-column{
   display:contents;
 }
+/* [11.08.2026] Les pastilles se reconnaissent à leur CLASSE, plus à leur
+   place dans l'arbre. La version française range ces liens dans un
+   wp-block-column ; l'anglaise les laisse en enfants directs. Cibler le
+   conteneur ne marchait donc que dans une langue — et l'autre partait en
+   pleine largeur, une ligne par lien. On vise wp-block-heading, que les deux
+   portent, où qu'il se trouve. */
+.esp-ressources p.wp-block-heading,
 .esp-ressources .wp-block-column > p,
 .esp-ressources .wp-block-column > a{
+  grid-column:auto;
   margin:0;
   display:flex;
   align-items:center;
@@ -1904,11 +1916,13 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
   line-height:1.35;
   transition:border-color .18s, background .18s;
 }
+.esp-ressources p.wp-block-heading:hover,
 .esp-ressources .wp-block-column > p:hover,
 .esp-ressources .wp-block-column > a:hover{
   border-color:var(--ink);
   background:var(--wash);
 }
+.esp-ressources p.wp-block-heading a,
 .esp-ressources .wp-block-column a{
   text-decoration:none;
   font-weight:500;
@@ -1916,17 +1930,20 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 }
 /* La classe WordPress rapetissait les noms au point de les rendre secondaires,
    alors que c'est le contenu principal de cette partie. */
+.esp-ressources p.wp-block-heading.has-small-font-size,
 .esp-ressources .wp-block-column .has-small-font-size{ font-size:15px; }
 /* Un <br> résiduel dans une pastille la ferait grandir pour rien. */
+.esp-ressources p.wp-block-heading br,
 .esp-ressources .wp-block-column br{ display:none; }
 /* Une pastille vide — un paragraphe sans lien, resté du collage. */
+.esp-ressources p.wp-block-heading:not(:has(a)),
 .esp-ressources .wp-block-column > p:not(:has(a)){ display:none; }
 
 /* ── 5. Le fil courant ────────────────────────────────────────────────
    Ce qui n'est ni document, ni signalement, ni référence : les phrases de
    liaison. Elles gardent une largeur de lecture, sinon elles courent sur
    toute la page et deviennent pénibles à suivre. */
-.esp-ressources > p:not(:has(strong)):not(:first-child){
+.esp-ressources > p:not(:has(strong)):not(:first-child):not(.wp-block-heading){
   max-width:68ch;
   margin:0 0 22px;
 }

@@ -29,10 +29,19 @@ $lvDepenses = Pages::moduleP('form_expenses');
       </section>
       <?php endif; ?>
 
-      <section class="access-block">
-        <p class="access-text"><strong><?= e(t('forms_member_lead')) ?></strong> <?= e(t('forms_member_intro')) ?></p>
-        <p class="access-go"><a class="btn big" href="<?= e(url('/espace/login.php')) ?>"><?= e(t('forms_member_btn')) ?></a></p>
-      </section>
+      <?php /* Le bloc « Espace collaborateur » a été retiré le 11.08.2026.
+
+               Il envoyait vers /espace/login.php à une époque où c'était la
+               seule porte. Depuis, la page « Espaces dédiés » existe, elle est
+               au menu, et elle explique les deux accès au lieu d'en poser un
+               ici sans contexte. Deux entrées vers la même porte, sur deux
+               pages différentes, c'est une de trop : celle qui reste est celle
+               qui sait de quoi elle parle.
+
+               Les clés forms_member_lead, forms_member_intro et
+               forms_member_btn ne servent plus à personne. Elles restent dans
+               les fichiers de langue — les retirer n'apporte rien et ferait
+               deux fichiers de plus à déployer. */ ?>
     </div>
 
     <?= gallery_grid($gallery ?? []) ?>
