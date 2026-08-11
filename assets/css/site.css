@@ -689,6 +689,15 @@ a.ecard-btn:hover { background: #fff; color: var(--ink); }
    Gris franc, donc — les trois canaux presque à égalité, avec une pointe de
    bleu qui l'éloigne du crème sans le rendre froid. La valeur est posée ici et
    non dans --wash : le reste du site ne bouge pas. */
+/* Le fond de l'espace collaborateur.
+
+   Il tirait sur le beige : --wash vaut #f4f4f2, dont le bleu est plus bas que
+   le rouge et le vert. Juste ailleurs sur le site, où ce fond chaud pose des
+   blocs dans des pages de présentation. Ici, non : l'espace est un outil de
+   travail, et le beige lui donnait un air de papier ancien.
+
+   Le fond noir a été essayé le 11.08 et écarté à l'écran : trop de surface
+   sombre pour une page où l'on lit de l'administratif. Gris franc, donc. */
 .espace-body { background: #f2f3f5; min-height: 100vh; }
 /* [V27-ACCES] Bandeau de visite : quand l'administration regarde l'espace de
    quelqu'un, cela doit se voir sans avoir à le chercher. Jaune du site sur
@@ -874,9 +883,29 @@ div.espace-fiche-envoi > p:last-child { margin: 0; }
    cadre est ouvert par défaut — replié, il faudrait deviner son existence —
    mais il reste repliable, parce qu'on ne dépose pas une facture chaque fois
    qu'on vient chercher son contrat. */
+/* [11.08.2026] Le dépôt de facture est le seul bloc noir de l'espace.
+
+   C'est le seul endroit où la personne ÉCRIT — partout ailleurs elle consulte
+   et télécharge. En blanc sur fond gris clair il se fondait dans la page, et
+   rien ne disait que c'était là qu'on agit.
+
+   Les champs restent blancs : un champ sombre sur panneau sombre cesse de
+   ressembler à un champ, et c'est le seul repère qui dit où la frappe atterrit.
+   Le bouton jaune ne bouge pas, le noir le fait mieux ressortir. */
 .espace-depot {
-  background: var(--paper); border-radius: 16px; padding: 6px 24px 22px; margin: 22px 0 0;
+  background: var(--ink); color: var(--paper);
+  border-radius: 16px; padding: 6px 24px 26px; margin: 22px 0 0;
 }
+.espace-depot .espace-depot-i,
+.espace-depot .field-help { color: rgba(255,255,255,.68); }
+.espace-depot label { color: var(--paper); }
+.espace-depot select,
+.espace-depot input[type="file"],
+.espace-depot input[type="text"],
+.espace-depot textarea {
+  background: var(--paper); color: var(--ink); border-color: var(--paper);
+}
+.espace-depot fieldset[disabled] { opacity: .55; }
 .espace-depot > summary {
   cursor: pointer; font-weight: 700; font-size: 18px; padding: 16px 0; list-style: none;
 }
