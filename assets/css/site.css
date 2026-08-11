@@ -675,7 +675,17 @@ a.ecard-btn:hover { background: #fff; color: var(--ink); }
 .adm-forgot p { margin: 10px 0 0; line-height: 1.55; }
 
 /* ---------- Espace collaborateur ---------- */
-.espace-body { background: var(--wash); min-height: 100vh; }
+/* Le fond de l'espace collaborateur.
+
+   Il tirait sur le beige : --wash vaut #f4f4f2, dont le bleu est plus bas que
+   le rouge et le vert. C'est juste ailleurs sur le site, où ce fond chaud pose
+   des blocs dans des pages de présentation. Ici, non : l'espace est un outil de
+   travail, et le beige lui donnait un air de papier ancien.
+
+   Gris franc, donc — les trois canaux presque à égalité, avec une pointe de
+   bleu qui l'éloigne du crème sans le rendre froid. La valeur est posée ici et
+   non dans --wash : le reste du site ne bouge pas. */
+.espace-body { background: #f2f3f5; min-height: 100vh; }
 /* [V27-ACCES] Bandeau de visite : quand l'administration regarde l'espace de
    quelqu'un, cela doit se voir sans avoir à le chercher. Jaune du site sur
    fond noir, en haut de chaque page, avec le seul bouton qui referme la
@@ -1930,4 +1940,58 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 @media (max-width:640px){
   .esp-ressources{ grid-template-columns:1fr; }
   .esp-ressources .wp-block-column{ grid-template-columns:1fr; }
+}
+
+/* ═══════ Espace collaborateur : de la colonne à la grille ═══════
+
+   L'espace tenait dans .narrow, soit 800 px, et chaque document occupait une
+   ligne pleine largeur. Sur un écran large cela donnait une colonne étroite au
+   milieu du vide, et une liste qui s'allonge sans fin — or le nombre de
+   documents par personne ne fait que croître : contrats, fiches de salaire,
+   feuilles de route, billets, une par production et par mois.
+
+   Deux corrections qui vont ensemble. Le contenant s'élargit, et la liste
+   passe en grille : les documents se rangent côte à côte au lieu de s'empiler.
+
+   Ce qui NE s'élargit pas : les formulaires. Un champ de saisie de 1200 px de
+   large est plus pénible à remplir qu'un de 700, et la fiche personnelle est
+   le seul endroit de l'espace où l'on écrit vraiment. */
+.espace-main .narrow{ max-width:1240px; }
+
+/* Les formulaires gardent une largeur de saisie, au centre de la page élargie. */
+.espace-main .form,
+.espace-main .espace-login{ max-width:720px; }
+
+/* La grille des documents.
+
+   auto-fill et non auto-fit : avec auto-fit, un dernier document seul sur sa
+   ligne s'étirerait sur toute la largeur et n'aurait plus la forme des autres.
+   360 px est la largeur en dessous de laquelle le nom d'une fiche de salaire
+   — date comprise — commence à se couper n'importe où. */
+.espace-main .mdoc-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+  gap:12px;
+  align-items:stretch;
+}
+
+/* En grille, la ligne devient une carte : le nom en haut, les actions en bas.
+   Côte à côte comme avant, les boutons se retrouvaient collés au titre dès que
+   la case rétrécissait, et deux documents voisins n'alignaient plus rien. */
+.espace-main .mdoc{
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:space-between;
+  gap:14px;
+  padding:18px 20px;
+}
+.espace-main .mdoc-actions{
+  justify-content:flex-start;
+  flex:none;
+}
+
+/* Sur un écran étroit, une seule colonne : deux cartes de 360 px côte à côte
+   sur un téléphone, ce n'est pas une grille, c'est du texte illisible. */
+@media (max-width:760px){
+  .espace-main .mdoc-list{ grid-template-columns:1fr; }
 }
