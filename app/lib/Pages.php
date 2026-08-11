@@ -27,6 +27,10 @@ class Pages
                             'en' => 'PRO page (private access: CMS / dashboard)'],
         'admin_portal'  => ['fr' => 'Page Administration (connexion équipe → tableau de bord / CMS)',
                             'en' => 'Administration page (team login → dashboard / CMS)'],
+        // Sans cette ligne le gabarit espaces.php ne sert à rien : la liste du
+        // CMS est fermée, et page-edit.php refuse toute valeur absente d'ici.
+        'espaces'       => ['fr' => 'Page Espaces dédiés (cartes Membres / Pros)',
+                            'en' => 'Dedicated spaces page (Members / Pros cards)'],
     ];
 
     private static ?array $all = null;
