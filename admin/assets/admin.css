@@ -1,0 +1,413 @@
+/* ============================================================
+   Le Voisin — interface d'administration   [V11-LANGUE-CACHE]
+   Design d'après le thème Tortoise : monochrome, Space Grotesk,
+   cadres nets, boutons pilule. Couleurs fonctionnelles conservées
+   pour les statuts (en ligne / hors ligne / erreurs).
+   ============================================================ */
+:root {
+  --ink: #000000;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --line: #dddddd;
+  --grey: #6b6b66;
+  --wash: #f4f4f2;
+  --error: #c9301c;
+  --ok: #1d7a3f;
+  --font: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* [V30-TRAITS-FINS] L'épaisseur de tous les contours de l'administration.
+     Elle était écrite en dur, 2 px (et 3 px sur les fenêtres), à une trentaine
+     d'endroits ; elle tient maintenant ici, en un seul chiffre.
+
+     1 px est le trait le plus fin qu'un écran sache dessiner proprement :
+     en dessous, le navigateur arrondit, et selon l'écran la ligne devient
+     grise, tremblante, ou disparaît d'un côté de la case. Si vous la voulez
+     encore plus légère, ce n'est pas l'épaisseur qu'il faut baisser mais la
+     couleur — dites-le-moi et je passe les contours au gris. */
+  --trait: 1px;
+  --trait-fort: 1px;   /* fenêtres (recadrage, connexion) : autrefois 3 px */
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; font-family: var(--font); font-size: 15px; line-height: 1.5;
+  background: var(--bg); color: var(--ink);
+}
+a { color: inherit; }
+img { max-width: 100%; }
+
+/* [V33-VECTORIEL] Les petits signes de l'administration — la flèche des liens
+   qui ouvrent le site dans un autre onglet, les ciseaux du recadrage — sont
+   des dessins et non des caractères. Écrits en toutes lettres (« ↗ », « ✂ »),
+   les téléphones et les tablettes allaient les chercher dans leur police
+   d'émojis en couleur ; dessinés, ils sont tracés par le navigateur, restent
+   nets à n'importe quelle taille et prennent la couleur du texte autour.
+   Le dessin lui-même est dans app/lib/Ico.php. */
+.ico {
+  width: .72em; height: .72em; display: inline-block; vertical-align: -.03em;
+  flex: none; fill: none; stroke: currentColor; stroke-width: 1.5;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+/* Les ciseaux tiennent dans un bouton rond : un peu plus grands, sinon ils
+   flottent au milieu de la pastille. */
+.ico-ciseaux { width: 1.05em; height: 1.05em; vertical-align: -.2em; stroke-width: 1.5; }
+
+.shell { display: grid; grid-template-columns: 236px 1fr; min-height: 100vh; }
+
+/* ---------- Barre latérale ---------- */
+.side {
+  background: var(--ink); color: #fff; padding: 24px 0 16px;
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+}
+.side-logo {
+  margin: 0 22px 24px; font-weight: 700; letter-spacing: .24em; font-size: 16px;
+}
+.side-logo span { display: block; font-weight: 400; letter-spacing: .14em; font-size: 10px; text-transform: uppercase; color: #9a9a94; margin-top: 4px; }
+.side nav { display: flex; flex-direction: column; flex: 1; overflow: auto; }
+.side nav a {
+  color: #d9d9d4; text-decoration: none; padding: 9px 22px; font-size: 14px;
+  border-left: 3px solid transparent;
+}
+.side nav a:hover { color: #fff; background: rgba(255,255,255,.08); }
+.side nav a.on { color: #fff; border-left-color: #fff; background: rgba(255,255,255,.12); font-weight: 700; }
+.side-sep {
+  margin: 18px 22px 6px; font-size: 10.5px; text-transform: uppercase;
+  letter-spacing: .16em; color: #85857f;
+}
+.side-foot { padding: 14px 22px 0; border-top: 1px solid rgba(255,255,255,.18); display: flex; flex-direction: column; gap: 6px; }
+.side-foot a { color: #b9b9b3; font-size: 13px; text-decoration: none; }
+.side-foot a:hover { color: #fff; text-decoration: underline; }
+
+/* Langue de l'administration (sélecteur FR | EN) */
+.side-lang { display: flex; gap: 10px; align-items: center; margin: 14px 0 0; flex-wrap: wrap; }
+.side-lang a {
+  color: #85857f; font-size: 11px; letter-spacing: .12em; text-decoration: none;
+  border: 1px solid rgba(255,255,255,.28); padding: 4px 10px; line-height: 1;
+}
+.side-lang a:hover { color: #fff; border-color: #fff; text-decoration: none; }
+.side-lang a.on { color: #000; background: #fff; border-color: #fff; font-weight: 700; }
+.login-lang { display: flex; gap: 10px; justify-content: center; margin: 22px 0 0; flex-wrap: wrap; }
+.login-lang a {
+  color: var(--grey); font-size: 11px; letter-spacing: .12em; text-decoration: none;
+  border: 1px solid var(--line); padding: 4px 10px; line-height: 1;
+}
+.login-lang a:hover { color: var(--ink); border-color: var(--ink); }
+.login-lang a.on { color: #fff; background: var(--ink); border-color: var(--ink); font-weight: 700; }
+/* Le séparateur « · » ne sert que si cette feuille n'est pas chargée. */
+.side-lang .lang-sep, .login-lang .lang-sep { display: none; }
+
+/* ---------- Contenu ---------- */
+.content { padding: 32px 40px 90px; max-width: 1220px; }
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+/* [V15-FICHE-PDF] Plusieurs boutons à droite du titre : ils restent groupés
+   au lieu de se répartir sur toute la largeur. */
+.page-head .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+h1 { font-size: 26px; margin: 0; text-transform: uppercase; letter-spacing: .03em; }
+h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .12em; margin: 0 0 16px; border-bottom: var(--trait) solid var(--ink); padding-bottom: 8px; }
+.crumb { color: var(--grey); font-weight: 400; font-size: 16px; text-transform: none; letter-spacing: 0; }
+.panel { background: var(--card); border: var(--trait) solid var(--ink); padding: 26px 28px; margin-bottom: 24px; border-radius: 0; }
+.cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 28px; }
+.hint { color: var(--grey); font-size: 13px; }
+.muted { color: var(--grey); }
+ul.plain { list-style: none; margin: 0; padding: 0; }
+ul.plain li { border-top: 1px solid var(--line); }
+ul.plain a { display: block; padding: 9px 2px; text-decoration: none; }
+ul.plain a:hover { text-decoration: underline; }
+.help-list { margin: 0; padding-left: 18px; }
+.help-list li { margin-bottom: 10px; font-size: 14px; }
+.quick { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Flash ---------- */
+.flash { padding: 13px 18px; border-radius: 0; margin-bottom: 20px; font-weight: 700; font-size: 14px; border: var(--trait) solid; }
+.flash.ok { background: #eaf6ef; color: var(--ok); border-color: var(--ok); }
+.flash.err { background: #fdedea; color: var(--error); border-color: var(--error); }
+.flash.warn { background: #fdf6e3; color: #7a5a12; border-color: #c99b2b; }
+.flash a { color: inherit; }
+
+/* ---------- Stats ---------- */
+.stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat { background: var(--card); border: var(--trait) solid var(--ink); padding: 14px 16px; }
+.stat strong { display: block; font-size: 28px; }
+.stat span { color: var(--grey); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+
+/* ---------- Formulaires ---------- */
+input, select, textarea, button { font: inherit; color: inherit; }
+input[type=text], input[type=email], input[type=password], input[type=date], input[type=url],
+select, textarea {
+  width: 100%; padding: 10px 13px; border: var(--trait) solid var(--ink); border-radius: 0; background: #fff;
+}
+input::placeholder, textarea::placeholder { color: #9a9a94; }
+/* [V30-TRAITS-FINS] Le trait de mise au point (le champ dans lequel on est en
+   train d'écrire) reste à 2 px : ce n'est pas un contour de case mais un
+   repère, et un repère aussi fin que le cadre ne se remarquerait plus. */
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
+.f { margin: 0 0 20px; }
+.f-label { display: block; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.f-label.inline { display: inline; margin: 0 0 0 10px; vertical-align: middle; }
+.f-help { margin: -2px 0 8px; font-size: 12.5px; color: var(--grey); }
+.req { color: var(--error); }
+.f-toggle { display: flex; align-items: center; margin-bottom: 16px; }
+
+.switch { position: relative; display: inline-block; width: 48px; height: 27px; vertical-align: middle; }
+.switch input { display: none; }
+.switch span {
+  position: absolute; inset: 0; background: #c8c8c1; border-radius: 99px; transition: .2s; cursor: pointer;
+}
+.switch span::after {
+  content: ""; position: absolute; width: 21px; height: 21px; border-radius: 50%;
+  background: #fff; top: 3px; left: 3px; transition: .2s;
+}
+.switch input:checked + span { background: var(--ok); }
+.switch input:checked + span::after { left: 24px; }
+
+.btn {
+  display: inline-block; background: #fff; color: var(--ink); border: var(--trait) solid var(--ink);
+  padding: 9px 24px; font-weight: 700; font-size: 12.5px; letter-spacing: .07em; text-transform: uppercase;
+  border-radius: 99px; cursor: pointer; text-decoration: none; transition: .15s;
+}
+.btn:hover { background: var(--ink); color: #fff; }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 6px 16px; font-size: 11.5px; }
+.btn.wide { width: 100%; text-align: center; }
+.btn.wide + .btn.wide { margin-top: 10px; }   /* [V14-DUPLIQUER] */
+/* [V31-ESPACE-VOIR] « Voir la page » quitte la fiche, « Enregistrer » la garde :
+   deux gestes contraires, donc un blanc franc entre eux — plus large que les
+   10 px qui séparent deux boutons de la même famille. La dernière ligne
+   d'explication du bloc perd sa marge basse pour que l'écart mesure toujours la
+   même chose, qu'il y ait une explication affichée ou aucune. */
+.ed-voir { margin-bottom: 22px; }
+.ed-voir .hint { margin-top: 8px; }
+.ed-voir .hint:last-child { margin-bottom: 0; }
+.icon-btn {
+  background: none; border: var(--trait) solid transparent; font-size: 17px; cursor: pointer;
+  padding: 3px 9px; border-radius: 99px; color: var(--grey); text-decoration: none; line-height: 1.2;
+}
+.icon-btn:hover { border-color: var(--ink); color: var(--ink); }
+.icon-btn.danger:hover { border-color: var(--error); color: var(--error); }
+.badge {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .07em; font-weight: 700;
+  padding: 3px 11px; border-radius: 99px; background: var(--wash); color: var(--grey); white-space: nowrap;
+  border: 1px solid var(--line);
+}
+.badge.pub, .badge-btn.pub { background: #eaf6ef; color: var(--ok); border-color: var(--ok); }
+.badge.draft, .badge-btn.draft { background: #fdedea; color: var(--error); border-color: var(--error); }
+.badge.mod { background: #fff; color: var(--ink); border: 1px solid var(--ink); }
+/* [V27-ACCES] « ok » et « warn » étaient déjà employées dans les pages des
+   collaborateurs, mais n'avaient jamais été définies : les pastilles
+   s'affichaient en gris neutre, c'est-à-dire sans rien dire du tout. */
+.badge.ok   { background: #eaf6ef; color: var(--ok); border-color: var(--ok); }
+.badge.warn { background: #fff6e5; color: #8a5a00; border-color: #d8a13a; }
+.badge.off  { background: var(--wash); color: var(--grey); border-color: var(--line); }
+/* La colonne « Accès » porte une phrase, pas une étiquette : on la laisse se
+   lire normalement et revenir à la ligne, plutôt que crier en capitales. */
+.badge.acces { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; white-space: normal; display: inline-block; }
+.badge-btn { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; padding: 3px 11px; border-radius: 99px; border: 1px solid; cursor: pointer; }
+.inline-form { display: inline; }
+/* [V32-DOC-ASSO] Le menu « association » d'un document déjà déposé : discret,
+   sous le nom du fichier, à la taille d'une légende — c'est un rangement, pas
+   une action. */
+.mdoc-asso { display: block; margin-top: 6px; }
+.mdoc-asso select { font-size: 12.5px; padding: 4px 8px; max-width: 260px; }
+
+/* [V33-ESPACE-3] Deux niveaux de titre dans la liste des documents : la famille
+   d'abord — contractualisation, projets —, la rubrique ensuite. Ils ne peuvent
+   pas se ressembler, sinon la séparation en deux volets ne se voit pas et la
+   page redevient la longue liste qu'elle était. La famille prend donc le trait
+   et les capitales ; la rubrique reste un simple gras. */
+.mdoc-volet { font-size: 13px; text-transform: uppercase; letter-spacing: .12em;
+              margin: 30px 0 4px; border-bottom: var(--trait) solid var(--ink); padding-bottom: 6px; }
+.mdoc-cat   { font-size: 15px; margin: 16px 0 6px; }
+
+/* Les menus de rangement d'un document : côte à côte tant qu'il y a la place,
+   l'un sous l'autre quand la fenêtre est étroite. */
+.mdoc-range { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; }
+.mdoc-range .mdoc-asso { margin-top: 0; }
+
+/* [V36-FACTURES] Le statut d'un document, dans la colonne où se lit déjà celui
+   de la signature. La forme est celle des pastilles voisines, sinon deux
+   états affichés l'un sous l'autre paraîtraient de nature différente alors
+   qu'ils répondent tous deux à « où en est ce document ? ».
+
+   Les couleurs sont exactement celles de l'espace de la personne : ce que le
+   bureau voit ici et ce qu'elle voit chez elle doivent se reconnaître d'un
+   coup d'œil, faute de quoi on se téléphone pour comparer. */
+.mdoc-st {
+  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; padding: 3px 11px; border-radius: 99px;
+  border: 1px solid transparent; background: var(--wash); color: var(--grey);
+  white-space: nowrap;
+}
+.mdoc-st-sent     { background: #fff6e5; color: #8a5a00; border-color: #d8a13a; }
+.mdoc-st-paid     { background: #e9eefb; color: #26417f; border-color: #7f92c9; }
+.mdoc-st-received { background: #eaf6ef; color: var(--ok); border-color: var(--ok); }
+/* La date en second, sans les capitales du libellé : « Payée » sans date
+   laisse la question ouverte — depuis quand ? */
+.mdoc-st-d { font-weight: 500; text-transform: none; letter-spacing: 0; opacity: .8; }
+
+/* ---------- Listes ---------- */
+.rowlist { display: flex; flex-direction: column; }
+.rowitem {
+  display: flex; align-items: center; gap: 14px; padding: 11px 6px;
+  border-top: 1px solid var(--line);
+}
+.rowitem:first-child { border-top: 0; }
+.row-thumb { width: 54px; height: 54px; flex: none; background: var(--wash); overflow: hidden; }
+.row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.row-main { flex: 1; text-decoration: none; display: flex; flex-direction: column; min-width: 0; }
+.row-main:hover strong { text-decoration: underline; }
+.row-main em { font-style: normal; color: var(--grey); font-size: 13px; }
+.userpass { display: flex; gap: 8px; align-items: center; }
+.userpass input { width: 215px; }
+.sortable-ghost { opacity: .4; }
+.vid-drag { cursor: grab; color: #b5b5ae; font-size: 15px; letter-spacing: -2px; user-select: none; padding: 0 2px; }
+
+/* ---------- Pages (arborescence) ---------- */
+.pages-branch { margin-left: 0; min-height: 6px; }
+.page-node .pages-branch { margin-left: 36px; border-left: var(--trait) solid var(--ink); padding-left: 12px; }
+.page-row {
+  display: flex; align-items: center; gap: 10px; background: var(--card);
+  border: var(--trait) solid var(--ink); padding: 9px 13px; margin: 7px 0;
+}
+.page-title { flex: 1; font-weight: 700; text-decoration: none; }
+.page-title:hover { text-decoration: underline; }
+
+/* ---------- Édition ---------- */
+.editgrid { display: grid; grid-template-columns: 1fr 330px; gap: 24px; align-items: start; }
+.editside { position: sticky; top: 20px; }
+.ltabs-nav { display: flex; gap: 6px; margin-bottom: 8px; }
+.ltab {
+  border: var(--trait) solid var(--ink); background: #fff; padding: 4px 15px; font-size: 12px;
+  font-weight: 700; border-radius: 99px; cursor: pointer; color: var(--ink);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.ltab.on { background: var(--ink); color: #fff; }
+.slug { font-family: "Space Mono", ui-monospace, monospace; font-size: 13px; }
+.seo-block summary { cursor: pointer; font-weight: 700; font-size: 13.5px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.seo-block[open] summary { margin-bottom: 16px; }
+.seo-block input, .seo-block textarea { margin-bottom: 8px; }
+/* [V30-SEO-AUTO] Le texte gris clair d'une case vide n'est plus une consigne
+   mais le résultat : ce que Google publiera si on n'y touche pas. On le laisse
+   donc lisible — un gris trop pâle donnerait l'impression qu'il n'y a rien. */
+.seo-block input::placeholder, .seo-block textarea::placeholder { color: var(--grey); opacity: 1; }
+.seo-count { margin: -4px 0 10px; font-variant-numeric: tabular-nums; }
+.seo-count b { font-weight: 700; }
+/* Tant que la case est vide, le compte est celui du texte automatique : on le
+   met en gris, comme lui, pour qu'on ne le prenne pas pour une saisie. */
+.seo-count.auto { color: var(--grey); }
+.seo-count.over { color: #b3261e; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.check { display: flex; gap: 9px; align-items: center; font-size: 14px; }
+.check input { width: 18px; height: 18px; accent-color: var(--ink); }
+
+/* ---------- Image seule ---------- */
+.imgpick { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; border: var(--trait) dashed var(--ink); padding: 13px; }
+.imgpick.dragover { background: var(--wash); }
+.imgpick-preview { width: 112px; height: 112px; background: var(--wash); overflow: hidden; flex: none; display: flex; align-items: center; justify-content: center; }
+.imgpick-preview img { width: 100%; height: 100%; object-fit: cover; }
+.imgpick-empty { color: var(--grey); font-size: 12px; }
+/* [V30-SEO-AUTO] L'image qui servira faute de choix — l'image représentative
+   de la fiche, pour l'image de partage. Elle s'affiche en aperçu pâle, avec
+   son étiquette : la case est vide, la fiche ne l'est pas. */
+.imgpick-preview { position: relative; }
+.imgpick-auto { opacity: .45; filter: grayscale(1); }
+.imgpick-autotag { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ink); color: #fff;
+  font-size: 10px; letter-spacing: .06em; text-transform: uppercase; text-align: center; padding: 2px 0; }
+.imgpick-actions { display: flex; flex-direction: column; gap: 8px; }
+.imgpick .hint { width: 100%; margin: 4px 0 0; }
+
+/* ---------- Galerie ---------- */
+.dropzone {
+  display: block; border: var(--trait) dashed var(--ink); padding: 24px;
+  text-align: center; color: var(--grey); cursor: pointer; margin-top: 12px; font-size: 14px;
+  font-weight: 500;
+}
+.dropzone:hover, .dropzone.dragover { background: var(--wash); color: var(--ink); }
+.gal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.gal-item { position: relative; background: var(--wash); border: 1px solid var(--line); padding: 8px; }
+.gal-item > img { width: 100%; aspect-ratio: 1/1; object-fit: cover; cursor: grab; }
+.gal-tools { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; }
+.gal-tools .icon-btn { background: rgba(255,255,255,.95); border-color: var(--ink); }
+.gal-alt { margin-top: 6px; font-size: 12px; padding: 5px 8px; border-width: var(--trait) !important; }
+
+/* ---------- Vidéos / documents ---------- */
+.vids-list, .docs-list { display: flex; flex-direction: column; }
+.vid-item, .doc-item {
+  display: flex; align-items: center; gap: 12px; padding: 9px 4px; border-top: 1px solid var(--line);
+}
+.vid-item:first-child, .doc-item:first-child { border-top: 0; }
+.vid-item > img, .doc-item > img { width: 76px; height: 46px; object-fit: cover; flex: none; }
+.vid-thumbvid { width: 76px; height: 46px; object-fit: cover; flex: none; background: #000; border-radius: 4px; }
+.doc-item > img { width: 46px; height: 62px; }
+.vid-noimg { width: 76px; height: 46px; background: var(--wash); flex: none; }
+.doc-badge {
+  width: 46px; height: 62px; background: var(--wash); border: 1px solid var(--ink); flex: none;
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+}
+.vid-meta { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.vid-meta em, .doc-fields em { font-style: normal; color: var(--grey); font-size: 12px; }
+.vid-secs { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--grey); white-space: nowrap; }
+.vid-secs input { width: 54px; text-align: center; padding: 5px 6px; margin: 0; }
+.admin-photo { width: 120px; border-radius: 12px; overflow: hidden; margin-bottom: 12px; border: 1px solid var(--line); }
+.admin-photo img { width: 100%; display: block; }
+.doc-fields { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: center; }
+.doc-fields em { grid-column: 1 / -1; }
+.doc-fields input { font-size: 13px; padding: 6px 9px; border-width: var(--trait) !important; }
+.vids-add, .docs-add { display: flex; gap: 10px; margin-top: 12px; }
+.vids-add input, .docs-add input { flex: 1; }
+/* [V31-DOC-LIEN] L'adresse occupe la ligne entière sous les deux titres, à la
+   place du nom de fichier. En gris, plus petite : c'est une mécanique, pas un
+   contenu — le titre reste ce qu'on lit. */
+.doc-fields .js-doc-link { grid-column: 1 / -1; font-size: 12px; color: var(--grey); }
+.doc-lien .doc-badge { font-size: 9.5px; letter-spacing: .04em; }
+.vids-feed { margin-top: 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.feed-item { cursor: pointer; border: var(--trait) solid var(--ink); overflow: hidden; background: #fff; padding: 0; text-align: left; }
+.feed-item:hover { background: var(--wash); }
+.feed-item img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.feed-item span { display: block; font-size: 11.5px; padding: 6px 8px; line-height: 1.35; font-weight: 500; }
+
+/* ---------- Réseaux sociaux ---------- */
+.social-grid { display: grid; grid-template-columns: 300px 1fr; gap: 22px; margin-top: 16px; align-items: start; }
+.social-grid img { width: 100%; border: 1px solid var(--line); display: block; }
+@media (max-width: 980px) { .social-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Fenêtre de recadrage ---------- */
+.modal { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal-box { background: #fff; border: var(--trait-fort) solid var(--ink); max-width: 880px; width: 100%; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; }
+.modal-head { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: var(--trait) solid var(--ink); }
+.modal-head strong { flex: 1; text-transform: uppercase; letter-spacing: .06em; font-size: 14px; }
+.crop-formats { display: flex; gap: 6px; flex-wrap: wrap; }
+.crop-formats button { border: var(--trait) solid var(--ink); background: #fff; border-radius: 99px; padding: 4px 13px; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--ink); }
+.crop-formats button.on { background: var(--ink); color: #fff; }
+/* [V31-RECADRAGE] Le point marque un format dont le cadre a été déplacé et
+   pas encore enregistré. Il est dessiné dans la couleur du texte : lisible
+   aussi bien sur les pastilles blanches que sur la noire, celle du format
+   affiché. Le compte sur le bouton « Enregistrer » dit la même chose
+   autrement, pour qui ne remarquerait pas les points. */
+.crop-formats button.regle::before { content: '●'; font-size: 9px; margin-right: 5px; vertical-align: 1px; }
+.crop-area { padding: 16px 20px; overflow: auto; }
+.crop-area img { max-width: 100%; display: block; max-height: 55vh; }
+.modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 20px; border-top: var(--trait) solid var(--ink); }
+
+/* ---------- Connexion ---------- */
+.login-body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--ink); font-family: var(--font); }
+.login-box { background: #fff; padding: 40px 44px; width: 390px; border: var(--trait-fort) solid #fff; }
+.login-box .side-logo { color: var(--ink); margin: 0 0 26px; }
+.login-box .side-logo span { color: var(--grey); }
+
+/* ---------- Notifications ---------- */
+.toast {
+  position: fixed; bottom: 22px; right: 22px; z-index: 120; background: var(--ink); color: #fff;
+  padding: 12px 22px; border-radius: 99px; font-weight: 700; font-size: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.25); opacity: 0; transform: translateY(8px); transition: .25s;
+}
+.toast.show { opacity: 1; transform: none; }
+.toast.err { background: var(--error); }
+
+@media (max-width: 980px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { position: relative; height: auto; }
+  .editgrid, .cols, .grid2 { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  .content { padding: 20px; }
+  .gal-grid, .vids-feed { grid-template-columns: repeat(2, 1fr); }
+}

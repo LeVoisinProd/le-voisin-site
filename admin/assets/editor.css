@@ -1,0 +1,24 @@
+/* Styles de l'éditeur WYSIWYG — identiques à ceux du site public (thème Tortoise) */
+body {
+  font-family: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  color: #000;
+  margin: 14px 18px;
+  max-width: 740px;
+}
+h2 { font-size: 26px; line-height: 1.15; margin: 1.4em 0 .5em; font-weight: 700; }
+h3 { font-size: 20px; line-height: 1.2; margin: 1.2em 0 .4em; font-weight: 700; }
+p { margin: 0 0 1em; }
+p.lead { font-size: 21px; line-height: 1.4; font-weight: 500; }
+a { color: #000; text-decoration: underline; text-underline-offset: 2px; }
+/* [V31-TRAIT] 2 px, comme sur le site : ce que montre l'éditeur doit être ce
+   qui sera publié, sans quoi on corrige une mise en page qu'on ne verra pas. */
+blockquote {
+  border-left: 2px solid #000; margin: 1.4em 0; padding: 4px 0 4px 22px;
+  font-size: 20px; font-weight: 500;
+}
+ul, ol { margin: 0 0 1em; padding-left: 1.3em; }
+img { max-width: 100%; height: auto; }
+table { border-collapse: collapse; width: 100%; }
+table td, table th { border: 1px solid #ddd; padding: 8px 10px; }

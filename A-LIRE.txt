@@ -1,0 +1,64 @@
+ENVOI GROUPÉ DES ACCÈS À L'ESPACE PERSONNEL
+Le Voisin — mise à jour du CMS
+
+
+CE QUE FAIT CETTE MISE À JOUR
+
+Sur la page Collaborateurs, chaque compte actif reçoit une case à cocher et un
+bouton « Envoyer les accès » apparaît en bas du tableau. Vous cochez les
+personnes, vous cliquez, et un écran de vérification vous montre d'abord la
+liste des destinataires avec leur adresse et leur langue. Rien ne part tant que
+vous n'avez pas confirmé sur cet écran.
+
+À la confirmation, chaque personne reçoit un lien qui n'appartient qu'à elle,
+dans sa propre langue, et qui lui permet de choisir elle-même son mot de passe.
+Le lien ne sert qu'une fois et reste valable 7 jours.
+
+Le texte du message se modifie dans Réglages, sous « Message d'accès des
+collaborateurs », en français et en anglais. Deux marqueurs, {nom} et {lien},
+sont remplacés au moment de l'envoi ; placez-les où vous voulez dans le texte.
+Tant que les champs restent vides, le message d'origine est utilisé. Un bouton
+permet de s'envoyer un exemple à soi-même avant d'écrire à toute l'équipe :
+cet exemple ne touche aucun compte et ne fabrique aucun vrai lien.
+
+
+INSTALLATION
+
+Cinq fichiers, à déposer par-dessus les fichiers existants en conservant les
+dossiers :
+
+    app/lib/Invitations.php          (nouveau)
+    admin/settings.php               (remplace)
+    admin/collaborators.php          (remplace)
+    app/i18n/admin.fr.php            (remplace)
+    app/i18n/admin.en.php            (remplace)
+
+Aucune modification de la base de données n'est nécessaire.
+
+
+AVANT LE PREMIER ENVOI
+
+1. Vérifiez dans Réglages > Envoi des emails que le serveur d'envoi est bien
+   renseigné. Sans lui, la page refuse l'envoi et vous le dit — elle ne
+   fabrique aucun lien pour rien.
+
+2. Envoyez-vous un exemple depuis Réglages > Message d'accès des
+   collaborateurs, en français puis en anglais, et relisez-le.
+
+3. Commencez par une seule personne. Vérifiez avec elle que le message arrive
+   et que le lien ouvre bien la page du mot de passe, puis faites le reste.
+
+
+DEUX POINTS À CONNAÎTRE
+
+Un envoi remplace le lien précédent de la personne. Si vous réécrivez à
+quelqu'un qui n'avait pas encore utilisé le sien, l'ancien cesse de
+fonctionner — c'est voulu, mais dites-le-lui.
+
+Les comptes désactivés n'ont pas de case à cocher : on ne peut pas leur
+envoyer d'accès par mégarde.
+
+Après chaque envoi, un compte rendu s'affiche : qui a reçu le message, et pour
+les autres la raison exacte de l'échec. En cas d'échec, le lien de la personne
+a tout de même été créé et reste copiable depuis sa fiche. Tous les envois
+s'inscrivent aussi dans le journal des mails du site.

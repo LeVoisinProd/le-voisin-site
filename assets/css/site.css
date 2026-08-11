@@ -1,0 +1,1633 @@
+/* ============================================================
+   Le Voisin — design d'après le thème Tortoise (wwwows)
+   Monochrome noir/blanc, Space Grotesk, filets épais, boutons pilule.
+   Tout le graphisme est piloté par ces variables.
+   ============================================================ */
+:root {
+  --ink: #000000;        /* noir (couleur "one" du thème) */
+  --paper: #ffffff;      /* blanc ("two") */
+  --line: #dddddd;       /* gris clair ("three") */
+  --grey: #666663;
+  --wash: #f4f4f2;
+  --accent: #000000;     /* le thème est monochrome : l'accent est le noir */
+  --yellow: #f0c63f;     /* jaune du logo — état « choisi » des boutons */
+  --error: #c9301c;      /* couleur fonctionnelle (erreurs de formulaire) */
+  /* [V31-TRAIT] L'épaisseur des traits, réglée à un seul endroit.
+
+     Le thème dont le site s'inspire dessine des filets de 3 px : c'est ce qui
+     le rend lourd. Tout ce qui encadre — cartes, blocs, champs, boutons,
+     pastilles — descend donc au trait le plus fin qu'un écran sache tracer.
+     Les cadres ne disparaissent pas : un formulaire sans cadres ne se lit plus,
+     on ne voit plus où commence la case. Ils cessent seulement de peser.
+
+     Deux traits restent à 2 px, et ce n'est pas un oubli :
+
+       — le champ dans lequel on est en train d'écrire. C'est ce trait-là qui
+         dit où va la frappe ; l'amincir au niveau des autres, c'est perdre
+         l'information. Il vaut mieux un contraste net entre le repos et
+         l'activité qu'une page uniformément fine où l'on ne se repère plus.
+
+       — les commandes posées sur une photo (flèches et points du bandeau,
+         flèches de la galerie, bouton blanc des cartes d'agenda) et les deux
+         barres qui désignent au lieu d'encadrer (citation, note de
+         formulaire). Un trait d'un pixel sur une image qui bouge n'est plus
+         un contour, c'est un scintillement. */
+  --trait: 1px;
+  --trait-fort: 2px;
+  --rule: var(--trait) solid var(--ink);   /* le cadre courant */
+  --hero-h: clamp(340px, 44vw, 680px);   /* hauteur du bandeau vidéo d'accueil */
+  --radius: 22px;                 /* arrondi des photos, comme le site actuel */
+  --font: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --wrap: 1400px;
+  --narrow: 800px;
+  --pad: clamp(20px, 4vw, 90px);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; height: auto; }
+picture { display: block; }
+a { color: inherit; }
+.sr, .skip { position: absolute; left: -9999px; }
+.skip:focus { left: 8px; top: 8px; background: var(--ink); color: #fff; padding: 8px 14px; z-index: 99; }
+
+/* [V33-VECTORIEL] Les petits signes du site (la flèche des liens qui ouvrent
+   un autre site, les ciseaux du recadrage) sont des dessins, pas des lettres.
+   Ils étaient écrits avec des caractères — « ↗ », « ✂ » — que les téléphones
+   reconnaissent comme des émojis et vont chercher dans leur police d'images en
+   couleur : le trait fin devenait un dessin épais et coloré, différent d'un
+   appareil à l'autre. Dessinés, ils sont tracés par le navigateur lui-même.
+
+   La taille est donnée en « em », donc relative au texte qui les entoure : le
+   signe grandit et rapetisse avec sa phrase, sans qu'on ait à le régler
+   ailleurs. « currentColor » lui donne la couleur de ce texte — noir dans une
+   page, blanc dans le pied de page. Et « flex: none » l'empêche d'être écrasé
+   quand il se trouve dans une ligne serrée. */
+.ico {
+  width: .72em; height: .72em; display: inline-block; vertical-align: -.03em;
+  flex: none; fill: none; stroke: currentColor; stroke-width: 1.5;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--pad); }
+.narrow { max-width: var(--narrow); margin-left: auto; margin-right: auto; }
+.center { text-align: center; }
+.muted { color: var(--grey); }
+
+h1, h2, h3 { line-height: 1.1; font-weight: 700; letter-spacing: .01em; }
+h1 { font-size: clamp(29px, 5.1vw, 71px); text-transform: uppercase; letter-spacing: .02em; margin: 0 0 28px; }
+h2 { font-size: clamp(19px, 2.6vw, 26px); margin: 40px 0 16px; }
+h2.sub {
+  text-transform: uppercase; letter-spacing: .1em; font-size: 15px;
+  margin-top: 56px;
+}
+.lead { font-size: clamp(18px, 2.4vw, 24px); line-height: 1.4; font-weight: 500; }
+.lead p { margin: 0 0 .8em; }
+
+/* ---------- Header — comme le site actuel : sans bordure, tout en majuscules ---------- */
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--paper);
+  transition: background .25s ease;
+}
+/* Accueil : en-tête transparent posé sur le bandeau vidéo, plein blanc au défilement */
+body.has-hero .site-header { position: fixed; left: 0; right: 0; top: 0; background: transparent; }
+body.has-hero .site-header::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0,0,0,.42), rgba(0,0,0,0));
+  transition: opacity .25s ease;
+}
+body.has-hero .site-header.scrolled { background: var(--paper); }
+body.has-hero .site-header.scrolled::after { opacity: 0; }
+@media (min-width: 1141px) {
+  body.has-hero .site-header .nav a,
+  body.has-hero .site-header .nav-langs a.on { color: #fff; transition: color .25s ease; }
+  body.has-hero .site-header .nav-langs a { color: rgba(255, 255, 255, .65); transition: color .25s ease; }
+  body.has-hero .site-header .nav a:hover { color: rgba(255, 255, 255, .75); }
+  body.has-hero .site-header.scrolled .nav a,
+  body.has-hero .site-header.scrolled .nav-langs a.on { color: var(--ink); }
+  body.has-hero .site-header.scrolled .nav-langs a { color: var(--grey); }
+  /* Sous-menu déroulant : fond clair → texte foncé, même par-dessus le bandeau vidéo. */
+  body.has-hero .site-header .nav .subnav a { color: var(--ink); }
+  body.has-hero .site-header .nav .subnav a:hover { color: var(--ink); background: var(--wash); }
+}
+@media (max-width: 1140px) {
+  body.has-hero .site-header:not(.scrolled) .burger span { background: #fff; }
+}
+.header-in { display: flex; align-items: center; justify-content: space-between; min-height: 84px; gap: 24px; }
+.logo {
+  font-weight: 700; font-size: 21px; letter-spacing: .24em;
+  text-decoration: none; white-space: nowrap; display: block;
+}
+.logo img { display: block; height: 42px; width: auto; }
+.nav ul { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; }
+.nav li { position: relative; }
+.nav a {
+  text-decoration: none; text-transform: uppercase;
+  font-size: 13px; letter-spacing: .12em; font-weight: 500;
+  padding: 10px 0; display: inline-block;
+}
+.nav a:hover { color: var(--grey); }
+.nav li.on > a { font-weight: 700; }
+.nav { display: flex; align-items: center; gap: 30px; }
+.nav-langs { margin: 0; display: flex; gap: 10px; }
+.nav-langs a { text-decoration: none; font-size: 12px; letter-spacing: .1em; color: var(--grey); font-weight: 500; }
+.nav-langs a.on { color: var(--ink); font-weight: 700; }
+.burger { display: none; }
+
+/* Sous-menu déroulant (catégories de projets, sous-pages) */
+.subnav {
+  position: absolute; top: 100%; right: -18px; left: auto; min-width: 200px; max-width: calc(100vw - 32px);
+  background: var(--paper); box-shadow: 0 14px 40px rgba(0,0,0,.14);
+  padding: 10px 0; margin: 0; list-style: none;
+  opacity: 0; visibility: hidden; transform: translateY(6px); transition: .18s;
+  display: block; z-index: 60;
+}
+.nav li.has-sub:hover > .subnav,
+.nav li.has-sub:focus-within > .subnav { opacity: 1; visibility: visible; transform: none; }
+.subnav li { margin: 0; }
+.subnav a {
+  display: block; padding: 8px 20px; font-size: 12px; letter-spacing: .1em;
+  font-weight: 500; white-space: nowrap;
+}
+.subnav a:hover { color: var(--ink); background: var(--wash); }
+
+/* ---------- Sections ---------- */
+.section { padding: 52px 0 72px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.section-head h2 { text-transform: uppercase; letter-spacing: .06em; font-size: clamp(20px, 2.9vw, 34px); margin: 0 0 6px; }
+.more { font-size: 14px; font-weight: 700; text-decoration: none; letter-spacing: .06em; text-transform: uppercase; }
+.more:hover { text-decoration: underline; }
+
+.hero { padding: clamp(36px, 5vw, 72px) 0 6px; }
+.hero + .section { padding-top: 22px; }
+.hero-title {
+  font-size: clamp(34px, 11vw, 150px);
+  letter-spacing: .04em; margin: 0 0 30px; line-height: .92;
+}
+.hero-text { max-width: 760px; }
+
+/* ---------- Bandeau vidéo pleine largeur (accueil) ---------- */
+/* Pleine largeur garantie : marche que le bandeau soit posé directement dans
+   <main> ou qu'il soit encore enfermé dans un .wrap (gabarit d'accueil ancien).
+   calc(50% - 50vw) évite aussi le débordement dû à la barre de défilement. */
+.hero-video,
+body.has-hero main .hero-carousel,
+body.has-hero main > section:first-child > .wrap > .video {
+  width: auto; max-width: none; position: relative;
+  margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+  background: var(--ink);
+}
+/* Le cadre noir occupe toute la largeur, mais une vidéo Vimeo/YouTube reste en
+   16/9 à l'intérieur : elle se retrouvait centrée avec deux bandes noires sur
+   les côtés. On agrandit donc l'iframe jusqu'à couvrir toute la largeur et on
+   rogne le haut et le bas (rendu « bandeau cinéma », sans bande noire). */
+.hero-video .video, .hero-video .hero-slide .video {
+  margin: 0; position: relative; height: var(--hero-h); overflow: hidden;
+}
+.hero-video .video-locked { border-radius: 0; aspect-ratio: auto; width: 100%; height: 100%; }
+.hero-video .video-thumb { opacity: .62; }
+.hero-video .video-msg { max-width: 560px; font-size: 15px; }
+.hero-video .video iframe {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: max(100%, calc(var(--hero-h) * 16 / 9));
+  height: auto; aspect-ratio: 16 / 9;
+  border: 0; border-radius: 0; max-width: none;
+}
+.hero-video .video figcaption { display: none; }
+
+/* Bouton « Son » posé sur le bandeau (la vidéo démarre muette). */
+.hero-sound {
+  position: absolute; right: clamp(14px, 2.4vw, 30px); bottom: clamp(14px, 2.4vw, 30px); z-index: 4;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 18px 9px 14px; border: 0; border-radius: 99px; cursor: pointer;
+  background: rgba(0, 0, 0, .55); color: #fff;
+  font: 700 12px/1 var(--font); letter-spacing: .1em; text-transform: uppercase;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  transition: background .2s, color .2s;
+}
+.hero-sound:hover, .hero-sound:focus-visible { background: var(--yellow); color: var(--ink); }
+.hero-sound .hero-sound-ico {
+  width: 15px; height: 15px; flex: none; position: relative;
+  background: currentColor;
+  -webkit-mask: no-repeat center/100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9v6h4l5 4V5L8 9H4z'/%3E%3C/svg%3E");
+  mask: no-repeat center/100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9v6h4l5 4V5L8 9H4z'/%3E%3C/svg%3E");
+}
+/* Muet : une barre oblique barre l'icône. Son actif : deux ondes. */
+.hero-sound .hero-sound-ico::after {
+  content: ''; position: absolute; left: -2px; top: 50%; width: 20px; height: 2px;
+  background: currentColor; transform: rotate(-45deg);
+}
+.hero-sound.on .hero-sound-ico::after {
+  left: 9px; top: 3px; width: 8px; height: 9px; background: none; transform: none;
+  border-right: 2px solid currentColor; border-radius: 0 9px 9px 0;
+}
+@media (max-width: 640px) { .hero-sound { padding: 8px 14px; font-size: 11px; } }
+/* Vidéos auto-hébergées (fichiers) */
+.video-file { margin: 0; }
+.video-file video { display: block; width: 100%; height: auto; background: #000; border-radius: var(--radius); }
+.hero-video .video-file video { border-radius: 0; width: 100%; height: 100%; object-fit: cover; }
+.hero-slide .video-file, .hero-slide .video-file video { height: 100%; }
+.hero.hero-tight { padding-top: clamp(30px, 4vw, 56px); }
+
+/* Carrousel du bandeau d'accueil (plusieurs vidéos, durée réglable par vidéo) */
+.hero-carousel { position: relative; }
+.hero-carousel:not(.single) .hero-slides { position: relative; height: var(--hero-h); }
+.hero-slide { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .7s ease; }
+.hero-slide.on { opacity: 1; visibility: visible; }
+.hero-slide .video, .hero-slide .video-locked, .hero-slide .video iframe { height: 100%; }
+.hero-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 48px; height: 48px; border-radius: 50%; border: var(--trait-fort) solid #fff;
+  background: rgba(0,0,0,.32); color: #fff; font-size: 26px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .18s;
+}
+.hero-nav:hover, .hero-nav:focus-visible { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
+.hero-nav.prev { left: clamp(10px, 2vw, 26px); }
+.hero-nav.next { right: clamp(10px, 2vw, 26px); }
+.hero-dots { position: absolute; left: 0; right: 0; bottom: 16px; z-index: 3; display: flex; gap: 9px; justify-content: center; }
+.hero-dot { width: 11px; height: 11px; padding: 0; border-radius: 50%; border: var(--trait-fort) solid #fff; background: transparent; cursor: pointer; transition: .18s; }
+.hero-dot.on, .hero-dot:hover { background: var(--yellow); border-color: var(--yellow); }
+/* ---------- Carrousel d'IMAGES du bandeau d'accueil (bout à bout) ---------- */
+/* Les images remplissent toute la largeur de l'écran et toute la hauteur du
+   bandeau : elles sont recadrées au centre (object-fit) plutôt que déformées,
+   donc aucune bande blanche ni noire sur les côtés. */
+.hero-images .hero-slides { position: relative; height: var(--hero-h); overflow: hidden; }
+.hero-images .hero-slide  { position: absolute; inset: 0; }
+.hero-images .hero-slide picture { display: block; width: 100%; height: 100%; }
+.hero-images .hero-slide img {
+  display: block; width: 100%; height: 100%; max-width: none;
+  object-fit: cover; object-position: center;
+  margin: 0; border-radius: 0;
+}
+/* Léger voile sombre en bas du bandeau : les flèches et les pastilles restent
+   lisibles même sur une photo très claire. */
+.hero-images .hero-slides::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 130px; z-index: 2;
+  background: linear-gradient(to top, rgba(0, 0, 0, .34), rgba(0, 0, 0, 0));
+  pointer-events: none;
+}
+.hero-images .hero-nav { box-shadow: 0 2px 16px rgba(0, 0, 0, .38); }
+.hero-images .hero-dot { box-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
+
+/* Une seule image : pas de flèches ni de pastilles, juste le bandeau. */
+.hero-images .hero-carousel:not(.js-hero-images) .hero-nav,
+.hero-images .hero-carousel:not(.js-hero-images) .hero-dots { display: none; }
+
+@media (max-width: 640px) {
+  :root { --hero-h: max(56vw, 210px); }
+  .hero-nav { display: none; }
+}
+
+/* ---------- Cartes ---------- */
+.grid.cards {
+  display: grid; gap: 28px 18px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 22px;
+}
+.card { text-decoration: none; display: block; }
+/* La photo remplit toute la carte : plus de bande grise en bas.
+
+   Les vignettes sont recadrées en 900 × 1125, soit un format 4:5, alors que la
+   carte projet impose un cadre en 3:4, plus haut. La photo était donc trop
+   courte pour son cadre et laissait voir le fond gris clair sur toute la
+   largeur, en bas — c'est la bande. Elle mesurait exactement 8,33 % de la
+   hauteur de la carte, l'écart entre les deux formats.
+
+   « height: 100% » ne suffisait pas : une hauteur en pourcentage ne s'applique
+   pas quand la hauteur du parent vient d'un « aspect-ratio » et non d'une
+   hauteur écrite noir sur blanc. La photo gardait donc ses proportions
+   d'origine, et « object-fit: cover » n'avait rien à recadrer. On la cale
+   plutôt sur les quatre bords du cadre, ce qui ne dépend d'aucun pourcentage :
+   elle occupe toujours toute la carte, et « cover » recadre le surplus au
+   centre. */
+.card-img {
+  display: block; position: relative; overflow: hidden;
+  background: var(--wash); aspect-ratio: 4 / 5; border-radius: var(--radius);
+}
+.card-img img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .5s ease;
+}
+.card:hover .card-img img { transform: scale(1.04); }
+.card-ph {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; aspect-ratio: 4/5;
+  background: var(--ink); color: var(--paper);
+  font-size: 42px; font-weight: 700; letter-spacing: .1em;
+  border-radius: inherit;
+}
+.card-title { display: block; margin-top: 14px; font-weight: 700; font-size: 16px; }
+.card:hover .card-title { text-decoration: underline; text-underline-offset: 3px; }
+.card-sub {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  margin-top: 4px; color: var(--grey); font-size: 14.5px; line-height: 1.45;
+}
+.card-line { padding: 10px 0; }
+
+/* Carte projet : titre blanc + artistes sur l'image (façon Comédie de Genève) */
+.pcard { position: relative; color: #fff; }
+/* Fond sombre le temps que la photo se charge : sur une carte projet, dont le
+   texte est blanc, un fond clair se verrait passer comme une bande pâle. */
+.pcard .card-img { aspect-ratio: 3 / 4; background: var(--ink); }
+.pcard .card-ph { aspect-ratio: 3 / 4; }
+.pcard .card-img::after {
+  content: ""; position: absolute; inset: 0; border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(0,0,0,.05) 30%, rgba(0,0,0,.72) 100%);
+}
+.pcard-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 26px; pointer-events: none;
+}
+.pcard-title {
+  display: block; font-size: clamp(24px, 2.2vw, 34px); font-weight: 700;
+  line-height: 1.02; text-transform: uppercase; letter-spacing: .01em;
+  overflow-wrap: anywhere;
+}
+.pcard:hover .pcard-title { text-decoration: underline; text-underline-offset: 4px; }
+.pcard-artists { display: block; margin-top: 10px; font-size: 15px; font-weight: 500; line-height: 1.3; }
+
+/* Corps de texte des pages : même largeur et même taille partout sur le site
+   (Soutien, Services, À propos, Formulaires…). Le texte occupe toute la
+   largeur du contenu, comme les listes de documents et les galeries qui le
+   suivent, et se répartit sur 2 colonnes à partir du grand écran. */
+.page-body { max-width: none; }
+.page-body > .rich { font-size: 15.5px; line-height: 1.55; text-align: left; }
+/* .about-intro n'a plus de réglage propre : la page « À propos » sert de
+   référence et toutes les pages sont désormais calées dessus. */
+/* Blocs décalés dans le texte (WORKFLOW…) ramenés à la marge commune.
+   Un texte collé depuis Word, Pages ou Google Docs arrive presque toujours
+   enveloppé dans quelque chose qui le décale de 40 px vers la droite : une
+   citation, une « liste » qui n'a pas de puces, une liste de définitions, ou
+   un retrait collé directement sur le paragraphe. La section entière se
+   retrouvait alors 40 px plus à droite que le reste de la page, dans les deux
+   colonnes à la fois. On les ramène tous à la marge commune, quelle que soit
+   la façon dont le texte a été collé — sans toucher aux vraies listes à
+   puces, qui ont besoin de leur retrait pour porter leurs puces.
+
+   Plutôt que d'essayer de deviner quelle balise porte le retrait — il y en a
+   trop de possibles, et se tromper une fois suffit à laisser le défaut en
+   place — on remet à la marge commune TOUT ce qui se trouve dans le corps de
+   texte, quelle que soit la balise employée. Les éléments qui ont besoin d'un
+   retrait ou d'un remplissage pour fonctionner (listes à puces, boutons,
+   champs de formulaire, cellules de tableau) en sont exclus. */
+:is(.page-body > .rich, .fiche-main .rich) *:not(:is(
+    ul, ol, li, a, button, input, select, textarea,
+    table, thead, tbody, tfoot, tr, th, td, .btn, .btn-row)) {
+  margin-inline: 0 !important; padding-inline: 0 !important;
+  border-inline-start: 0 !important; text-indent: 0 !important;
+}
+/* Un « ul » ou un « ol » qui ne contient aucun élément de liste n'est pas une
+   liste : c'est un reste de mise en forme resté collé au texte. Il ne décale
+   plus rien. */
+:is(.page-body > .rich, .fiche-main .rich) :is(ul, ol):not(:has(> li)) {
+  margin-inline: 0 !important; padding-inline: 0 !important;
+}
+/* Une vraie liste à puces retrouve, elle, le retrait qui porte ses puces —
+   c'est le seul retrait qui subsiste dans le corps de texte. */
+:is(.page-body > .rich, .fiche-main .rich) :is(ul, ol):has(> li) {
+  margin-inline: 0 !important; padding-inline-start: 40px !important;
+}
+/* …sauf une « liste » à qui on a retiré les puces : sans puces à porter, elle
+   n'a pas de raison de décaler le texte. */
+:is(.page-body > .rich, .fiche-main .rich) :is(ul, ol)[style*="list-style"] {
+  padding-inline: 0 !important;
+}
+/* …et sauf une « liste » qui contient une section entière de la page.
+
+   C'est le cas de la section WORKFLOW en anglais : le texte a été récupéré de
+   l'ancien site WordPress, et il est arrivé enveloppé dans un élément de liste
+   resté ouvert autour du titre, du paragraphe d'introduction et de tout le bloc
+   de colonnes qui suit. Le code source de la page se termine d'ailleurs par une
+   balise de fermeture « </li> » orpheline, sans puce visible à l'écran.
+
+   Une vraie liste à puces contient des phrases. Quand un élément de liste
+   contient un titre, un bloc de mise en page ou un tableau, ce n'est pas une
+   liste : c'est un morceau de page qui a gardé son emballage. Il ne doit donc
+   ni décaler le texte de 40 px, ni porter de puce.
+
+   On ne teste volontairement pas le simple paragraphe : certaines vraies listes
+   mettent légitimement un paragraphe dans chacun de leurs éléments, et elles
+   doivent garder leurs puces. */
+:is(.page-body > .rich, .fiche-main .rich)
+  :is(ul, ol):has(> li > :is(h1, h2, h3, h4, h5, h6, div, section, article,
+                             figure, table, form, hr)) {
+  margin-inline: 0 !important; padding-inline: 0 !important;
+  list-style: none !important;
+}
+/* Même chose, repéré cette fois à la signature de l'ancien site : les blocs
+   WordPress collés dans l'éditeur gardent leurs classes « wp-block-… ». */
+:is(.page-body > .rich, .fiche-main .rich)
+  :is(ul, ol):has(> li [class*="wp-block"]) {
+  margin-inline: 0 !important; padding-inline: 0 !important;
+  list-style: none !important;
+}
+/* Un « li » ne porte jamais de retrait propre : il vient de sa liste. */
+:is(.page-body > .rich, .fiche-main .rich) li {
+  margin-inline: 0 !important; padding-inline: 0 !important;
+  text-indent: 0 !important;
+}
+/* Textes du site sur 2 colonnes (à partir du desktop), alignés à gauche. */
+@media (min-width: 900px) {
+  .page-body > .rich, .fiche-main .rich { columns: 2; column-gap: 52px; }
+  /* Un paragraphe ne peut pas laisser une ou deux lignes seules en bas d'une
+     colonne ni en haut de la suivante : un court paragraphe passe alors en
+     entier dans la même colonne, au lieu de laisser une fin de phrase isolée
+     (« nos valeurs. ») en tête de la colonne de droite. Les longs paragraphes
+     et les listes continuent de se répartir normalement sur les 2 colonnes. */
+  .page-body > .rich, .fiche-main .rich { orphans: 3; widows: 3; }
+  .page-body > .rich > :first-child, .fiche-main .rich > :first-child { margin-top: 0; }
+  /* Titres de section : ils barrent toute la largeur et relancent proprement les
+     deux colonnes — que le titre ait été saisi en « Titre 1 » ou en « Titre 2 »
+     dans l'éditeur. C'est ce qui manquait pour que la version française et la
+     version anglaise d'une même page se présentent pareil. */
+  .page-body > .rich h1, .page-body > .rich h2,
+  .fiche-main .rich h1, .fiche-main .rich h2 { column-span: all; break-inside: avoid; }
+  /* Sous-titres : ils restent dans leur colonne, avec le texte qui les suit,
+     au lieu de découper la page en tranches à chaque intertitre. */
+  .page-body > .rich h3, .page-body > .rich h4,
+  .fiche-main .rich h3, .fiche-main .rich h4 { column-span: none; break-inside: avoid; break-after: avoid; }
+  /* Une phrase d'annonce (« Vous pouvez nous contacter à tout moment : ») reste
+     collée à la liste qu'elle introduit, et un élément de liste ne se coupe pas
+     en deux d'une colonne à l'autre. */
+  .page-body > .rich li, .fiche-main .rich li { break-inside: avoid; }
+  .page-body > .rich p:has(+ ul), .page-body > .rich p:has(+ ol),
+  .fiche-main .rich p:has(+ ul), .fiche-main .rich p:has(+ ol) { break-after: avoid; }
+  /* Une liste très courte (3 puces au plus) reste d'un seul tenant : deux dates
+     de fermeture séparées par un saut de colonne se lisent mal. Les listes plus
+     longues continuent de se répartir sur les deux colonnes. */
+  .page-body > .rich ul:not(:has(> li:nth-child(4))),
+  .page-body > .rich ol:not(:has(> li:nth-child(4))),
+  .fiche-main .rich ul:not(:has(> li:nth-child(4))),
+  .fiche-main .rich ol:not(:has(> li:nth-child(4))) { break-inside: avoid; }
+  /* Ne garder soudés que les petits groupes (rangées de boutons, figures) ;
+     les grands blocs de texte se répartissent librement sur les 2 colonnes. */
+  .page-body > .rich .btn-row, .fiche-main .rich .btn-row,
+  .page-body > .rich figure, .fiche-main .rich figure { break-inside: avoid; }
+}
+
+/* Sous-pages (Services, Formulaires, À propos…) : liens en blocs */
+/* Les blocs s'adaptent à la largeur disponible : 3 de front sur grand écran,
+   2 sur écran moyen, 1 sur téléphone — sans jamais s'étirer démesurément. */
+.child-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; margin-top: 34px; }
+.child-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  background: var(--wash); border-radius: var(--radius); padding: 26px 30px;
+  text-decoration: none; font-weight: 700; font-size: 20px; transition: .18s;
+}
+.child-card:hover { background: var(--ink); color: #fff; }
+.child-arrow { font-size: 24px; transition: transform .18s; }
+.child-card:hover .child-arrow { transform: translateX(6px); }
+@media (max-width: 640px) { .child-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Blocs d'accès (page Formulaires) ----------
+   Une phrase puis un bouton, pour qu'on sache où l'on va avant de cliquer.
+   Le texte prend la hauteur disponible (flex: 1) : les deux boutons restent
+   ainsi alignés même si l'une des phrases est plus longue que l'autre. */
+.access-blocks {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 26px;
+  max-width: 980px; margin: 34px 0 10px;
+}
+.access-block {
+  border: var(--rule); padding: 30px 32px 32px;
+  display: flex; flex-direction: column;
+}
+.access-text { font-size: 17px; line-height: 1.45; margin: 0 0 24px; flex: 1; }
+.access-text strong { letter-spacing: .02em; }
+.access-go { margin: 0; }
+.access-go .btn { margin: 0; }
+@media (max-width: 760px) { .access-blocks { grid-template-columns: 1fr; gap: 18px; } }
+
+/* Lien "anciennes collaborations" sous la grille d'artistes */
+.artists-switch { margin: 40px 0 0; text-align: center; }
+.artists-switch a {
+  display: inline-block; background: var(--yellow); color: var(--ink);
+  border: var(--trait) solid var(--yellow); border-radius: 99px;   /* [V22-JAUNE] */
+  padding: 11px 28px; font-weight: 700; font-size: 13px; letter-spacing: .06em;
+  text-transform: uppercase; text-decoration: none; transition: .15s;
+}
+.artists-switch a:hover { filter: brightness(.92); }
+
+/* ---------- Agenda ---------- */
+.events { display: grid; gap: 0; margin-top: 8px; }
+.event {
+  display: grid; grid-template-columns: 130px 1fr; gap: 26px;
+  padding: 16px 0; align-items: center;
+}
+.event-img { aspect-ratio: 1/1; overflow: hidden; background: var(--wash); border-radius: calc(var(--radius) * .65); }
+.event-img img { width: 100%; height: 100%; object-fit: cover; }
+.event-img .card-ph { aspect-ratio: 1/1; font-size: 22px; }
+.event-date { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
+.event-title { margin: 0 0 6px; font-size: 18px; }
+.event-title a { text-decoration: none; }
+.event-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.event-title .sep { color: var(--grey); font-weight: 400; }
+.event-proj { margin: 0 0 6px; font-size: 15.5px; font-weight: 500; }
+.event-proj a { text-decoration: none; }
+.event-proj a:hover { text-decoration: underline; }
+.event-venue { margin: 0; color: var(--grey); font-size: 15px; }
+.event-venue a { color: inherit; }
+.events.small .event { grid-template-columns: 90px 1fr; padding: 12px 0; }
+.events.small .event-title { font-size: 17px; }
+.events.past { opacity: .55; }
+
+/* Agenda en grille : texte sur l'image (style Tortoise « highlighted ») */
+.events-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+  margin-top: 22px;   /* même écart que .grid.cards sur la page Projets */
+}
+.ecard {
+  position: relative; aspect-ratio: 4 / 5; overflow: hidden;
+  background: var(--ink); color: #fff;
+  border-radius: var(--radius);
+}
+.ecard-media, .ecard-media picture, .ecard-media img { width: 100%; height: 100%; }
+.ecard-media { position: absolute; inset: 0; }
+.ecard-media img { object-fit: cover; transition: transform .5s ease; }
+.ecard:hover .ecard-media img { transform: scale(1.045); }
+.ecard-media::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.24) 48%, rgba(0,0,0,.58) 100%);
+}
+.ecard-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 22px;
+}
+.ecard-date {
+  margin: 0 0 10px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .14em; font-weight: 700;
+}
+.ecard-title { margin: 0; font-size: 18px; line-height: 1.14; font-weight: 700; overflow-wrap: anywhere; max-width: 100%; }
+.ecard-title a { color: #fff; text-decoration: none; }
+.ecard-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* [V23-TOURNEE] Les deux lignes de texte d'une carte d'agenda :
+   le titre du projet en graisse normale, le nom de l'artiste en gras.
+   « ecard-lead » n'est posée que sur la première ligne présente et ne
+   règle que la taille — la graisse vient toujours de la classe de ligne. */
+.ecard-proj,
+.ecard-artist { margin: 5px 0 0; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; max-width: 100%; }
+.ecard-proj   { font-weight: 400; }
+.ecard-artist { font-weight: 700; }
+.ecard-lead   { margin: 0; font-size: 18px; line-height: 1.14; }
+.ecard-proj a, .ecard-artist a { color: #fff; text-decoration: none; }
+.ecard-proj a:hover, .ecard-artist a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ecard-btn {
+  margin-top: auto; display: inline-block;
+  border: var(--trait-fort) solid #fff; border-radius: 99px; padding: 7px 16px;
+  color: #fff; text-decoration: none; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; transition: .18s;
+  max-width: 100%;
+}
+a.ecard-btn:hover { background: #fff; color: var(--ink); }
+.ecard-btn.is-static { border-color: rgba(255,255,255,.55); cursor: default; }
+.events-grid.past .ecard { opacity: .55; }
+.events-grid.past .ecard:hover { opacity: 1; }
+
+/* Grille d'artistes : nom en blanc sur la photo, 4 par ligne */
+.acard { display: block; color: #fff; text-decoration: none; }
+.acard .ecard-title { font-size: 20px; }
+.acard:hover .ecard-title { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Le bloc de filtres se cale sur les pastilles de la page Projets
+   (.chips : margin 24px 0 6px), pour que les deux pages respirent pareil. */
+.agenda-filters {
+  display: flex; gap: 18px; align-items: end; flex-wrap: wrap;
+  padding: 0; margin: 24px 0 6px;
+}
+/* Juste après les filtres, « À VENIR » n'est pas un début de section : il ne
+   prend donc pas les 56 px de h2.sub, seulement l'écart d'une page Projets. */
+.agenda-filters + h2.sub { margin-top: 22px; }
+.agenda-filters label span { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--grey); margin-bottom: 6px; font-weight: 700; }
+.agenda-filters select { min-width: 210px; }
+
+/* ---------- Programmation illustrée (accueil) ---------- */
+.prog-list { display: flex; flex-direction: column; gap: clamp(30px, 4.5vw, 60px); margin-top: 30px; }
+.prog-item { display: grid; grid-template-columns: minmax(0, 44%) 1fr; gap: clamp(20px, 3.5vw, 48px); align-items: center; }
+.prog-media {
+  display: block; border-radius: var(--radius); overflow: hidden;
+  aspect-ratio: 4 / 3; background: var(--wash);
+}
+.prog-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease; }
+.prog-item:hover .prog-media img { transform: scale(1.045); }
+.prog-media .card-ph { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 42px; color: var(--grey); }
+.prog-date { text-transform: uppercase; letter-spacing: .1em; font-size: 13px; font-weight: 700; margin: 0 0 10px; }
+.prog-artist { font-size: clamp(24px, 3vw, 38px); line-height: 1.04; margin: 0 0 3px; overflow-wrap: anywhere; }
+.prog-artist a { text-decoration: none; }
+.prog-artist a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.prog-title { font-size: clamp(17px, 1.7vw, 22px); font-weight: 500; margin: 0 0 12px; color: var(--grey); overflow-wrap: anywhere; }
+.prog-title a { color: inherit; text-decoration: none; }
+.prog-title a:hover { color: var(--ink); text-decoration: underline; }
+.prog-place { font-size: 15px; margin: 0 0 12px; }
+.prog-place a { color: var(--grey); text-decoration: none; }
+.prog-place a:hover { color: var(--ink); text-decoration: underline; }
+.prog-text { font-size: 16px; line-height: 1.55; margin: 0; max-width: 54ch; color: #333; }
+@media (max-width: 720px) {
+  .prog-item { grid-template-columns: 1fr; gap: 16px; }
+  .prog-media { aspect-ratio: 16 / 10; }
+}
+
+/* ---------- Page PRO (accès privé) ---------- */
+.pro-intro { margin-bottom: 30px; }
+.pro-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 24px; }
+.pro-card {
+  border: var(--trait) solid var(--ink); border-radius: var(--radius); padding: 34px 30px 30px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px; background: var(--paper);
+}
+.pro-ic { width: 46px; height: 46px; color: var(--ink); }
+.pro-ic svg { width: 100%; height: 100%; display: block; }
+.pro-title { margin: 4px 0 0; font-size: clamp(17px, 2vw, 22px); text-transform: none; letter-spacing: 0; }
+.pro-desc { margin: 0 0 8px; color: var(--grey); font-size: 15.5px; line-height: 1.5; }
+.pro-card .btn { margin-top: auto; }
+.pro-soon { margin-top: auto; font-size: 13px; color: var(--grey); font-style: italic; }
+@media (max-width: 640px) { .pro-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Page « Administration » (connexion de l'équipe) ---------- */
+.adm-login { max-width: 460px; margin: 2vh auto 0; border: var(--trait) solid var(--ink); border-radius: var(--radius); padding: 36px 40px 30px; }
+.adm-login h1 { font-size: clamp(24px, 3vw, 30px); margin: 0 0 8px; }
+.adm-login-intro { margin: 0 0 22px; color: var(--grey); font-size: 15px; line-height: 1.5; }
+.adm-login .field { margin-bottom: 16px; }
+.adm-login .btn { width: 100%; text-align: center; }
+.adm-head { margin-bottom: 6px; }
+.adm-head h1 { margin: 0 0 6px; }
+.adm-who { margin: 0 0 4px; color: var(--grey); font-size: 15px; }
+.adm-who strong { color: var(--ink); }
+.adm-who a { color: var(--grey); }
+
+/* « Mot de passe oublié ? » — repli dépliant plutôt qu'un lien mort : il n'y a
+   pas de réinitialisation automatique, la marche à suivre est humaine. */
+.adm-forgot { margin-top: 20px; font-size: 14px; color: var(--grey); }
+.adm-forgot summary { cursor: pointer; text-underline-offset: 3px; text-decoration: underline; }
+.adm-forgot summary:hover { color: var(--ink); }
+.adm-forgot p { margin: 10px 0 0; line-height: 1.55; }
+
+/* ---------- Espace collaborateur ---------- */
+.espace-body { background: var(--wash); min-height: 100vh; }
+/* [V27-ACCES] Bandeau de visite : quand l'administration regarde l'espace de
+   quelqu'un, cela doit se voir sans avoir à le chercher. Jaune du site sur
+   fond noir, en haut de chaque page, avec le seul bouton qui referme la
+   visite. Il ne défile pas avec la page : on ne doit jamais oublier, au bas
+   d'une fiche, chez qui l'on se trouve. */
+.espace-visite {
+  position: sticky; top: 0; z-index: 60;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px 24px; padding: 12px clamp(20px, 4vw, 60px);
+  background: var(--ink); color: var(--paper);
+}
+.espace-visite p { margin: 0; font-size: 14px; line-height: 1.3; }
+/* La phrase peut être rétrécie ; le bouton, jamais. Sans cela le texte prend
+   toute la ligne et rejette le bouton en dessous, à gauche, où il ressemble
+   à n'importe quoi sauf à la sortie. */
+.espace-visite p:first-child { flex: 1 1 320px; min-width: 0; }
+.espace-visite p:last-child  { flex: 0 0 auto; margin-left: auto; }
+.espace-visite strong { color: var(--yellow); text-transform: uppercase; letter-spacing: .06em; font-size: 12.5px; }
+/* Deux classes, parce que « .btn.ink » est déclaré plus bas dans ce fichier
+   et l'emporterait à égalité de poids. */
+.espace-visite .btn.btn-visite { border-color: var(--yellow); background: var(--yellow); color: var(--ink); }
+.espace-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px clamp(20px, 4vw, 60px); background: var(--paper); }
+.espace-head .logo img { height: 40px; width: auto; display: block; }
+.espace-user { display: flex; align-items: center; gap: 16px; font-size: 14px; font-weight: 500; }
+.espace-main { padding: clamp(28px, 5vw, 56px) 0 80px; }
+.espace-login { max-width: 460px; margin: 5vh auto 0; background: var(--paper); border: var(--trait) solid var(--ink); border-radius: var(--radius); padding: 36px 40px; }
+.espace-login h1 { font-size: 28px; margin: 0 0 8px; }
+.espace-intro h1 { margin: 0 0 6px; }
+/* [V16-ESPACE-BILINGUE] Le bloc de droite tient le choix de langue et, une
+   fois connecté, le nom et la déconnexion. */
+.espace-head-right { display: flex; align-items: center; gap: clamp(14px, 2.4vw, 26px); }
+.espace-langs { margin: 0; }
+/* [V16-BONJOUR] « Bonjour » en petit sur sa ligne, le nom en dessous à la
+   taille des titres de page — celle de l'élément h1, dont le nom hérite. La
+   salutation, elle, redescend à la taille des intertitres de l'espace.
+   line-height resserré : sur deux lignes, l'interligne normal d'un titre de
+   70 px creuserait un trou entre la politesse et le nom. */
+.espace-hello { line-height: .98; }
+.espace-hello-mot { display: block; font-size: 15px; letter-spacing: .08em; color: var(--grey); margin-bottom: 6px; line-height: 1.2; }
+.espace-hello-nom { display: block; }
+.espace-empty { background: var(--paper); border-radius: var(--radius); padding: 40px; text-align: center; color: var(--grey); }
+/* [V15-FICHE-PDF] Deux boutons ou plus : côte à côte, et qui passent à la
+   ligne d'eux-mêmes sur un téléphone. */
+.espace-nav { margin: 16px 0 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+/* [V33-ESPACE-3] Les trois parties de l'espace : mes informations, mes
+   documents de contractualisation, mes projets. Le titre de partie doit être
+   d'une autre espèce que les titres qu'il chapeaute — sinon la page redevient
+   ce qu'elle était, une suite d'intertitres tous pareils où l'on ne voit plus
+   où l'on est. D'où le numéro dans sa pastille noire, la taille, et le trait
+   qui ouvre chaque partie sur toute la largeur. */
+.espace-part { margin-top: 54px; padding-top: 26px; border-top: var(--trait) solid var(--ink); }
+.espace-part:first-of-type { margin-top: 30px; }
+.espace-part-h { display: flex; align-items: center; gap: 14px; font-size: clamp(21px, 3vw, 27px); margin: 0 0 6px; }
+.espace-part-n {
+  flex: none; width: 34px; height: 34px; border-radius: 99px;
+  background: var(--ink); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; line-height: 1;
+}
+.espace-part-i { color: var(--grey); font-size: 14.5px; max-width: 62ch; margin: 0 0 4px; }
+.member-photo-prev { width: 150px; border-radius: 16px; overflow: hidden; margin-bottom: 12px; background: var(--wash); }
+.member-photo-prev img { width: 100%; display: block; }
+.quick-back { margin: 0 0 8px; }
+.quick-back a { text-decoration: none; color: var(--grey); font-weight: 500; }
+/* [V34-ONGLETS] Les onglets.
+   Ils n'inventent pas une forme : ce sont les « chips » du site, celles des
+   filtres de l'agenda et des fiches de projet. Une seule chose est reprise en
+   main, le survol. Sur un filtre, le jaune du survol annonce ce qu'on va
+   choisir ; sur un onglet, le jaune dit où l'on est déjà — les deux ne peuvent
+   pas être la même couleur sans qu'on se demande, la souris posée, laquelle
+   des trois parties est ouverte. Le survol prend donc le gris très clair du
+   site, et le jaune reste au seul onglet ouvert. */
+.chips.espace-tabs { margin: 28px 0 0; }
+/* [V37-NUMEROS] L'onglet devient une petite ligne : pastille, nom, compte. Le
+   « inline-flex » n'est là que pour cela — sans lui la pastille retomberait
+   sur la ligne de base du texte et l'onglet grandirait d'un côté. La marge de
+   gauche se resserre, la pastille tenant lieu de respiration. */
+.espace-tabs .espace-tab { display: inline-flex; align-items: center; gap: 9px; padding-left: 8px; }
+.espace-tab-num {
+  flex: none; width: 23px; height: 23px; border-radius: 99px;
+  background: var(--ink); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; line-height: 1; letter-spacing: 0;
+}
+.espace-tabs .espace-tab:hover,
+.espace-tabs .espace-tab:focus-visible { background: var(--wash); color: var(--ink); border-color: var(--ink); }
+.espace-tabs .espace-tab.on,
+.espace-tabs .espace-tab.on:hover { background: var(--yellow); color: var(--ink); border-color: var(--yellow); }
+/* Le compte, pour ne pas ouvrir un onglet et le trouver vide. Un chiffre plus
+   petit et plus pâle, à la suite du mot : une deuxième pastille dans la
+   pastille ferait beaucoup de formes pour un seul renseignement. */
+.espace-tab-n { font-weight: 500; opacity: .6; font-variant-numeric: tabular-nums; }
+/* Avec le script, une seule partie est visible à la fois : le trait qui les
+   séparait n'a plus rien à séparer, et c'est la barre d'onglets qui ouvre la
+   page. Sans script, les traits restent — les trois parties se suivent. */
+.js-onglets .espace-part,
+.js-onglets .espace-part:first-of-type { border-top: 0; margin-top: 30px; padding-top: 0; }
+.js-onglets .espace-part:focus { outline: none; }
+/* [V32-DOC-ASSO] Le nom de l'association chapeaute ses catégories : il doit
+   donc se lire comme un titre au-dessus d'elles, pas comme un titre de plus à
+   côté. D'où le trait, et la marge qui sépare deux associations plus que deux
+   catégories. Le sigle suit en gris : c'est ce qui termine le nom des
+   fichiers, il est utile à reconnaître, il n'est pas le titre. */
+.espace-asso { font-size: 22px; margin: 48px 0 0; padding-bottom: 10px; border-bottom: var(--trait) solid var(--ink); }
+.espace-asso-sigle { font-size: 13px; letter-spacing: .08em; color: var(--grey); font-weight: 500; margin-left: 12px; vertical-align: middle; }
+.espace-asso + .mdoc-list { margin-top: 22px; }
+/* [V33-ESPACE-3] Le titre de projet se lit comme celui d'une association :
+   même rang, même trait, puisqu'il fait le même travail — chapeauter les
+   rubriques d'un même ensemble. Ce qui les distingue est écrit au-dessus, en
+   titre de partie, et n'a pas besoin d'être redit ici. */
+.espace-proj { font-size: 22px; margin: 48px 0 0; padding-bottom: 10px; border-bottom: var(--trait) solid var(--ink); }
+.espace-proj + .mdoc-list { margin-top: 22px; }
+/* « Sans projet » n'est pas une production : c'est ce qui n'a pas encore été
+   rangé. Le gris le dit sans avoir à l'écrire. */
+.espace-proj-sans { color: var(--grey); border-bottom-color: var(--grey); }
+/* Le premier titre d'une partie suit son chapeau : la grande respiration a
+   déjà été prise par le trait de la partie. */
+.espace-part-i + .espace-asso,
+.espace-part-i + .espace-proj { margin-top: 26px; }
+/* Qui n'a qu'un employeur n'a pas de titre d'association au-dessus de ses
+   documents : la liste suit alors le chapeau de la partie, et doit prendre
+   elle-même la respiration que le titre aurait prise. */
+.espace-part-i + .mdoc-list { margin-top: 26px; }
+.espace-part .espace-nav { margin: 18px 0 4px; }
+/* [V35-FICHE-ONGLET] La fiche de renseignements, dépliée dans le premier
+   onglet. Le « fieldset » qui l'enveloppe ne doit rien ajouter à l'œil. Sa
+   largeur minimale par défaut est le piège connu : laissée telle quelle, elle
+   empêche la grille qu'il contient de rétrécir, et la fiche déborde sur un
+   téléphone.
+   [V37-FICHE-BUREAU] Les règles qui grisaient les champs d'un « fieldset »
+   éteint s'en vont avec l'attribut : plus rien n'éteint la fiche, ni pour la
+   personne ni pour le bureau. */
+.espace-fiche { margin-top: 22px; }
+.espace-fiche fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.espace-fiche-envoi { margin-top: 34px; }
+/* [V37-FICHE-BUREAU] Pendant une visite, le pied de la fiche porte deux choses
+   au lieu d'une : le mot qui dit où va ce qu'on écrit, puis le bouton. Les
+   marges des deux paragraphes s'ajouteraient l'une à l'autre ; on les remet à
+   zéro et l'écart n'est dit qu'une fois. */
+div.espace-fiche-envoi > p { margin: 0 0 16px; }
+div.espace-fiche-envoi > p:last-child { margin: 0; }
+.mdoc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.mdoc { display: flex; align-items: center; justify-content: space-between; gap: 18px; background: var(--paper); border-radius: 16px; padding: 16px 22px; }
+.mdoc-main { min-width: 0; }
+.mdoc-title { display: block; font-weight: 700; overflow-wrap: anywhere; }
+.mdoc-meta { display: block; font-size: 13px; color: var(--grey); margin-top: 2px; }
+.mdoc-actions { display: flex; align-items: center; gap: 10px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.sig-badge { font-size: 12px; font-weight: 700; letter-spacing: .04em; padding: 6px 14px; border-radius: 99px; text-transform: uppercase; }
+.sig-badge.signed { background: #e5f3ea; color: #1d7a3f; }
+.sig-badge.tosign { background: var(--yellow); color: var(--ink); }
+/* [V36-FACTURES] Le statut se range du côté des actions, avec la pastille de
+   signature : ce coin de la ligne dit où en est le document, le reste dit ce
+   qu'il est. La forme est celle de .sig-badge — deux pastilles voisines qui
+   n'auraient ni la même taille ni le même arrondi se liraient comme deux
+   choses sans rapport, alors qu'elles répondent à la même question. */
+.mdoc-st {
+  font-size: 12px; font-weight: 700; letter-spacing: .04em; padding: 6px 14px;
+  border-radius: 99px; text-transform: uppercase; background: #fff; color: var(--grey);
+}
+/* Envoyée : en jaune, la couleur de ce qui attend quelqu'un — ici le bureau.
+   Payée : le bureau a fait sa part, la personne n'a plus qu'à vérifier.
+   Reçue, bien reçu : le vert de ce qui est terminé, comme un document signé. */
+.mdoc-st-sent     { background: var(--yellow); color: var(--ink); }
+.mdoc-st-paid     { background: #e9eefb; color: #26417f; }
+.mdoc-st-received { background: #e5f3ea; color: #1d7a3f; }
+/* La date du changement, dans la pastille. « Payée » sans date laisse la
+   question ouverte — depuis quand ? Elle se lit en second, donc sans la
+   majuscule imposée au libellé et sans son espacement. */
+.mdoc-st-d { font-weight: 500; text-transform: none; letter-spacing: 0; opacity: .8; }
+/* Le formulaire d'un bouton n'existe que pour porter la clef anti-rejeu ; il
+   est déjà un élément de la rangée souple, il lui suffit de ne rien ajouter
+   autour de son bouton. */
+.mdoc-do { margin: 0; display: flex; }
+@media (max-width: 640px) {
+  .mdoc { flex-direction: column; align-items: flex-start; }
+  .mdoc-actions { width: 100%; justify-content: flex-start; }
+}
+
+/* ---------- Déposer une facture ----------                    [V36-FACTURES]
+   En tête de la contractualisation, dans un cadre à soi : c'est le seul geste
+   que la personne vient faire ici, tout le reste de la page se télécharge. Le
+   cadre est ouvert par défaut — replié, il faudrait deviner son existence —
+   mais il reste repliable, parce qu'on ne dépose pas une facture chaque fois
+   qu'on vient chercher son contrat. */
+.espace-depot {
+  background: var(--paper); border-radius: 16px; padding: 6px 24px 22px; margin: 22px 0 0;
+}
+.espace-depot > summary {
+  cursor: pointer; font-weight: 700; font-size: 18px; padding: 16px 0; list-style: none;
+}
+/* Le triangle par défaut des navigateurs est remplacé par un signe qui tourne :
+   même information, et elle survit au changement de fonte. */
+.espace-depot > summary::-webkit-details-marker { display: none; }
+.espace-depot > summary::before {
+  content: '+'; display: inline-block; width: 20px; font-weight: 400; font-size: 21px;
+  line-height: 1; vertical-align: -1px; transition: transform .15s;
+}
+.espace-depot[open] > summary::before { content: '−'; }
+.espace-depot > summary:focus-visible { outline: var(--trait) solid var(--ink); outline-offset: 3px; }
+.espace-depot-i { margin: 0 0 18px; font-size: 14.5px; color: var(--grey); max-width: 62ch; }
+.espace-depot-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+/* Cadre éteint pendant une visite de l'administration : les champs perdent leur
+   blanc, et avec lui l'invitation à écrire. */
+.espace-depot-form fieldset[disabled] input,
+.espace-depot-form fieldset[disabled] select { background: transparent; color: var(--grey); border-color: var(--grey); }
+.espace-depot-form input[type="file"] { font-size: 14px; }
+.espace-depot-form .form-notice { margin-top: 18px; }
+
+/* ---------- Chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 6px; }
+.chip {
+  text-decoration: none; font-size: 13px; letter-spacing: .08em; font-weight: 700;
+  text-transform: uppercase;
+  border: var(--trait) solid var(--ink); padding: 7px 20px; border-radius: 99px;
+  background: var(--paper); color: var(--ink); transition: .15s;
+}
+.chip.on, .chip:hover { background: var(--yellow); color: var(--ink); border-color: var(--yellow); }   /* [V22-JAUNE] */
+.chips.small .chip { font-size: 11px; padding: 5px 14px; }
+
+/* ---------- Fiche projet (disposition type Comédie de Genève) ---------- */
+.fiche-head { max-width: 920px; }
+.fiche-head h1 { margin-bottom: 12px; }
+.fiche-sub { margin: 0 0 18px; }
+.fiche-head .chips { margin: 4px 0 0; }
+.dates-top { list-style: none; margin: 26px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 15.5px; }
+.dates-top strong { text-transform: uppercase; letter-spacing: .1em; font-size: 13px; margin-right: 10px; }
+.dates-top a { color: var(--grey); text-decoration: none; }
+.dates-top a:hover { color: var(--ink); text-decoration: underline; }
+.dates-top span { color: var(--grey); }
+/* Carrousel d'images de la fiche — pleine largeur (bord à bord) */
+.fiche-media {
+  width: 100vw; position: relative; left: 50%; right: 50%;
+  margin-left: -50vw; margin-right: -50vw; margin-top: 34px;
+}
+.fiche-media .carousel { margin-top: 0; }
+.fiche-media .carousel-track { border-radius: 0; }
+/* Le bandeau a exactement la forme du format « banner » (2000 x 900, soit
+   20:9) : ce qui est cadré dans l'administration est donc ce qui s'affiche
+   ici, au pixel près jusqu'à 1600 px de large. Auparavant la hauteur était
+   libre (clamp) et ne correspondait à aucun format : le navigateur rognait
+   la photo lui-même, par le haut, quel que soit le cadrage choisi. */
+.fiche-media .carousel-track > .gallery-item { aspect-ratio: 20 / 9; height: auto; max-height: 720px; border-radius: 0; }
+.fiche-media .carousel-btn.prev { left: clamp(10px, 2vw, 26px); }
+.fiche-media .carousel-btn.next { right: clamp(10px, 2vw, 26px); }
+@media (max-width: 640px) {
+  /* Sur un téléphone, un bandeau 20:9 ferait une fente de 170 px de haut :
+     on le laisse plus haut. La photo est alors rognée sur les côtés, jamais
+     en hauteur — le cadrage vertical choisi reste donc respecté. */
+  .fiche-media .carousel-track > .gallery-item { height: 62vw; min-height: 240px; }
+}
+
+/* Carrousel d'images de la fiche */
+.carousel { position: relative; margin-top: 34px; }
+.carousel-track {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+  border-radius: var(--radius); scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.carousel-track::-webkit-scrollbar { display: none; }
+.carousel-track > .gallery-item {
+  flex: 0 0 100%; scroll-snap-align: start;
+  aspect-ratio: 3 / 2; max-height: 62vh; border-radius: 0; background: var(--wash);
+}
+.carousel-track > .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: none; }
+.carousel-track > .gallery-item:hover img { transform: none; }
+.carousel-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 46px; height: 46px; border-radius: 50%;
+  background: #fff; border: var(--trait-fort) solid var(--ink); color: var(--ink);
+  font-size: 22px; line-height: 1; cursor: pointer; z-index: 2; transition: .15s;
+  display: flex; align-items: center; justify-content: center; padding: 0 0 3px;
+}
+.carousel-btn:hover { background: var(--ink); color: #fff; }
+.carousel-btn.prev { left: 18px; }
+.carousel-btn.next { right: 18px; }
+.carousel-count {
+  position: absolute; right: 20px; bottom: 16px; z-index: 2;
+  background: rgba(0,0,0,.55); color: #fff; border-radius: 99px;
+  padding: 4px 14px; font-size: 12px; font-weight: 700; letter-spacing: .06em;
+}
+.carousel.single .carousel-btn, .carousel.single .carousel-count { display: none; }
+.fiche-grid {
+  display: grid; grid-template-columns: 1.8fr 1fr;
+  gap: 24px clamp(36px, 5vw, 90px);
+  margin-top: 44px; align-items: start;
+}
+.fiche-grid.no-aside { grid-template-columns: minmax(0, 820px); }
+.fiche-main .rich > :first-child { margin-top: 0; }
+.fiche-main h2.sub:first-of-type { margin-top: 44px; }
+.fiche-aside { display: flex; flex-direction: column; gap: 18px; }
+.aside-block { background: var(--wash); border-radius: var(--radius); padding: 26px 28px; }
+.aside-block h2 {
+  margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: .12em;
+}
+.aside-block .rich { font-size: 15px; line-height: 1.5; }
+.aside-block .rich p { margin: 0 0 .55em; }
+.aside-block .rich p:last-child { margin-bottom: 0; }
+
+/* Sous-menu « Projets » sur la fiche artiste */
+.aside-menu { position: sticky; top: 100px; }
+.aside-menu ul { list-style: none; margin: 0; padding: 0; }
+.aside-menu li + li { margin-top: 2px; }
+.aside-menu a {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 11px 0; text-decoration: none; font-weight: 700; font-size: 16px; line-height: 1.2;
+  border-top: 1px solid rgba(0,0,0,.08);
+}
+.aside-menu li:first-child a { border-top: 0; }
+.aside-menu a em { font-style: normal; opacity: 0; transform: translateX(-6px); transition: .15s; }
+.aside-menu a:hover { color: var(--grey); }
+.aside-menu a:hover em { opacity: 1; transform: none; }
+@media (max-width: 1000px) { .aside-menu { position: static; } }
+
+/* [V25-DATES] — élargi en [V26-SPOTIFY]. Dès que la colonne de droite porte un
+   second bloc (dates, Spotify, vidéos), la liste des projets ne peut plus
+   rester collante : en défilant elle passerait par-dessus ce qui la suit. */
+.fiche-aside:has(.aside-menu ~ .aside-block) .aside-menu { position: static; }
+
+/* [V25-DATES] Les dates de représentation sous la liste des projets (fiche
+   artiste). Même rythme de filets fins que le sous-menu « Projets » :
+   date en gras, titre du projet, puis le lieu en gris. */
+.aside-dates ul { list-style: none; margin: 0; padding: 0; }
+.aside-dates li {
+  padding: 12px 0; border-top: 1px solid rgba(0,0,0,.08);
+  overflow-wrap: anywhere;
+}
+.aside-dates li:first-child { border-top: 0; padding-top: 0; }
+.aside-dates li:last-child { padding-bottom: 0; }
+.aside-dates .ad-date {
+  display: block; font-weight: 700; font-size: 13px;
+  text-transform: uppercase; letter-spacing: .08em; line-height: 1.25;
+}
+.aside-dates .ad-proj { display: block; margin-top: 5px; font-size: 15px; line-height: 1.3; }
+.aside-dates .ad-lieu { display: block; margin-top: 3px; font-size: 14.5px; line-height: 1.3; color: var(--grey); }
+.aside-dates a { color: inherit; text-decoration: none; }
+.aside-dates a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* [V26-SPOTIFY] Lecteur Spotify dans la colonne de droite de la fiche artiste.
+   Rien n'est demandé à Spotify avant l'accord du visiteur ; le cache sombre
+   occupe donc exactement la hauteur du futur lecteur, pour que la page ne
+   saute pas au moment où il le remplace. Spotify n'accepte que deux hauteurs
+   utiles : 352 px (artiste, album, playlist) et 152 px (un seul titre). */
+.spotify { margin: 0; }
+.spotify .video-locked { aspect-ratio: auto; height: 352px; }
+.spotify iframe { display: block; width: 100%; height: 352px; border: 0; border-radius: var(--radius); }
+.spotify.sp-compact .video-locked, .spotify.sp-compact iframe { height: 152px; }
+
+/* La colonne de droite est étroite : le message d'attente des médias externes
+   et son bouton y sont resserrés, faute de quoi ils débordent de leur cache.
+   [V28-INSTAGRAM] Écrit pour les vidéos, quand elles étaient encore à droite ;
+   elles sont reparties à gauche, mais Spotify et Instagram sont restés et se
+   servent du même cache. */
+.fiche-aside .video-msg { padding: 12px 14px; font-size: 12.5px; line-height: 1.35; }
+.fiche-aside .video-msg p { margin: 0 0 10px; }
+.fiche-aside .video-msg .btn { padding: 6px 14px; font-size: 10.5px; letter-spacing: .04em; }
+.fiche-aside .video-ext { display: inline-block; margin-top: 8px; font-size: 11.5px; }
+
+/* [V28-INSTAGRAM] Carte Instagram, sous le lecteur Spotify. Même prudence :
+   rien n'est demandé à Instagram avant l'accord du visiteur, et le cache
+   occupe d'avance la hauteur du futur bloc pour que la page ne saute pas au
+   moment où il le remplace. Cette hauteur n'est qu'une estimation — une
+   publication carrée et une publication verticale n'ont pas la même — et le
+   script du site l'ajuste au pixel dès qu'Instagram annonce la sienne. */
+.insta { margin: 0; }
+.insta + .insta { margin-top: 14px; }
+.insta .video-locked { aspect-ratio: auto; height: 460px; }
+.insta iframe {
+  display: block; width: 100%; height: 460px; border: 0;
+  border-radius: var(--radius); background: #fff;
+}
+/* Le lien vers le compte. Il ne dépend d'aucun consentement — c'est un lien
+   ordinaire — et reste juste indéfiniment, même le jour où les publications
+   mises en avant auront vieilli. */
+/* Le lien vers le compte Instagram et [V31-SITE-ARTISTE] celui vers le site
+   personnel de l'artiste ont volontairement la même allure : le nom à gauche,
+   l'invitation en gris à droite. Deux cartes voisines dans la colonne, elles
+   se ressemblent au lieu de se disputer le regard. */
+.insta-compte { margin: 14px 0 0; }
+.site-lien    { margin: 0; }
+.insta + .insta-compte { border-top: 1px solid rgba(0,0,0,.08); padding-top: 13px; }
+.insta-compte a,
+.site-lien a {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px 14px; flex-wrap: wrap; text-decoration: none;
+}
+.insta-compte strong,
+.site-lien strong { font-size: 15.5px; overflow-wrap: anywhere; }
+.insta-compte span,
+.site-lien span { font-size: 13px; color: var(--grey); }
+.insta-compte a:hover span,
+.site-lien a:hover span { color: var(--ink); }
+.insta-compte a:hover strong,
+.site-lien a:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+
+.fiche-aside .docs { grid-template-columns: repeat(2, 1fr); gap: 16px 14px; margin-top: 4px; }
+.fiche-aside .doc-title { font-size: 14px; }
+.fiche-aside .doc-meta { font-size: 11.5px; }
+
+/* Bio de l'artiste dans la fiche projet */
+.bio-block { margin-bottom: 22px; }
+.bio-name { margin: 0 0 6px; font-size: 14.5px; }
+.bio-more { margin: 10px 0 0; }
+.bio-more a { font-weight: 700; text-decoration: none; font-size: 14.5px; }
+.bio-more a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Fiches ---------- */
+.detail-cover {
+  max-height: 64vh; overflow: hidden;
+  border-radius: var(--radius); margin: 22px var(--pad) 0;
+}
+.detail-cover img { width: 100%; object-fit: cover; }
+.detail-by { font-size: 17px; margin: -14px 0 22px; font-weight: 500; }
+.detail-by a { font-weight: 700; }
+/* [V30-TETE-ARTISTE] La photo ouvre la colonne de gauche et en occupe toute
+   la largeur — celle des deux colonnes de texte qui la suivent. Le cadre est
+   en 16:9, la forme du fichier « cover » que l'administration prépare déjà :
+   un portrait carré affiché sur 800 px aurait fait 800 px de haut et repoussé
+   la présentation hors de l'écran. object-fit garde la photo pleine et
+   centrée même si le fichier reçu n'a pas exactement cette proportion. */
+.artist-photo { margin: 0 0 30px; }
+.artist-photo img {
+  display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
+  border-radius: var(--radius);
+}
+.artist-lead { margin: 0 0 26px; }
+/* Un « Titre 1 » saisi dans le corps du texte ne doit pas rivaliser avec le
+   titre de la page, qui est déjà affiché juste au-dessus : dans le texte,
+   « Titre 1 » et « Titre 2 » s'affichent exactement de la même façon.
+   Sans cela, une page dont les titres de section sont en « Titre 1 » d'un côté
+   et en « Titre 2 » de l'autre ne se présente pas pareil dans les deux langues
+   — les titres français s'affichaient jusqu'à 71 px là où les anglais faisaient
+   26 px. Le titre de la page, lui, n'est pas concerné : il est en dehors du
+   texte et garde sa grande taille. */
+.rich h1 {
+  font-size: clamp(19px, 2.6vw, 26px); line-height: 1.1; font-weight: 700;
+  text-transform: none; letter-spacing: .01em; margin: 40px 0 16px;
+}
+.rich h1:first-child { margin-top: 0; }
+
+.rich a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.rich a:hover { background: var(--ink); color: var(--paper); }
+/* Boutons dans le texte : garder l'apparence bouton (pas de soulignement ni d'inversion). */
+.rich a.btn { text-decoration: none; }
+.rich a.btn:hover, .rich a.btn:focus-visible { background: var(--yellow); color: var(--ink); }
+.rich a.btn.ink:hover, .rich a.btn.ink:focus-visible { background: var(--ink); color: var(--paper); }
+.rich img { margin: 24px 0; border-radius: calc(var(--radius) * .65); }
+.rich blockquote { border-left: var(--trait-fort) solid var(--ink); margin: 26px 0; padding: 4px 0 4px 22px; font-size: 20px; font-weight: 500; }
+
+/* ---------- Galeries / vidéos / documents ---------- */
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 44px 0 8px; }
+.gallery-item { display: block; overflow: hidden; aspect-ratio: 1/1; background: var(--wash); border-radius: calc(var(--radius) * .65); }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+.gallery-item:hover img { transform: scale(1.05); }
+
+.videos { display: grid; gap: 28px; margin-top: 18px; }
+.video { margin: 0; }
+.video-locked { position: relative; aspect-ratio: 16/9; background: var(--ink); overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: var(--radius); }
+.video-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .3; }
+.video-msg { position: relative; color: #fff; text-align: center; max-width: 500px; padding: 20px; font-size: 14.5px; }
+.video-ext { color: #fff; font-size: 13px; }
+.video iframe { width: 100%; aspect-ratio: 16/9; border: 0; display: block; border-radius: var(--radius); }
+.video figcaption { font-size: 13.5px; color: var(--grey); margin-top: 8px; }
+
+/* Les documents sont des vignettes à télécharger, pas des affiches.
+   En trois colonnes étirées, chaque couverture faisait près de 600 px de haut
+   et le quatrième document tombait seul sur une deuxième ligne, avec un grand
+   vide à sa droite. On plafonne donc la largeur d'une vignette : la grille en
+   place autant que la largeur le permet — quatre ou cinq sur une seule ligne —
+   et s'arrête à gauche au lieu de les étirer. */
+/* [V16-DOCS] Le nombre de colonnes n'est plus déduit de la largeur disponible
+   mais donné par la page elle-même : --docs-n vaut le nombre de documents,
+   plafonné à cinq. Les quatre fichiers d'une page tiennent donc sur une seule
+   ligne sur tous les écrans, au lieu de basculer à trois plus un dès que la
+   fenêtre se rétrécit de quelques dizaines de pixels. Les colonnes ont pour
+   minimum zéro : quand la place manque, elles rétrécissent au lieu de
+   déborder. */
+.docs {
+  list-style: none; margin: 22px 0 0; padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--docs-n, 4), minmax(0, 200px));
+  justify-content: start;
+  gap: 28px 24px;
+}
+.doc { display: block; text-decoration: none; }
+.doc-cover { display: block; aspect-ratio: 640/905; background: var(--wash); overflow: hidden; border: var(--trait) solid var(--ink); border-radius: 14px; }
+.doc-cover img { width: 100%; height: 100%; object-fit: cover; }
+.doc-ext { display: flex; align-items: center; justify-content: center; height: 100%; font-weight: 700; letter-spacing: .1em; color: var(--ink); font-size: 20px; }
+/* Dans la vignette, la flèche remplace une étiquette écrite en gros (« PDF »,
+   « JPG ») : elle prend la même place et le même trait un peu appuyé. */
+.doc-ext .ico { width: 1.1em; height: 1.1em; stroke-width: 1.7; vertical-align: 0; }
+.doc-title { display: block; font-weight: 700; margin-top: 10px; font-size: 15.5px; }
+.doc:hover .doc-title { text-decoration: underline; text-underline-offset: 3px; }
+.doc-meta { display: block; font-size: 12.5px; color: var(--grey); margin-top: 2px; }
+
+/* [V31-DOCS-LISTE] Les documents d'une fiche, en lignes plutôt qu'en
+   vignettes. Un filet entre chaque ligne suffit à les séparer : une liste de
+   quinze cadres serait plus lourde que les vignettes qu'on vient d'enlever.
+   Le titre à gauche, le format et le poids à droite ; quand la colonne est
+   trop étroite pour les deux, le poids passe simplement en dessous. */
+.docs.docs-liste { display: block; }
+.docs-liste li + li { border-top: var(--trait) solid var(--line); }
+.docs-liste .doc {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 4px 16px; flex-wrap: wrap; padding: 9px 0;
+}
+.docs-liste .doc-title { margin-top: 0; font-size: 15px; overflow-wrap: anywhere; }
+.docs-liste .doc-meta { margin-top: 0; font-size: 12px; white-space: nowrap; }
+.docs-liste .doc:hover .doc-meta { color: var(--ink); }
+
+/* ---------- Équipe ---------- */
+.team { display: grid; grid-template-columns: repeat(2, 1fr); gap: 46px 40px; margin-top: 40px; }
+.member { display: flex; gap: 22px; align-items: flex-start; }
+.member-photo { flex: 0 0 150px; max-width: 150px; position: relative; overflow: hidden; border-radius: var(--radius); }
+.member-photo img { width: 100%; display: block; border-radius: var(--radius); }
+/* Filtre jaune clair sur les photos de l'équipe. */
+.member-photo::after { content: ""; position: absolute; inset: 0; background: var(--yellow); mix-blend-mode: multiply; opacity: .25; pointer-events: none; border-radius: var(--radius); }
+.member-photo .card-ph { aspect-ratio: 4/5; font-size: 30px; border-radius: var(--radius); }
+.member-text { flex: 1 1 0; min-width: 0; }
+.member-name { margin: 0 0 2px; font-size: 19px; }
+.member-role { margin: 0 0 12px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .14em; }
+.member-bio { font-size: 15.5px; }
+.member-credit { font-size: 12px; color: var(--grey); margin-top: 10px; }
+
+/* ---------- Formulaires ---------- */
+input, select, textarea, button { font: inherit; color: inherit; }
+/* « password », « url » et « search » manquaient à cette liste : les champs de
+   mot de passe s'affichaient donc étroits et sans bordure, alors que le champ
+   e-mail juste au-dessus faisait toute la largeur. Cela touchait aussi bien la
+   page Administration que la connexion de l'espace collaborateur. */
+/* [V33-VECTORIEL] « input[type=file] » manquait dans cette liste. Le champ
+   « pièce jointe » gardait donc sa largeur naturelle — celle qu'il faut pour
+   écrire « Choisir un fichier — Aucun fichier sélectionné », soit près de
+   350 px, et davantage sur Android où le bouton porte un texte plus long.
+
+   Sur un téléphone, cette case-là, plus large que l'écran, tirait toute la
+   colonne du tableau derrière elle : toutes les autres cases de la même
+   colonne prenaient sa largeur, et la page se mettait à glisser
+   latéralement. C'est ce que montraient les photos. Rangé dans la liste, ce
+   champ obéit à la même règle que les autres : la largeur de la colonne, pas
+   la sienne. */
+input[type=text], input[type=email], input[type=tel], input[type=date], input[type=number],
+input[type=password], input[type=url], input[type=search], input[type=file],
+select, textarea {
+  width: 100%; max-width: 100%;
+  padding: 10px 14px; border: var(--trait) solid var(--ink); border-radius: 0;
+  background: #fff;
+}
+input::placeholder, textarea::placeholder { color: #9a9a94; }
+input:focus, select:focus, textarea:focus { outline: var(--trait-fort) solid var(--ink); outline-offset: 1px; }
+.form { margin-top: 10px; }
+/* Le texte d'introduction s'arrête au même bord que le formulaire en dessous. */
+.form-intro { max-width: 920px; font-size: 16px; }
+.form-intro h2, .form-intro h3 { text-transform: none; letter-spacing: 0; }
+.form-intro h3 { font-size: 18px; margin: 22px 0 6px; }
+.form-intro ul, .form-intro ol { padding-left: 20px; }
+.form-intro code { background: var(--wash); padding: 2px 6px; border-radius: 5px; font-size: 14px; }
+.form { max-width: 920px; }
+.form-legend { color: var(--grey); font-size: 13.5px; margin: 6px 0 0; }
+.form-legend abbr { color: var(--error); text-decoration: none; font-weight: 700; }
+/* L'écart entre deux lignes de champs est porté par le row-gap de la grille,
+   PAS par la marge des champs : les marges des éléments d'une grille ne
+   fusionnent pas, si bien qu'un « margin: 22px 0 » sur .field produisait
+   22 + 22 = 44 px entre chaque ligne et allongeait le formulaire pour rien. */
+/* [V33-VECTORIEL] « minmax(0, 1fr) » plutôt que « 1fr ». Écrit « 1fr », une
+   colonne de tableau refuse de descendre en dessous de la largeur du plus
+   large de ses contenus : il suffit d'une case un peu longue pour élargir la
+   colonne entière, et avec elle la page. Écrit « minmax(0, 1fr) », la colonne
+   accepte de rétrécir autant qu'il le faut, et ce sont les contenus qui
+   s'adaptent. Le « min-width: 0 » sur les champs dit la même chose au rang
+   d'en dessous. Ensemble, ils garantissent que rien ne pourra plus, à
+   l'avenir, faire déborder le formulaire — quelle que soit la longueur des
+   intitulés saisis dans l'administration. */
+.form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 32px; }
+.form-grid > .field { margin: 0; min-width: 0; }
+.form-grid .field--wide { grid-column: 1 / -1; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
+.form-section {
+  text-transform: uppercase; letter-spacing: .1em; font-size: 14px;
+  margin: 38px 0 6px;
+}
+/* Marge conservée pour les .field isolés (connexion espace, Administration),
+   qui ne sont pas dans une grille et ont besoin de leur propre respiration. */
+.field { margin: 22px 0; }
+.field > label { display: block; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+.field abbr { color: var(--ink); text-decoration: none; }
+.field-help { margin: -2px 0 6px; font-size: 13.5px; color: var(--grey); }
+.field-error { margin: 6px 0 0; color: var(--error); font-size: 13.5px; font-weight: 700; }
+.field.has-error input, .field.has-error select, .field.has-error textarea { border-color: var(--error); }
+.field[data-show-if] { display: none; }
+.field[data-show-if].shown { display: block; }
+.yesno { display: flex; gap: 26px; padding: 6px 0; }
+.yesno label { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+.yesno input { width: 20px; height: 20px; accent-color: var(--ink); }
+.hp { position: absolute; left: -9999px; }
+.form-notice { font-size: 13.5px; color: var(--grey); border-left: var(--trait-fort) solid var(--ink); padding-left: 14px; }
+.form-success { border: var(--rule); padding: 30px 34px; margin: 30px 0; }
+.form-success h2 { margin: 0 0 6px; }
+.form-errors { border: var(--trait) solid var(--error); color: var(--error); padding: 14px 20px; margin: 20px 0; font-weight: 700; }
+
+/* Boutons harmonisés : jaune par défaut, noir (.ink/.ghost) en secondaire.
+
+   [V22-JAUNE] Les boutons jaunes n'ont plus de cerne noir. Le trait n'est pas
+   supprimé mais peint en jaune : le bouton garde très exactement la même taille,
+   ce qui compte pour les rangées où les boutons doivent s'aligner et rester de
+   même hauteur. Les boutons noirs (.ink, .ghost, .on) gardent leur trait noir —
+   il est invisible sur leur fond noir, et l'enlever les rapetisserait de 6 px
+   par rapport à leurs voisins jaunes. */
+/* [V37-BOUTONS] L'interligne est écrit ici, et non hérité. Un bouton posé dans
+   un bandeau au texte resserré rapetissait de trois pixels — même classe, même
+   marge, même police, et pourtant pas la même hauteur que son jumeau deux
+   lignes plus haut. Une taille de bouton ne doit pas dépendre du voisinage.
+   1,55 est l'interligne du corps du texte : les hauteurs d'aujourd'hui ne
+   bougent pas, seules celles qui dérivaient reviennent au rang. */
+.btn {
+  display: inline-block; background: var(--yellow); color: var(--ink);
+  border: var(--trait) solid var(--yellow); padding: 10px 34px; border-radius: 99px;
+  font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 13px;
+  line-height: 1.55;
+  cursor: pointer; text-decoration: none; transition: .18s;
+}
+.btn:hover, .btn:focus-visible, .btn:active { filter: brightness(.92); }
+.btn.on, .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.ink, .btn.ghost { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.ink:hover, .btn.ghost:hover, .btn.ink:focus-visible, .btn.ghost:focus-visible { filter: brightness(1.3); }
+.btn.big { padding: 13px 44px; font-size: 14px; }
+.btn.small { padding: 7px 18px; font-size: 12px; }
+
+/* ---------- Rangée de boutons (« Modèles & déclarations », « Soutien »… )
+   [V19-RANGEE]
+
+   Une rangée de boutons doit se lire comme une rangée : sur un écran d'ordinateur
+   les boutons restent sur une seule ligne, quel que soit leur nombre. Auparavant
+   ils passaient à la ligne dès qu'ils dépassaient d'un cheveu — d'où les trois
+   boutons alignés et le quatrième tout seul en dessous, qui donnait l'impression
+   d'un oubli plutôt que d'un choix.
+
+   Les boutons gardent leur largeur naturelle tant qu'ils tiennent (une rangée de
+   deux boutons n'est donc pas étirée) et ne se resserrent que si la place manque :
+   c'est alors le texte qui passe sur deux lignes à l'intérieur du bouton, et tous
+   les boutons de la rangée prennent la même hauteur.
+
+   Le « !important » n'est pas un caprice : l'éditeur de texte enregistre dans la
+   page un « flex-wrap: wrap » écrit à même la balise, qui l'emporterait sinon sur
+   la feuille de style. Il faut donc passer devant lui.
+
+   Sur téléphone et petite tablette, retour au comportement normal : quatre boutons
+   serrés sur 390 px seraient illisibles. */
+.btn-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: 12px;
+}
+.btn-row > * {
+  flex: 0 1 auto;
+  min-width: 0;                 /* sans cela un bouton refuse de se resserrer */
+  white-space: normal;          /* le texte peut passer sur deux lignes */
+  text-align: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  line-height: 1.25;
+}
+/* Marges intérieures resserrées : c'est ce qui permet de gagner la place
+   nécessaire sans rapetisser le texte. */
+.btn-row > .btn { padding-left: 24px; padding-right: 24px; }
+.btn-row > .btn.big { padding-left: 26px; padding-right: 26px; }
+
+@media (max-width: 900px) {
+  .btn-row { flex-wrap: wrap !important; }
+  .btn-row > * { flex: 1 1 260px; }
+}
+@media (max-width: 560px) {
+  .btn-row > * { flex: 1 1 100%; }
+}
+
+/* ---------- La même règle, mais sans dépendre du nom de la classe
+   [V19b-RANGEE-SANS-CLASSE]
+
+   Le bloc « Modèles & déclarations » de la page installée n'a pas exactement le
+   même code que celui d'origine : les boutons y sont des rectangles blancs et
+   non les pastilles du site, donc la classe « btn-row » a pu disparaître à la
+   suite d'un copier-coller dans l'éditeur. Plutôt que de deviner ce code, on
+   reconnaît ici une rangée de boutons à ce qu'elle est et non au nom qu'elle
+   porte : un cadre qui déclare lui-même « display:flex » et contient des liens,
+   ou un simple <div> contenant deux liens à la suite. Dans le texte d'une page,
+   un <div> qui enchaîne deux liens n'est jamais autre chose qu'une rangée de
+   boutons — un lien au fil d'une phrase se trouve dans un <p>, pas dans un
+   <div> à lui tout seul.
+
+   Ces sélecteurs sont volontairement écrits à part : « :has() » est compris par
+   tous les navigateurs actuels, mais s'il ne l'était pas, une règle entière
+   serait ignorée. En les isolant, c'est cette règle-ci qui serait perdue, et
+   celle du dessus — la principale — continuerait de fonctionner. */
+.rich div:has(> a + a),
+.rich [style*="display:flex"]:has(> a),
+.rich [style*="display: flex"]:has(> a) {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: 12px;
+}
+.rich div:has(> a + a) > *,
+.rich [style*="display:flex"]:has(> a) > *,
+.rich [style*="display: flex"]:has(> a) > * {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  line-height: 1.25;
+}
+
+@media (max-width: 900px) {
+  .rich div:has(> a + a),
+  .rich [style*="display:flex"]:has(> a),
+  .rich [style*="display: flex"]:has(> a) { flex-wrap: wrap !important; }
+  .rich div:has(> a + a) > *,
+  .rich [style*="display:flex"]:has(> a) > *,
+  .rich [style*="display: flex"]:has(> a) > * { flex: 1 1 260px; }
+}
+@media (max-width: 560px) {
+  .rich div:has(> a + a) > *,
+  .rich [style*="display:flex"]:has(> a) > *,
+  .rich [style*="display: flex"]:has(> a) > * { flex: 1 1 100%; }
+}
+
+/* ---------- Les boutons dont le libellé est coupé à la main
+   [V20-DEUXLIGNES]
+
+   Quand un bouton porte un <br> dans son texte, c'est que la coupure a été
+   voulue : « Reçu vierge » au-dessus, « défraiements repas / km » en dessous.
+   Il faut alors deux choses, et les règles ci-dessus ne les donnent pas.
+
+   D'abord « white-space: nowrap », pour que le navigateur n'ajoute pas ses
+   propres coupures aux nôtres — sans quoi la deuxième ligne se casse à son
+   tour et le bouton se lit sur trois lignes bancales. Un <br> reste obéi
+   malgré nowrap : il est une coupure demandée, pas une coupure calculée.
+
+   Ensuite « min-width: auto », qui annule le « min-width: 0 » plus haut. Ce
+   zéro autorise un bouton à se laisser comprimer plus étroit que son texte ;
+   c'est ce qu'on veut d'un libellé qui peut se replier, mais pas d'un libellé
+   en nowrap, qui déborderait alors de son cadre. « auto » veut dire : jamais
+   plus étroit que ma plus longue ligne. Les deux autres boutons, eux, gardent
+   le zéro et se replient tranquillement pour laisser la place.
+
+   Règle isolée à dessein, comme les précédentes : « :has() » est compris par
+   tous les navigateurs actuels, mais s'il ne l'était pas, seule cette
+   finition-ci serait perdue. */
+.btn-row > a:has(br),
+.rich div:has(> a + a) > a:has(br),
+.rich [style*="display:flex"]:has(> a) > a:has(br),
+.rich [style*="display: flex"]:has(> a) > a:has(br) {
+  white-space: nowrap;
+  min-width: auto;
+}
+
+/* ---------- Les cadres écrits à même la balise
+   [V31-TRAIT]
+
+   Dans les pages saisies à l'éditeur, certains blocs portent leur bordure dans
+   leur propre attribut « style » — les quatre boutons de « Modèles &
+   déclarations », par exemple, arrivés là par un copier-coller. Une bordure
+   écrite ainsi passe devant la feuille de style : elle resterait épaisse quand
+   tout le reste s'affine, et c'est justement elle qu'on voit le plus, puisque
+   c'est elle qui est noire.
+
+   On ne touche qu'à l'ÉPAISSEUR. La couleur, l'arrondi, le fond, le style du
+   trait : tout ce qui a été choisi en écrivant la page reste comme il a été
+   choisi. Un bloc dont le style ne parle que d'arrondi (« border-radius ») est
+   attrapé lui aussi par le sélecteur, sans conséquence : sans style de trait
+   déclaré, aucun trait n'est dessiné, et lui donner une épaisseur ne le fait
+   pas apparaître.
+
+   Le « !important » ne se discute pas ici : c'est le seul moyen de passer
+   devant un attribut « style ». Il est enfermé dans le contenu des pages
+   (« .rich ») et ne peut donc rien atteindre du reste du site. */
+.rich [style*="border"] { border-width: var(--trait) !important; }
+
+.linklike { background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; font-size: 14px; font-family: var(--font); }
+.linklike:hover { background: var(--ink); color: var(--paper); }
+
+/* ---------- Pied de page ---------- */
+.site-footer { margin-top: 60px; padding: 52px 0 28px; font-size: 15px; background: var(--ink); color: var(--paper); }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }
+/* Le nom et la ligne qui le suit forment une seule adresse, pas deux
+   paragraphes : ils se tiennent à la même distance que deux entrées du menu
+   du pied de page — 6 px — et non à celle qui sépare deux blocs. */
+.footer-logo { font-weight: 700; letter-spacing: .24em; font-size: 17px; margin: 0 0 6px; line-height: 1.3; }
+.footer-h {
+  text-transform: uppercase; letter-spacing: .16em; font-size: 12px; font-weight: 700;
+  margin: 0 0 16px; padding-bottom: 10px; color: var(--paper);
+  border-bottom: 1px solid rgba(255,255,255,.22);
+}
+.footer-about { margin: 0 0 16px; color: rgba(255,255,255,.78); font-size: 14.5px; line-height: 1.55; max-width: 42ch; }
+.footer-links { list-style: none; margin: 0; padding: 0; }
+.footer-links a, .site-footer a, .site-footer .linklike { text-decoration: none; color: var(--paper); }
+.site-footer p, .site-footer .footer-logo { color: var(--paper); }
+.site-footer .muted { color: rgba(255,255,255,.62); }
+.site-footer a:hover, .site-footer .linklike:hover { text-decoration: underline; background: none; color: var(--paper); }
+.footer-links li { margin-bottom: 6px; }
+.footer-links a { text-transform: uppercase; font-size: 13px; letter-spacing: .1em; font-weight: 700; }
+
+/* Coordonnées : une petite icône en vecteur devant chaque ligne. */
+.footer-contact { list-style: none; margin: 0 0 12px; padding: 0; }
+.footer-contact li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 9px; line-height: 1.45; }
+.fic { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 2px; color: currentColor; opacity: .8; }
+
+/* Réseaux sociaux. Correction : les icônes étaient forcées en noir (var(--ink))
+   sur le fond noir du pied de page — donc invisibles. « currentColor » reprend
+   la couleur du texte autour : blanche dans le pied de page, noire ailleurs. */
+.social-icons { display: flex; gap: 14px; margin-top: 18px; }
+.social-icons a { display: inline-flex; color: currentColor; transition: opacity .15s; }
+.social-icons a:hover { opacity: .55; text-decoration: none; }
+.footer-note { margin-top: 32px; color: rgba(255,255,255,.62); font-size: 13px; }
+
+/* Bande du bas : copyright à gauche, liens légaux + accès équipe à droite. */
+.footer-bottom {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px 26px; margin-top: 30px; padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,.22);
+  font-size: 13px;
+}
+.footer-copy { margin: 0; color: rgba(255,255,255,.72) !important; }
+.footer-legal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin: 0; }
+.footer-legal a, .footer-legal .linklike {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; color: rgba(255,255,255,.72); text-decoration: none;
+}
+.footer-legal .linklike { text-decoration: none; }
+.footer-legal a:hover, .footer-legal .linklike:hover { color: var(--paper); text-decoration: underline; }
+.footer-legal .fic { margin-top: 0; }
+@media (max-width: 640px) {
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+}
+
+/* Bande de logos partenaires (fond blanc, comme wolubilis.be) */
+.partners { background: #fff; padding: 40px 0; }
+.partners-in {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 34px 48px;
+}
+.partner-logo { display: inline-flex; align-items: center; }
+.partner-logo img {
+  max-height: 62px; width: auto; max-width: 190px; object-fit: contain;
+  filter: grayscale(1); opacity: .7; transition: .18s;
+}
+a.partner-logo:hover img { filter: none; opacity: 1; }
+@media (max-width: 640px) {
+  .partners { padding: 30px 0; }
+  .partners-in { gap: 26px 34px; }
+  .partner-logo img { max-height: 48px; max-width: 140px; }
+}
+
+
+/* ---------- Cookies ---------- */
+.cookies {
+  position: fixed; z-index: 90; left: 0; right: 0; bottom: 0;
+  padding: 18px; pointer-events: none;
+}
+.cookies-box {
+  pointer-events: auto; max-width: 540px; background: var(--ink); color: #fff;
+  padding: 28px 32px; box-shadow: 0 10px 40px rgba(0,0,0,.35);
+}
+.cookies-box h2 { margin: 0 0 8px; font-size: 17px; text-transform: uppercase; letter-spacing: .12em; }
+.cookies-box p { margin: 0 0 10px; font-size: 14px; line-height: 1.5; }
+.cookies-box a { color: #fff; }
+.cookies-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+.cookies-box .btn { background: var(--yellow); color: var(--ink); border-color: var(--yellow); }   /* [V22-JAUNE] */
+.cookies-box .btn:hover, .cookies-box .btn:focus-visible { filter: brightness(.92); }
+.cookies-box .btn.ghost { background: transparent; color: #fff; border-color: #fff; }
+.cookies-box .btn.ghost:hover, .cookies-box .btn.ghost:focus-visible { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.cookies-box .linklike { color: #fff; }
+.cookies-box .linklike:hover { background: #fff; color: var(--ink); }
+.cookies-prefs { border: var(--rule); padding: 0; max-width: 580px; width: calc(100% - 40px); }
+.cookies-prefs::backdrop { background: rgba(0,0,0,.65); }
+.cookies-prefs form { padding: 32px 36px; }
+.cookies-prefs h2 { margin: 0 0 18px; text-transform: uppercase; letter-spacing: .08em; font-size: 19px; }
+.pref { display: flex; justify-content: space-between; gap: 24px; padding: 13px 0; }
+.pref p { margin: 4px 0 0; font-size: 13.5px; color: var(--grey); }
+.pref input { width: 22px; height: 22px; accent-color: var(--ink); flex: none; }
+
+/* ---------- Visionneuse ---------- */
+.lightbox {
+  position: fixed; inset: 0; z-index: 95; background: rgba(0,0,0,.94);
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox img { max-width: 92vw; max-height: 88vh; object-fit: contain; }
+.lightbox button {
+  position: absolute; background: none; border: 0; color: #fff;
+  font-size: 42px; cursor: pointer; padding: 20px; line-height: 1;
+}
+.lightbox-close { top: 8px; right: 14px; }
+.lightbox-prev { left: 6px; top: 50%; transform: translateY(-50%); }
+.lightbox-next { right: 6px; top: 50%; transform: translateY(-50%); }
+
+/* ---------- Responsive ---------- */
+/* Menu horizontal déroulé en haut sur ordinateur ; menu burger sous 1140px (mobile/tablette) */
+@media (max-width: 1140px) {
+  .burger {
+    display: block; background: none; border: 0; cursor: pointer; padding: 10px;
+  }
+  .burger span { display: block; width: 26px; height: 3px; background: var(--ink); margin: 5px 0; transition: .25s; }
+  .burger[aria-expanded="true"] span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+  .burger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .burger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+  .nav {
+    display: none; position: fixed; inset: 84px 0 0 0; background: var(--paper);
+    padding: 30px clamp(24px, 6vw, 60px); flex-direction: column; align-items: flex-start; overflow: auto; z-index: 49;
+  }
+  .nav.open { display: flex; }
+  .nav ul { flex-direction: column; gap: 4px; width: 100%; }
+  .nav a { font-size: 21px; display: block; padding: 13px 0; }
+  .subnav {
+    position: static; opacity: 1; visibility: visible; transform: none;
+    box-shadow: none; padding: 0 0 8px 20px; min-width: 0;
+  }
+  .subnav a { font-size: 15px; padding: 8px 0; }
+  .nav-langs { padding: 22px 0; }
+  .nav-langs a { font-size: 16px; }
+}
+@media (max-width: 1000px) {
+  .fiche-grid { grid-template-columns: 1fr; }
+  .grid.cards { grid-template-columns: repeat(2, 1fr); }
+  /* [V16-DOCS] .docs garde son nombre de colonnes (celui des documents) et
+     les rétrécit : pas de palier ici, la ligne reste entière. */
+  .events-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .grid.cards { grid-template-columns: 1fr; gap: 34px; }
+  .gallery { grid-template-columns: repeat(2, 1fr); }
+  /* Sur téléphone la vignette peut descendre sous les 150 px : deux par ligne
+     valent mieux qu'une seule très large.
+     [V16-DOCS] Deux exactement, et non « autant que la place permet » : à
+     480 px de large, la formule automatique en plaçait trois et laissait le
+     quatrième seul en dessous — précisément la disposition bancale qu'on
+     cherche à éviter. Deux et deux se regardent mieux. */
+  .docs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; }
+  .team { grid-template-columns: 1fr; }
+  .member { flex-direction: column; }
+  .member-photo { flex-basis: auto; max-width: 200px; }
+  .event { grid-template-columns: 84px 1fr; gap: 16px; }
+  .event-title { font-size: 15px; }
+  .events-grid { grid-template-columns: 1fr; gap: 14px; }
+  .ecard { aspect-ratio: 1 / 1; }
+  .ecard-title { font-size: 20px; }
+  .ecard-lead { font-size: 20px; }   /* [V23-TOURNEE] première ligne de la carte */
+  .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+  .section { padding: 40px 0 56px; }
+  .hero { padding: 52px 0 20px; }
+  .agenda-filters { gap: 12px; }
+  .agenda-filters label { width: 100%; }
+  .agenda-filters select { width: 100%; min-width: 0; }
+  .cookies { padding: 10px; }
+  .cookies-box { padding: 22px 24px; }
+}

@@ -1,0 +1,62 @@
+# Le Voisin — jamais dans Git.
+#
+# Ce dépôt est le miroir du code de le-voisin.com, servi depuis
+# /sites/test.le-voisin.com/ chez Infomaniak. Il n'existe qu'UN site : « test »
+# et « production » sont le même dossier. Un déploiement touche le public à
+# l'instant même, et il n'y a pas d'environnement de repli.
+
+# ---------------------------------------------------------------------------
+# Secrets. Rien de ce bloc ne doit entrer dans l'historique : un commit grave,
+# et un commit suivant n'efface pas.
+# ---------------------------------------------------------------------------
+
+# Identifiants de base de données, base_url, et le « secret » dont dérive le
+# chiffrement des fiches personnelles. L'étoile couvre config.php.local et
+# config.php.bak : un fichier oublié sous ce nom porte les mêmes secrets.
+# config.sample.php n'est pas touché par ce motif et reste versionné.
+config.php*
+
+# L'installateur porte sa clé en clair (constante CLE). Cette clé donne
+# l'exécution de code à distance sur le serveur public. Il vit sur le serveur,
+# déposé par Web FTP quand on en a besoin — mieux encore, retiré entre deux
+# déploiements.
+/installateur.php
+
+# Empreintes des mots de passe de la protection de dossier Infomaniak.
+.htdigest*
+
+# ---------------------------------------------------------------------------
+# Données des personnes
+# ---------------------------------------------------------------------------
+
+# Contrats, fiches de salaire, factures, pièces d'identité. Ne vivent que sur
+# le serveur (uploads/private/) et en sauvegarde — jamais dans un dépôt de code.
+/uploads/
+
+# ---------------------------------------------------------------------------
+# Artefacts, sauvegardes, journaux
+# ---------------------------------------------------------------------------
+
+# Sauvegardes automatiques de l'installateur.
+/_sauvegardes/
+
+# Copies manuelles faites avant une modification risquée (.htaccess, etc.).
+*.bak
+
+# Paquets de déploiement. TOUS, pas seulement les « maj-* » : le paquet
+# le-voisin-code-2026-08-06.zip contenait une copie intégrale du site, dont
+# installateur.php et sa clé. Ces archives se téléchargeaient depuis le web
+# jusqu'au 11.08.2026 — elles n'ont leur place ni sur le serveur ni ici.
+*.zip
+
+# Journaux applicatifs.
+/app/logs/
+*.log
+
+# Copie du site à l'intérieur de sa propre racine, trouvée le 11.08.2026.
+# 23 Mo de code dupliqué, à retirer du serveur.
+/le-voisin-site/
+
+# Fichiers d'environnement macOS / éditeurs.
+.DS_Store
+.vscode/
