@@ -1829,8 +1829,14 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
   font-weight:700;
   line-height:1.25;
   text-decoration:none;
+  /* [11.08.2026] inline-block, et non inline : sur un élément en ligne, le
+     border-bottom se redessine SOUS CHAQUE LIGNE. « Code of Conduct Against
+     Harassment and Discrimination » tient sur deux lignes, et portait donc
+     deux traits empilés. En inline-block, la boîte est unique et le trait
+     ne se dessine qu'une fois, au bas du titre entier. */
+  display:inline-block;
   border-bottom:var(--trait) solid var(--ink);
-  padding-bottom:1px;
+  padding-bottom:2px;
 }
 
 /* ── 3. Le dispositif de signalement ──────────────────────────────────
@@ -1851,9 +1857,12 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
      si le jaune de la charte bouge, celui-ci suit. */
   background:#fdf6e2;                                        /* repli */
   background:color-mix(in srgb, var(--yellow) 16%, #fff);
-  border:var(--trait) solid color-mix(in srgb, var(--yellow) 42%, #fff);
-  border-top:2px solid var(--ink);   /* le filet passe en haut : de côté, il
-                                        déséquilibrait la rangée de trois */
+  /* [11.08.2026] Aucun contour. La règle de la page est simple et tient dans
+     une phrase : un bloc blanc se délimite par un trait, un bloc coloré se
+     délimite par sa couleur. Le filet noir du haut a d'abord sauté — dans une
+     rangée de trois cases il faisait bavure —, puis le contour jaune avec lui,
+     parce qu'un aplat n'a pas besoin qu'on lui redise où il s'arrête. */
+  border:0;
   border-radius:18px;
   padding:clamp(22px,2.4vw,30px);
   margin:0;
