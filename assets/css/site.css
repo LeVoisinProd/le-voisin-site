@@ -894,7 +894,14 @@ div.espace-fiche-envoi > p:last-child { margin: 0; }
    Le bouton jaune ne bouge pas, le noir le fait mieux ressortir. */
 .espace-depot {
   background: var(--ink); color: var(--paper);
-  border-radius: 16px; padding: 6px 24px 26px; margin: 22px 0 0;
+  border-radius: 16px; padding: 6px 24px 26px;
+  /* [12.08.2026] Une marge en bas, qui manquait. Le panneau n'avait que celle
+     du haut et la liste de documents qui le suit a margin:0 — les deux se
+     touchaient donc, et le bloc noir semblait déborder sur les documents.
+     L'écart est plus grand que celui du haut, et c'est voulu : au-dessus il
+     sépare deux lignes de texte, en dessous il sépare deux natures — ce qu'on
+     envoie et ce qu'on a envoyé. */
+  margin: 22px 0 clamp(30px, 4vw, 46px);
 }
 .espace-depot .espace-depot-i,
 .espace-depot .field-help { color: rgba(255,255,255,.68); }
