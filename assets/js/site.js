@@ -282,3 +282,60 @@
     lvToggle();
   }
 })();
+
+/* ═══════════════ Les filtres du Catalogue ═══════════════
+   [V42-CATALOGUE]
+
+   Tout se passe dans le navigateur. À trente pièces, un aller-retour au
+   serveur par clic serait une lenteur qu'on paierait sans rien gagner : la
+   grille entière tient déjà dans la page.
+
+   Sans JavaScript, rien de tout ceci ne s'exécute et la grille reste
+   affichée en entier. On perd le tri, jamais le contenu — c'est la règle
+   du site, et c'est ce qui permet d'envoyer l'adresse à quelqu'un sans se
+   demander ce que fait son navigateur.
+
+   Les trois axes se combinent en ET : une pièce doit satisfaire la
+   discipline choisie ET le public choisi ET le mot-clef choisi. À
+   l'intérieur d'un axe, un second clic désélectionne — on ne construit pas
+   d'union, parce que « jeune public OU adultes » ne veut rien dire pour
+   quelqu'un qui cherche une salle. */
+(function () {
+  var barre = document.getElementById('cat-filtres');
+  var grille = document.getElementById('cat-grille');
+  if (!barre || !grille) return;
+
+  var rien = document.getElementById('cat-rien');
+  var choix = { cat: '', pub: '', tag: '' };
+
+  function appliquer() {
+    var vus = 0;
+    grille.querySelectorAll('.cat-card').forEach(function (c) {
+      var ok = true;
+      if (choix.cat) ok = ok && (' ' + (c.dataset.cat || '') + ' ').indexOf(' ' + choix.cat + ' ') > -1;
+      if (choix.pub) ok = ok && c.dataset.pub === choix.pub;
+      if (choix.tag) ok = ok && (' ' + (c.dataset.tag || '') + ' ').indexOf(' ' + choix.tag + ' ') > -1;
+      c.hidden = !ok;
+      if (ok) vus++;
+    });
+    /* Une grille vide sans un mot ressemble à une page cassée. */
+    if (rien) rien.hidden = vus !== 0;
+  }
+
+  barre.addEventListener('click', function (ev) {
+    var b = ev.target.closest('.cat-f');
+    if (!b) return;
+    var axe = b.dataset.axe;
+    var val = b.dataset.val || '';
+
+    /* Un second clic sur le bouton déjà actif remet l'axe à zéro. Le bouton
+       « Tout » de la discipline fait la même chose avec une valeur vide. */
+    choix[axe] = (choix[axe] === val && val !== '') ? '' : val;
+
+    barre.querySelectorAll('.cat-f').forEach(function (o) {
+      if (o.dataset.axe !== axe) return;
+      o.classList.toggle('on', (o.dataset.val || '') === choix[axe]);
+    });
+    appliquer();
+  });
+})();

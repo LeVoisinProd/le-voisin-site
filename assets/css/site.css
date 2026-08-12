@@ -2083,3 +2083,106 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 @media (max-width:760px){
   .espace-main .mdoc-list{ grid-template-columns:1fr; }
 }
+
+/* ═══════════════════ Le Catalogue professionnel ═══════════════════
+   [V42-CATALOGUE] Maquette validée le 11.08.2026 avec les vingt pièces
+   réelles. Ce qu'elle fixe est au chapitre 14 de l'architecture.
+
+   La différence avec la grille publique tient en une phrase : là-bas le
+   texte se pose SUR l'image et doit séduire, ici il se pose SOUS elle et
+   doit renseigner. Un programmateur balaie vingt cartes en cherchant une
+   durée et un public ; s'il doit ouvrir chaque fiche, il en ouvre trois. */
+
+.cat-tete h1 { text-transform: uppercase; letter-spacing: .02em; }
+.cat-intro { max-width: 62ch; }
+
+/* ── Les filtres ─────────────────────────────────────────────────── */
+.cat-filtres {
+  display: flex; gap: 26px; flex-wrap: wrap;
+  padding-bottom: 22px; margin-bottom: 6px;
+  border-bottom: var(--trait) solid var(--line);
+}
+.cat-groupe { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cat-groupe b {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--grey); font-weight: 600;
+}
+.cat-f {
+  font: inherit; font-size: 14px; cursor: pointer;
+  border: var(--trait) solid var(--line); border-radius: 99px;
+  padding: 7px 16px; background: var(--paper); color: var(--ink);
+  transition: border-color .15s, background .15s, color .15s;
+}
+.cat-f:hover { border-color: var(--ink); }
+.cat-f.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* ── La grille ───────────────────────────────────────────────────── */
+.cat-grille {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: clamp(16px, 2vw, 26px); padding-top: 26px; padding-bottom: 70px;
+}
+.cat-card {
+  text-decoration: none; color: inherit; display: flex; flex-direction: column;
+  border: var(--trait) solid var(--line); border-radius: 16px; overflow: hidden;
+  transition: border-color .2s, transform .2s;
+}
+.cat-card:hover, .cat-card:focus-visible { border-color: var(--ink); transform: translateY(-3px); }
+.cat-img { display: block; aspect-ratio: 4/3; overflow: hidden; background: var(--wash); }
+.cat-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cat-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 3px; }
+.cat-title { font-weight: 700; font-size: 17px; line-height: 1.2; }
+.cat-artiste { font-size: 14px; color: var(--grey); }
+/* tabular-nums : les années et les durées s'alignent d'une carte à l'autre. */
+.cat-meta { font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.cat-tags { font-size: 12px; color: var(--grey); text-transform: lowercase; }
+.cat-rien { padding: 30px 0 70px; font-size: 18px; color: var(--grey); }
+
+/* ── La fiche ────────────────────────────────────────────────────── */
+.cat-retour { margin-bottom: 18px; font-size: 14px; }
+.cat-fiche-tete h1 { font-size: clamp(28px, 4vw, 52px); text-transform: uppercase; letter-spacing: .02em; }
+.cat-fiche-artiste { color: var(--grey); font-size: clamp(16px, 2vw, 20px); margin: 6px 0 0; }
+.cat-fiche-grid {
+  display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, .9fr);
+  gap: clamp(26px, 4vw, 56px); margin-top: clamp(26px, 4vw, 44px);
+  align-items: start;
+}
+/* Le lecteur natif. Pas de librairie, pas de cookie : le fichier vient
+   d'Apache, qui répond aux requêtes Range — on se déplace dans la vidéo
+   sans une ligne de JavaScript. */
+.cat-video { margin-bottom: 28px; }
+.cat-video video {
+  width: 100%; display: block; border-radius: 14px; background: var(--ink);
+  aspect-ratio: 16/9; object-fit: contain;
+}
+.cat-video-lgd { font-size: 13px; color: var(--grey); margin: 8px 0 0; }
+.cat-distribution { margin-top: 30px; }
+
+.cat-fiche-aside { display: flex; flex-direction: column; gap: 18px; }
+.cat-bloc { border: var(--trait) solid var(--line); border-radius: 16px; padding: 22px 24px; }
+.cat-bloc h2 {
+  margin: 0 0 14px; font-size: 13px; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--grey); font-weight: 600;
+}
+.cat-faits dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
+.cat-faits dt { color: var(--grey); font-size: 14px; }
+.cat-faits dd { margin: 0; font-size: 14px; font-weight: 500; }
+.cat-fiche-tags { margin: 14px 0 0; font-size: 13px; color: var(--grey); }
+
+.cat-res { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cat-res a {
+  display: flex; flex-direction: column; gap: 2px; text-decoration: none;
+  border: var(--trait) solid var(--line); border-radius: 12px; padding: 12px 15px;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.cat-res a:hover { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.cat-res-nom { font-weight: 500; font-size: 15px; }
+.cat-res-meta { font-size: 12px; opacity: .65; font-variant-numeric: tabular-nums; }
+.cat-contact p { margin: 0 0 12px; font-size: 15px; }
+.cat-contact p:last-child { margin: 0; }
+
+.cat-porte-form { max-width: 420px; }
+.cat-porte-aide { margin-top: 22px; font-size: 14px; }
+
+@media (max-width: 900px) {
+  .cat-fiche-grid { grid-template-columns: 1fr; }
+}

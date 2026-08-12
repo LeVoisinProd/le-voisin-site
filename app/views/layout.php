@@ -83,7 +83,10 @@ if (!function_exists('lv_page_mentions')) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($meta['title']) ?></title>
-<?php if (in_array((string)($page['module'] ?? ''), ['admin_portal', 'pro'], true)): ?>
+<?php /* [V42-CATALOGUE] « catalog » rejoint la liste : un espace sous mot de
+         passe n'a rien à faire dans un moteur de recherche, et la grille
+         serait indexée à travers la page de connexion. */ ?>
+<?php if (in_array((string)($page['module'] ?? ''), ['admin_portal', 'pro', 'catalog'], true)): ?>
 <meta name="robots" content="noindex, nofollow">
 <?php endif; ?>
 <?php if ($meta['desc'] !== ''): ?><meta name="description" content="<?= e($meta['desc']) ?>"><?php endif; ?>

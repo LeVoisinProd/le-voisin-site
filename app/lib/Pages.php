@@ -31,6 +31,8 @@ class Pages
         // CMS est fermée, et page-edit.php refuse toute valeur absente d'ici.
         'espaces'       => ['fr' => 'Page Espaces dédiés (cartes Membres / Pros)',
                             'en' => 'Dedicated spaces page (Members / Pros cards)'],
+        'catalog'       => ['fr' => 'Catalogue professionnel (grille + fiches, sous mot de passe)',
+                            'en' => 'Professional catalogue (grid + shows, password protected)'],
     ];
 
     private static ?array $all = null;

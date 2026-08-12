@@ -48,14 +48,16 @@ $entity = null;      // fiche projet/artiste éventuelle
 $entityType = null;
 
 if ($page && $rest) {
-    if (count($rest) === 1 && in_array($page['module'], ['projects', 'artists'], true)) {
+    /* [V42-CATALOGUE] Le catalogue lit la même table que les projets : un
+       spectacle est un projet, saisi une seule fois. Seule la vue change. */
+    if (count($rest) === 1 && in_array($page['module'], ['projects', 'artists', 'catalog'], true)) {
         $slug = $rest[0];
-        $table = $page['module'] === 'projects' ? 'projects' : 'artists';
+        $table = $page['module'] === 'artists' ? 'artists' : 'projects';
         $entity = DB::one(
             "SELECT * FROM `$table` WHERE visible = 1 AND (slug_" . I18n::$lang . ' = ? OR slug_' . I18n::$default . ' = ?)',
             [$slug, $slug]
         );
-        $entityType = $page['module'] === 'projects' ? 'project' : 'artist';
+        $entityType = $page['module'] === 'artists' ? 'artist' : 'project';
         if (!$entity) $page = null;
     } else {
         $page = null;
@@ -337,6 +339,75 @@ switch (true) {
     case $page['module'] === 'pro':
         view('pro', []);
 
+    /* ---- Le Catalogue professionnel ----------------------------------------
+       [V42-CATALOGUE] Trois états dans un seul module, et l'ordre compte : on
+       vérifie la porte AVANT de lire quoi que ce soit. Une grille rendue puis
+       masquée resterait dans la source de la page.
+
+       La déconnexion est un GET, contrairement à celle du bureau : le lien vit
+       en bas de la grille, personne ne l'actionne par accident, et un
+       programmateur qui ferme son navigateur ferme de toute façon la session. */
+    case $page['module'] === 'catalog':
+        $catUrlP = Pages::url($page);
+
+        if (isset($_GET['sortie'])) { CatalogAuth::fermer(); redirect($catUrlP); }
+
+        $catState = ['error' => ''];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !CatalogAuth::check()) {
+            CatalogAuth::requireCsrf();
+            if (CatalogAuth::throttled()) {
+                $catState['error'] = t('cat_trop');
+            } elseif (CatalogAuth::verifier((string)($_POST['mdp'] ?? ''))) {
+                /* On recharge plutôt que d'afficher : sans cela un rafraîchissement
+                   renverrait le mot de passe une seconde fois. */
+                redirect($catUrlP . ($entity ? '/' . Pages::slug($page, I18n::$lang) : ''));
+            } else {
+                $catState['error'] = t('cat_mauvais');
+            }
+        }
+
+        if (!CatalogAuth::check() || !CatalogAuth::configure()) {
+            view('catalog_login', ['catState' => $catState]);
+        }
+
+        if ($entity) {
+            /* La fiche a été trouvée par le routeur, qui ne connaît que
+               « visible ». Le catalogue demande davantage : une pièce publiée
+               sur le site mais non cochée n'a pas de fiche ici. */
+            if ((int)($entity['catalog_visible'] ?? 0) !== 1) { lv_render_404(); }
+            view('catalog_item', ['item' => $entity]);
+        }
+
+        $spectacles = Catalog::spectacles();
+
+        /* Les catégories et les publics des filtres ne sont pas la liste
+           complète du site : seulement ce que les spectacles du catalogue
+           portent vraiment. Un filtre qui ne renvoie jamais rien est pire
+           qu'un filtre absent. */
+        $catsCat = [];
+        $publics = [];
+        foreach ($spectacles as &$sp) {
+            $ids = array_map('intval', array_column(
+                DB::all('SELECT category_id FROM project_categories WHERE project_id = ?', [(int)$sp['id']]),
+                'category_id'));
+            $sp['_cats'] = $ids;
+            foreach ($ids as $cid) $catsCat[$cid] = true;
+            $pu = trim((string)($sp['public_cible'] ?? ''));
+            if ($pu !== '') $publics[$pu] = true;
+        }
+        unset($sp);
+
+        $cats = $catsCat
+            ? DB::all('SELECT * FROM categories WHERE id IN (' . implode(',', array_map('intval', array_keys($catsCat))) . ') ORDER BY sort, id')
+            : [];
+
+        view('catalog', [
+            'spectacles' => $spectacles,
+            'cats'       => $cats,
+            'publics'    => array_keys($publics),
+            'tags'       => Catalog::tousLesTags($spectacles),
+        ]);
+
     // ----- Page « Espaces dédiés » : les deux portes d'entrée -----
     // Une carte vers /espace/ (artistes et technicien·nes), une vers le
     // catalogue (programmateur·rices). Le gabarit lit lui-même le réglage
@@ -425,7 +496,11 @@ function lv_sitemap(): never
     foreach (Pages::all() as $p) {
         if (!$p['visible']) continue;
         // Les pages d'accès privé n'ont rien à faire dans le plan du site.
-        if (in_array((string)$p['module'], ['admin_portal', 'pro'], true)) continue;
+        /* [V42-CATALOGUE] Le catalogue sort du plan du site. Le noindex du
+           gabarit ne suffit pas : un sitemap est une invitation explicite, et
+           Google suit une adresse qu'on lui donne avant de lire la page qui
+           lui dit de ne pas la lire. */
+        if (in_array((string)$p['module'], ['admin_portal', 'pro', 'catalog'], true)) continue;
         $urls = [];
         foreach (I18n::$langs as $lg) $urls[$lg] = Pages::url($p, $lg);
         $entry($urls, (string)$p['updated_at']);
