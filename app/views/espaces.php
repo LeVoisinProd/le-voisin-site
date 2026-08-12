@@ -31,6 +31,11 @@
    ailleurs que sur ce site. */
 $catUrl = trim((string)setting('catalogue_url', ''));
 if ($catUrl === '' && ($pCat = Pages::moduleP('catalog'))) $catUrl = Pages::url($pCat);
+/* [12.08.2026] Et si le Catalogue est servi par son point d'entrée autonome,
+   c'est ce fichier qu'on vise. On vérifie qu'il existe plutôt que d'écrire
+   l'adresse en dur : le jour où il disparaîtra, parce que le module du routeur
+   aura repris le service, la carte cessera d'y renvoyer d'elle-même. */
+if ($catUrl === '' && is_file(LV_ROOT . '/catalogue.php')) $catUrl = url('/catalogue.php');
 ?>
 <section class="espaces">
   <div class="wrap espaces-grid">
