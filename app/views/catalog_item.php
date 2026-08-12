@@ -129,9 +129,27 @@ $annee = (int)($item['year_creation'] ?? 0);
         <div class="cat-bloc cat-telech">
           <h2><?= e(t('cat_telecharger')) ?></h2>
 
-          <?php if (!$res): ?>
+          <?php /* [12.08.2026] Les documents du CMS, zone « doc ».
+
+                   Quand ils ont quitté la page publique le 11.08, il était dit
+                   que le Catalogue les servirait de là, derrière le mot de
+                   passe. C'est écrit ici, et cela n'avait pas été fait : la
+                   colonne ne lisait que le dossier medias/, qui n'existe pas
+                   encore faute de compte FTP. Une fiche technique déjà déposée
+                   dans le CMS restait donc invisible des deux côtés.
+
+                   Les deux sources se suivent dans la même colonne, et
+                   personne n'a à savoir laquelle est laquelle : ce qui vient du
+                   CMS d'abord, parce que c'est ce qui existe aujourd'hui, puis
+                   ce qui vient du dossier quand il y en aura. */ ?>
+          <?php $docsCms = Docs::forOwner('project', (int)$item['id'], 'doc'); ?>
+          <?php if ($docsCms): ?>
+          <?= docs_list($docsCms, true) ?>
+          <?php endif; ?>
+
+          <?php if (!$res && !$docsCms): ?>
           <p class="muted"><?= e(t('cat_rien_depose')) ?></p>
-          <?php else: ?>
+          <?php elseif ($res): ?>
           <ul class="cat-res">
             <?php foreach ($res as $r): ?>
             <li>
