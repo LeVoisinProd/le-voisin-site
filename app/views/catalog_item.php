@@ -41,7 +41,7 @@ $annee = (int)($item['year_creation'] ?? 0);
 <article class="section cat-fiche">
   <div class="wrap">
 
-    <p class="cat-retour"><a href="<?= e(Pages::url($page)) ?>">&larr; <?= e(t('cat_retour')) ?></a></p>
+    <p class="cat-retour"><a href="<?= e(cat_lien()) ?>">&larr; <?= e(t('cat_retour')) ?></a></p>
 
     <header class="cat-fiche-tete">
       <h1><?= e(f($item, 'title')) ?></h1>

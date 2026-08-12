@@ -99,7 +99,10 @@ $PUBLICS = [
       ]);
   ?>
   <a class="cat-card"
-     href="<?= e(detail_url('catalog', $p)) ?>"
+     <?php /* cat_lien_fiche et non detail_url : le Catalogue est servi par
+              catalogue.php, un point d'entrée autonome, et ne dépend d'aucune
+              page du CMS. La raison est en tête de ce fichier-là. */ ?>
+     href="<?= e(cat_lien_fiche($p)) ?>"
      data-cat="<?= e(implode(' ', array_map('strval', $p['_cats'] ?? []))) ?>"
      data-pub="<?= e($pub) ?>"
      data-tag="<?= e(mb_strtolower(implode(' ', $tagsP))) ?>">
