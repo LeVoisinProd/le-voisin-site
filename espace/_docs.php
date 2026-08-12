@@ -126,7 +126,15 @@ function espace_docs_traiter(array $m): void
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['doc'])) return;
     if (!MemberDocs::colonneStatut()) return;
 
-    $retour = espace_url() . '#partie-contrats';
+    /* Le retour dépend de ce qu'on vient de faire : un dépôt ramène aux
+       paiements, un changement d'état à la partie du document concerné. */
+    $quoiTmp = (string)($_POST['doc'] ?? '');
+    if ($quoiTmp === 'statut') {
+        $dTmp   = MemberDocs::row((int)($_POST['id'] ?? 0));
+        $retour = espace_url() . espace_ancre($dTmp ? MemberDocs::volet((string)$dTmp['category']) : 'paiement');
+    } else {
+        $retour = espace_url() . espace_ancre('paiement');
+    }
 
     /* [V27-ACCES] Pendant une visite de l'administration, rien ne s'écrit. Le
        bandeau noir promet que rien n'est modifié ; la promesse se tient ici,
@@ -253,7 +261,7 @@ function espace_facture_form(array $m): string
     <summary class="espace-depot-h"><?= e(t('member_depot_h')) ?></summary>
     <p class="espace-depot-i"><?= e(t('member_depot_i')) ?></p>
     <form class="form espace-depot-form" method="post" enctype="multipart/form-data"
-          action="<?= e(espace_url()) ?>#partie-contrats">
+          action="<?= e(espace_url()) . espace_ancre('paiement') ?>">
       <?= MemberAuth::csrfField() ?>
       <input type="hidden" name="doc" value="depot">
       <fieldset<?= $visite ? ' disabled' : '' ?>>

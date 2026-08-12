@@ -48,6 +48,24 @@ if ($__ml === '' && !empty($_SESSION['lv_member_id'])) {
 }
 I18n::setLang($__ml !== '' ? $__ml : 'fr');
 
+/**
+ * L'ancre de la partie où vit un document.               [12.08.2026]
+ *
+ * Les formulaires de l'espace renvoient vers la partie d'où l'on vient, sinon
+ * on retombe en haut de la page après chaque geste. L'ancre était écrite en
+ * dur — « #partie-contrats » — à l'époque où les factures y vivaient. Depuis
+ * qu'elles ont la leur, une ancre fixe renvoyait au mauvais onglet : le dépôt
+ * fonctionnait et semblait n'avoir rien fait, puisqu'on atterrissait là où le
+ * document n'est pas.
+ *
+ * Elle se déduit maintenant du volet, comme le classement lui-même. Ajouter
+ * une partie demandera de nommer sa section « partie-<volet> » et rien de plus.
+ */
+function espace_ancre(string $volet): string
+{
+    return '#partie-' . ($volet === 'contrat' ? 'contrats' : ($volet === 'projet' ? 'projets' : $volet));
+}
+
 function espace_url(string $path = ''): string
 {
     return url('/espace/' . ltrim($path, '/'));
@@ -194,7 +212,8 @@ function espace_doc_statut(array $d): string
     if ($vers === '') return $out;
 
     $visite = MemberAuth::visite();
-    $out .= '<form class="mdoc-do" method="post" action="' . e(espace_url()) . '#partie-contrats">'
+    $ancre = espace_ancre(MemberDocs::volet((string)($d['category'] ?? '')));
+    $out .= '<form class="mdoc-do" method="post" action="' . e(espace_url()) . $ancre . '">'
           . MemberAuth::csrfField()
           . '<input type="hidden" name="doc" value="statut">'
           . '<input type="hidden" name="id" value="' . (int)$d['id'] . '">'
