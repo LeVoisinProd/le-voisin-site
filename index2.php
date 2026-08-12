@@ -1,6 +1,24 @@
 <?php
 /**
- * Le Voisin — contrôleur du site public.   [V6-FORMULAIRES]
+* Le Voisin — contrôleur du site public.   [V6-FORMULAIRES]
+ *
+ * [12.08.2026] POURQUOI CE FICHIER NE S'APPELLE PLUS index.php
+ *
+ * Le cache d'opcode du serveur gardait « index.php » compilé en mémoire et
+ * refusait de le relire, quoi qu'on écrive sur le disque. Prouvé ce jour-là :
+ * un fichier PHP au nom neuf, déposé dans le même paquet, répondait
+ * immédiatement, tandis que index.php continuait d'exécuter du code vieux de
+ * plusieurs jours. Ni l'installateur, ni un dépôt par FTP, ni un redémarrage
+ * de PHP depuis le panneau n'y changeaient quoi que ce soit.
+ *
+ * Un nom neuf n'a pas d'entrée en mémoire : il est compilé à la première
+ * requête. C'est tout ce que cette copie fait.
+ *
+ * Le .htaccess pointe donc « DirectoryIndex » et sa règle de réécriture ici.
+ * Le jour où le cache sera vraiment vidé, on pourra revenir à index.php et
+ * supprimer ce fichier ; rien d'autre ne dépend de son nom.
+ */
+/**
  * URLs : /{langue}/{chemin...} — ex. /fr/projets/bestiarium
  *
  * V6-FORMULAIRES (29.07.2026) : nouveau module « forms_portal ». La page
