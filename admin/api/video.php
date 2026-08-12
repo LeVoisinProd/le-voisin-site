@@ -36,6 +36,9 @@ switch ($action) {
             'title' => mb_substr((string)($in['title'] ?? $meta['title']), 0, 250),
             'thumb' => (string)($in['thumb'] ?? $meta['thumb']),
             'sort' => $sort,
+            /* [12.08.2026] Le destin de la vidéo est décidé par l'emplacement
+               où on l'a déposée, pas par une case cochée après coup. */
+            'catalog_only' => !empty($in['catalogue']) ? 1 : 0,
         ]);
         $row = DB::one('SELECT * FROM videos WHERE id = ?', [$id]);
         json_out(['ok' => true, 'html' => video_item_html($row)]);

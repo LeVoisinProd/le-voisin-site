@@ -76,6 +76,18 @@ return [
                                  'pivot' => 'project_artists', 'fk' => 'project_id', 'ok' => 'artist_id', 'display' => 'name'],
             'gallery'        => ['type' => 'gallery', 'zone' => 'gallery',
                                  'label' => ['fr' => 'Galerie photos', 'en' => 'Photo gallery']],
+            /* [12.08.2026] Deux emplacements, et le nom de chacun dit où va ce
+               qu'on y met. Une case à cocher par vidéo faisait la même chose et
+               se cochait mal : on ajoute une vidéo, on oublie la case, et une
+               captation intégrale se retrouve en public. Ici l'erreur n'est pas
+               possible, parce qu'il n'y a rien à cocher.
+               Les deux listes vivent dans la même table ; ce qui les sépare est
+               la colonne « catalog_only », posée par la mise à jour de la base. */
+            'videos_catalog' => ['type' => 'videos', 'catalogue' => true,
+                                 'label' => ['fr' => 'Captation intégrale (Catalogue)',
+                                             'en' => 'Full performance (Catalogue)'],
+                                 'help'  => ['fr' => 'Réservée au Catalogue, derrière le mot de passe. Elle n\'apparaît jamais sur la page publique du projet.',
+                                             'en' => 'Reserved for the Catalogue, behind the password. It never appears on the public project page.']],
             'videos'         => ['type' => 'videos',
                                  'label' => ['fr' => 'Vidéos', 'en' => 'Videos']],
             /* [V31-PRESSE] La revue de presse. Même bloc que les documents —

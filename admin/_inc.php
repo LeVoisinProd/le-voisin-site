@@ -495,12 +495,20 @@ function render_field(string $name, array $fdef, ?array $row, string $entityKey)
             return field_wrap($label, $inner, $help, false);
 
         case 'videos':
+            /* [12.08.2026] Le même type sert deux emplacements : les vidéos
+               publiques et la captation réservée au Catalogue. « catalogue »
+               dans la définition du champ dit lequel on dessine, et la liste
+               n'affiche que les siennes. Sans ce tri, les deux emplacements
+               montreraient la même chose et on ne saurait plus lequel remplir. */
+            $catOnly = !empty($fdef['catalogue']);
             $vids = $id ? VideoLib::forOwner($entityKey, $id) : [];
+            $vids = array_values(array_filter($vids, fn($v) => !empty($v['catalog_only']) === $catOnly));
             $items = '';
             foreach ($vids as $v) $items .= video_item_html($v);
             $feedBtn = setting('yt_channel_id') !== ''
                 ? '<button type="button" class="btn small ghost js-vid-feed">' . e(ta('fld_vid_feed')) . '</button>' : '';
-            $inner = '<div class="vids" data-owner="' . e($entityKey . ':' . $id) . '">'
+            $inner = '<div class="vids" data-owner="' . e($entityKey . ':' . $id) . '"'
+                . ' data-catalogue="' . ($catOnly ? '1' : '0') . '">'
                 . '<div class="vids-list">' . $items . '</div>'
                 . '<label class="dropzone js-vid-drop">' . e(ta('fld_vid_drop'))
                 . '<input type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.ogv" multiple hidden></label>'
@@ -610,16 +618,6 @@ function video_item_html(array $v): string
         . '<span class="vid-meta"><strong>' . e($title) . '</strong><em>' . e($kind) . '</em></span>'
         . '<label class="vid-secs" title="' . e(ta('fld_vid_secs')) . '">'
             . '<input type="number" class="js-vid-secs" min="1" max="60" step="1" value="' . (int)($v['duration'] ?? 6) . '"><span>s</span></label>'
-        /* [12.08.2026] Où va cette vidéo. Cochée, elle quitte la page publique
-           du projet et ne se voit plus que dans le Catalogue, derrière le mot
-           de passe. C'est le seul réglage qui donne un sens au Catalogue :
-           sans lui, une captation intégrale reste visible de tous, et les
-           droits des artistes et de la musique avec elle.
-           Décochée par défaut : on retire une vidéo du public en le voulant,
-           jamais par omission. */
-        . '<label class="vid-cat" title="' . e(ta('fld_vid_cat_h')) . '">'
-            . '<input type="checkbox" class="js-vid-cat"' . (!empty($v['catalog_only']) ? ' checked' : '') . '>'
-            . '<span>' . e(ta('fld_vid_cat')) . '</span></label>'
         . '<a class="icon-btn" href="' . e($link) . '" target="_blank" title="' . e(ta('com_view')) . '">' . Ico::ext() . '</a>'
         . '<button type="button" class="icon-btn js-vid-del" title="' . e(ta('com_delete')) . '">×</button>'
         . '</div>';

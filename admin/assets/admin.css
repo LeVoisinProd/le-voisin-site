@@ -412,10 +412,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--ink); outli
   .gal-grid, .vids-feed { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* [12.08.2026] « Catalogue seulement », dans la ligne d'une vidéo. Discret au
-   repos et lisible une fois coché : c'est un état qu'on vérifie du coin de
-   l'oeil en parcourant vingt lignes, pas une commande qu'on cherche. */
-.vid-cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
-           color: var(--gris, #666); cursor: pointer; white-space: nowrap; }
-.vid-cat input { margin: 0; }
-.vid-cat:has(input:checked) { color: var(--encre, #111); font-weight: 600; }
+/* [12.08.2026] La case « Catalogue seulement » a existé une heure, puis les
+   deux emplacements l'ont remplacée : on ne coche plus rien, on dépose au bon
+   endroit. Le style est retiré avec elle, pour qu'un sélecteur orphelin ne
+   laisse pas croire qu'il reste quelque chose à cocher. */
