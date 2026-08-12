@@ -16,10 +16,37 @@ class MemberAuth
     /** Durée de validité d'un lien de choix de mot de passe, en jours. */
     public const LIEN_JOURS   = 7;
 
+    /* [12.08.2026] Combien de temps une session reste ouverte sans rien faire.
+
+       Il n'y en avait aucune limite : le cookie mourait à la fermeture du
+       navigateur, et un navigateur qu'on ne ferme jamais gardait la session
+       ouverte indéfiniment. Derrière cette porte il y a des IBAN, des numéros
+       AVS et des fiches de salaire, souvent consultés depuis un ordinateur
+       partagé ou une salle de production.
+
+       Deux heures : assez pour remplir la fiche personnelle sans être coupé au
+       milieu — c'est le formulaire le plus long de l'espace —, assez peu pour
+       qu'un onglet oublié le soir ne soit plus ouvert le lendemain.
+
+       Le compteur repart à chaque page. Ce n'est donc pas une durée de session
+       mais une durée d'inaction, et quelqu'un qui travaille une matinée entière
+       n'est jamais interrompu. */
+    public const INACTIF_MAX = 7200;
+
     public static function member(): ?array
     {
         session_boot();
         if (empty($_SESSION['lv_member_id'])) return null;
+
+        /* L'inaction se mesure avant tout le reste : une session périmée ne
+           doit pas même faire une requête en base. */
+        $vu = (int)($_SESSION['lv_member_vu'] ?? 0);
+        if ($vu > 0 && (time() - $vu) > self::INACTIF_MAX) {
+            self::logout();
+            return null;
+        }
+        $_SESSION['lv_member_vu'] = time();
+
         static $m = false;
         if ($m === false) {
             $m = DB::one('SELECT * FROM collaborators WHERE id = ? AND active = 1', [$_SESSION['lv_member_id']]);
@@ -57,6 +84,7 @@ class MemberAuth
         }
         session_regenerate_id(true);
         $_SESSION['lv_member_id'] = (int)$m['id'];
+        $_SESSION['lv_member_vu'] = time();
         // [V27-ACCES] Une vraie connexion referme toute visite en cours : sans
         // cela, une personne qui se connecte sur l'ordinateur du bureau
         // hériterait du bandeau de visite laissé par l'administration.
@@ -73,7 +101,7 @@ class MemberAuth
     public static function logout(): void
     {
         session_boot();
-        unset($_SESSION['lv_member_id'], $_SESSION['lv_member_visite']);
+        unset($_SESSION['lv_member_id'], $_SESSION['lv_member_visite'], $_SESSION['lv_member_vu']);
         session_regenerate_id(true);
     }
 
@@ -111,6 +139,7 @@ class MemberAuth
         if (!$m) return false;
         $_SESSION['lv_member_id']     = (int)$m['id'];
         $_SESSION['lv_member_visite'] = 1;
+        $_SESSION['lv_member_vu']     = time();
         // [V39-JOURNAL] Un seul endroit ouvre une visite, quel que soit
         // l'écran qui l'a demandée : la journaliser ici la couvre partout.
         AccessLog::ecrire((int)$m['id'], 'admin', (int)($_SESSION['lv_admin_id'] ?? 0) ?: null, 'visite');

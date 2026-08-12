@@ -260,6 +260,16 @@ function espace_facture_form(array $m): string
   <details class="espace-depot"<?= $visite ? '' : ' open' ?>>
     <summary class="espace-depot-h"><?= e(t('member_depot_h')) ?></summary>
     <p class="espace-depot-i"><?= e(t('member_depot_i')) ?></p>
+    <?php /* [12.08.2026] L'avertissement de visite passe AVANT le formulaire.
+
+             Il était en dessous, en gris, après quatre champs et un bouton.
+             Quelqu'un qui essayait de déposer pendant une visite remplissait
+             tout, cliquait, ne voyait rien se passer, et lisait l'explication
+             en dernier — quand il l'a lue. Une phrase qui dit « ceci ne
+             marchera pas » n'a de valeur qu'avant la tentative. */ ?>
+    <?php if ($visite): ?>
+    <p class="espace-depot-visite"><?= e(espace_visite_t('member_visit_ro')) ?></p>
+    <?php endif; ?>
     <form class="form espace-depot-form" method="post" enctype="multipart/form-data"
           action="<?= e(espace_url()) . espace_ancre('paiement') ?>">
       <?= MemberAuth::csrfField() ?>
@@ -308,9 +318,10 @@ function espace_facture_form(array $m): string
         </div>
       </div>
       </fieldset>
-      <?php if ($visite): ?>
-      <p class="form-notice"><?= e(espace_visite_t('member_visit_ro')) ?></p>
-      <?php else: ?>
+      <?php /* Le bouton disparaît pendant une visite ; l'explication, elle, est
+               passée au-dessus du formulaire — la lire après avoir tout rempli
+               ne servait à personne. */ ?>
+      <?php if (!$visite): ?>
       <p><button class="btn" type="submit"><?= e(t('member_depot_go')) ?></button></p>
       <?php endif; ?>
     </form>

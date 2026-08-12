@@ -704,12 +704,23 @@ a.ecard-btn:hover { background: #fff; color: var(--ink); }
    fond noir, en haut de chaque page, avec le seul bouton qui referme la
    visite. Il ne défile pas avec la page : on ne doit jamais oublier, au bas
    d'une fiche, chez qui l'on se trouve. */
+/* [12.08.2026] Le bouton de sortie ne doit jamais sortir de l'écran.
+
+   La phrase est longue et le bouton était poussé au bord droit : sur un écran
+   un peu étroit il passait hors de vue, et c'est la SEULE sortie de la visite.
+   On se retrouvait enfermé dans l'espace de quelqu'un d'autre sans savoir
+   comment en partir — c'est arrivé.
+
+   flex:none sur le bouton et flex:1 1 320px sur la phrase : c'est la phrase
+   qui passe à la ligne quand la place manque, jamais le bouton. */
 .espace-visite {
   position: sticky; top: 0; z-index: 60;
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
   gap: 12px 24px; padding: 12px clamp(20px, 4vw, 60px);
   background: var(--ink); color: var(--paper);
 }
+.espace-visite > p:first-child { flex: 1 1 320px; min-width: 0; margin: 0; }
+.espace-visite > p:last-child  { flex: none; margin: 0; }
 .espace-visite p { margin: 0; font-size: 14px; line-height: 1.3; }
 /* La phrase peut être rétrécie ; le bouton, jamais. Sans cela le texte prend
    toute la ligne et rejette le bouton en dessous, à gauche, où il ressemble
@@ -2222,4 +2233,15 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 
 @media (max-width: 900px) {
   .cat-fiche-grid { grid-template-columns: 1fr; }
+}
+
+/* L'avertissement de visite, dans le panneau de dépôt. Jaune sur noir : la
+   même paire que le bandeau du haut, pour qu'on relie les deux d'un coup
+   d'œil au lieu de lire deux messages sans rapport. */
+.espace-depot-visite {
+  background: rgba(240, 198, 63, .14);
+  border-left: 3px solid var(--yellow);
+  color: var(--yellow);
+  padding: 12px 16px; margin: 4px 0 20px;
+  font-size: 14px; line-height: 1.5;
 }
