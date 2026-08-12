@@ -42,6 +42,9 @@ $KEYS = [
     'form_infos_to', 'form_expenses_to', 'form_expenses_bexio', 'form_assoc_options',
     'yt_channel_id', 'mail_from', 'donate_url', 'linkedin_url', 'social_webhook',
     'pro_cms_url', 'pro_dashboard_url', 'pro_dashboard_label',
+    // [V42-CATALOGUE] Sans cette clef ici, le champ s'affiche et ne s'enregistre
+    // pas : la liste est fermée, et settings.php ignore ce qu'elle ne connaît pas.
+    'catalogue_password',
     'skribble_username', 'skribble_api_key', 'skribble_quality',
     'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user',
 ];
@@ -497,6 +500,19 @@ admin_top(ta('st_title'), 'settings');
       <?= field_wrap(ta('st_f_cms'), s_in('pro_cms_url', 'text', '/admin/'), ta('st_f_cms_h')) ?>
       <?= field_wrap(ta('st_f_dash_label'), s_in('pro_dashboard_label', 'text', 'Dashboard')) ?>
       <?= field_wrap(ta('st_f_dash'), s_in('pro_dashboard_url', 'text', 'https://…'), ta('st_f_dash_h')) ?>
+    </div>
+    <?php /* [V42-CATALOGUE] Le mot de passe du Catalogue.
+
+             Un seul, partagé, celui qu'on écrit dans un e-mail à un
+             programmateur. Il s'écrit ici en clair et il est remplacé par son
+             empreinte à la première connexion réussie — la case redevient
+             alors illisible, et c'est normal : pour changer le mot de passe on
+             en écrit un nouveau par-dessus, on ne relit pas l'ancien.
+
+             Tant que la case est vide, le Catalogue refuse tout le monde et le
+             dit sur sa page. Il ne s'ouvre jamais par omission. */ ?>
+    <div class="grid2">
+      <?= field_wrap(ta('st_f_cat'), s_in('catalogue_password', 'text', '…'), ta('st_f_cat_h')) ?>
     </div>
   </div>
 

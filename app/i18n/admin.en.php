@@ -683,6 +683,8 @@ return [
     'st_f_cms_h'         => 'Leave empty for the administration of this site (/admin/).',
     'st_f_dash_label'    => 'Dashboard name',
     'st_f_dash'          => 'Dashboard link (URL)',
+    'st_f_cat'           => 'Catalogue password',
+    'st_f_cat_h'         => 'The single password you give to programmers. Type it in plain text: it is replaced by its fingerprint on the first successful login, and the field becomes unreadable. To change it, type a new one over it. While the field is empty, the Catalogue denies access to everyone.',
     'st_f_dash_h'        => 'Login address of the dashboard. Leave empty as long as you do not have one: the button will not appear.',
     'st_p_skribble'      => 'Electronic signature (Skribble)',
     'st_skr_h'           => 'To send documents ticked “to be signed” for signature automatically. Create your keys in Skribble (Admin → API keys) — use <strong>“Demo”</strong> keys to test free of charge before going into production. Leave empty = manual follow-up (as today).',

@@ -691,6 +691,8 @@ return [
     'st_f_cms_h'         => 'Laisser vide pour l’administration de ce site (/admin/).',
     'st_f_dash_label'    => 'Nom du tableau de bord',
     'st_f_dash'          => 'Lien du tableau de bord (URL)',
+    'st_f_cat'           => 'Mot de passe du Catalogue',
+    'st_f_cat_h'         => 'Le mot de passe unique que vous communiquez aux programmateurs. Écrivez-le en clair : il est remplacé par son empreinte à la première connexion réussie, et la case redevient illisible. Pour le changer, écrivez-en un nouveau par-dessus. Tant que la case est vide, le Catalogue refuse l\'accès à tout le monde.',
     'st_f_dash_h'        => 'Adresse de connexion du tableau de bord. Laisser vide tant que vous n’en avez pas : le bouton n’apparaîtra pas.',
     'st_p_skribble'      => 'Signature électronique (Skribble)',
     'st_skr_h'           => 'Pour envoyer automatiquement à la signature les documents cochés « à faire signer ». Créez vos clés dans Skribble (Admin → API keys) — utilisez des clés <strong>« Demo »</strong> pour tester sans frais avant de passer en production. Laisser vide = suivi manuel (comme aujourd’hui).',
