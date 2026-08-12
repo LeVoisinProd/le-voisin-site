@@ -206,7 +206,19 @@ $depart = ($infos['saved'] || $infos['errors']) ? ' data-depart="partie-infos"' 
   var barre = box.querySelector('.espace-tabs');
   var tabs  = Array.prototype.slice.call(box.querySelectorAll('.espace-tab'));
   var parts = tabs.map(function (t) { return document.getElementById(t.getAttribute('data-cible')); });
-  if (!barre || tabs.length !== 3 || parts.indexOf(null) !== -1) return;
+  /* [12.08.2026] « au moins deux », et non « exactement trois ».
+
+     Le compte était écrit en dur du temps où l'espace avait trois parties.
+     En ajoutant la quatrième — les paiements — le script cessait de
+     s'initialiser d'un coup : plus d'onglets, plus de classe js-onglets, donc
+     plus rien de ce qui en dépend. Le repli sans JavaScript faisait son
+     travail, la page restait complète et lisible, et c'est pour cela que la
+     panne se lisait comme « le menu ne tient plus » plutôt que comme une
+     erreur.
+
+     La condition dit maintenant ce qu'elle veut vraiment dire : il faut de
+     quoi faire des onglets. Une cinquième partie n'aura rien à changer ici. */
+  if (!barre || tabs.length < 2 || parts.indexOf(null) !== -1) return;
 
   box.className += ' js-onglets';
   barre.setAttribute('role', 'tablist');
