@@ -777,6 +777,36 @@ a.ecard-btn:hover { background: #fff; color: var(--ink); }
    sur la ligne de base du texte et l'onglet grandirait d'un côté. La marge de
    gauche se resserre, la pastille tenant lieu de respiration. */
 .espace-tabs .espace-tab { display: inline-flex; align-items: center; gap: 9px; padding-left: 8px; }
+
+/* [12.08.2026] Les onglets suivent la page.
+
+   Sans cela, quelqu'un arrivé au bas de ses documents devait remonter tout
+   en haut pour changer de partie — et le nombre de documents ne fait que
+   croître, donc le trajet s'allonge chaque mois.
+
+   Le fond est opaque et l'ombre très basse : sans elle, le texte défilant
+   dessous se lit à travers la barre pendant une fraction de seconde et donne
+   une impression de saleté. La marge intérieure remplace celle que la barre
+   avait en dehors, pour que rien ne saute au moment où elle se colle.
+
+   Pendant une visite du bureau, le bandeau noir occupe déjà le haut : les
+   onglets se collent dessous grâce au décalage, au lieu de disparaître
+   derrière lui. Le bandeau est à z-index 60, les onglets restent en dessous. */
+.espace-onglets {
+  position: sticky; top: 0; z-index: 40;
+  background: #f2f3f5;
+  padding: 12px 0;
+  margin-bottom: 4px;
+  box-shadow: 0 6px 12px -10px rgba(0, 0, 0, .55);
+}
+/* 47px : la hauteur du bandeau de visite, padding compris. */
+body.en-visite .espace-onglets { top: 47px; }
+
+@media (max-width: 640px) {
+  /* Sur un téléphone, quatre pastilles passent à la ligne et la barre collée
+     mangerait le tiers de l'écran. Elle défile avec la page. */
+  .espace-onglets { position: static; box-shadow: none; padding: 0; }
+}
 .espace-tab-num {
   flex: none; width: 23px; height: 23px; border-radius: 99px;
   background: var(--ink); color: #fff;
