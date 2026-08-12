@@ -2108,7 +2108,18 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
   gap:12px;
-  align-items:stretch;
+  /* [12.08.2026] « start » et non « stretch ».
+
+     Étirées, toutes les cartes d'une rangée prenaient la hauteur de la plus
+     haute — celle qui porte deux rangs de boutons, « Payée » plus « J'ai reçu
+     le paiement ». Les autres se retrouvaient avec un vide au milieu, entre le
+     poids du fichier et leurs boutons, et ce vide grandit à chaque état qui
+     s'ajoute.
+
+     Chaque carte fait maintenant sa propre hauteur. Le bas d'une rangée n'est
+     plus aligné, et c'est le prix : mieux vaut un bord irrégulier qu'un trou
+     au milieu de trois cartes sur quatre. */
+  align-items:start;
 }
 
 /* En grille, la ligne devient une carte : le nom en haut, les actions en bas.
@@ -2117,7 +2128,10 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 .espace-main .mdoc{
   flex-direction:column;
   align-items:stretch;
-  justify-content:space-between;
+  /* Le contenu se suit au lieu d'être poussé aux deux bouts : sans hauteur
+     imposée, « space-between » n'a plus rien à répartir, et « flex-start »
+     dit ce qu'on veut vraiment — le nom, puis les boutons, l'un sous l'autre. */
+  justify-content:flex-start;
   gap:14px;
   padding:18px 20px;
 }
