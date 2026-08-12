@@ -392,6 +392,8 @@ return [
     'ce_link_head'       => 'Lien à envoyer à la personne',
     'ce_link_help'       => 'La personne ouvre ce lien et choisit elle-même son mot de passe. Vous le transmettez comme vous voulez : e-mail, message, de vive voix. Il ne sert qu’une fois et reste valable %s jours. C’est la voie la plus sûre : vous n’avez rien à noter ni à conserver.',
     'ce_link_make'       => 'Créer un lien',
+    'ce_link_send'       => 'Envoyer le lien par e-mail',
+    'ce_link_sent'       => 'Lien envoyé à',
     'ce_link_remake'     => 'Créer un nouveau lien',
     'ce_link_made'       => 'Lien créé. Copiez-le et transmettez-le à la personne.',
     'ce_link_active'     => 'Lien en cours, valable jusqu’au %s :',

@@ -43,6 +43,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         MemberAuth::lienNouveau($id);
         flash(ta('ce_link_made'));
         redirect('/admin/collaborator-edit.php?id=' . $id);
+    } elseif ($action === 'lien_envoyer') {
+        /* [12.08.2026] Envoyer le lien par e-mail, depuis la fiche d'une seule
+           personne. L'envoi groupé existait depuis le chantier des invitations,
+           mais il oblige à passer par la liste et à cocher — inutilement lourd
+           pour une personne qu'on vient justement d'ouvrir.
+
+           C'est le même Invitations::envoyer() que la liste : un seul chemin
+           d'envoi, un seul texte, un seul journal. Il fabrique aussi le lien au
+           passage, donc pas besoin d'en créer un avant.
+
+           Un envoi remplace le lien précédent. Si la personne n'avait pas
+           encore utilisé le sien, l'ancien cesse de fonctionner — c'est voulu,
+           et le message de retour le dit. */
+        $obstacle = Invitations::obstacle();
+        if ($obstacle !== '') {
+            flash($obstacle, 'err');
+        } else {
+            $r = Invitations::envoyer($row);
+            if ($r['ok']) flash(ta('ce_link_sent') . ' ' . $r['email']);
+            else          flash(($r['raison'] ?: ta('inv_err_send')) , 'err');
+        }
+        redirect('/admin/collaborator-edit.php?id=' . $id);
     } elseif ($action === 'lien_annuler') {
         MemberAuth::lienAnnuler($id);
         flash(ta('ce_link_cancelled'));
@@ -266,6 +288,45 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
 <div class="editgrid">
   <div class="editmain">
     <div class="panel">
+      <h2><?= e(ta('ce_profile')) ?></h2>
+      <?php /* [V30-FICHE-PRE] « saisi » et non « data » : la fiche propose
+               désormais le nom et l'e-mail du compte dans les cases vides, pour
+               que le collaborateur n'ait pas à les retaper. Ici, c'est ce qu'il
+               a lui-même écrit qui compte — sans quoi toutes les fiches
+               paraîtraient commencées alors qu'aucune ne l'est.
+
+               [V31-FICHE-DEJA] La phrase reste donc affichée tant que la
+               personne n'a rien enregistré, mais elle ne cache plus rien : ce
+               qui lui est proposé d'avance — l'adresse, l'IBAN, ce que le
+               bureau savait déjà — se lit dessous, en le sachant. */ ?>
+      <?php if (!$profile['saisi']): ?>
+      <p class="hint"><?= e(ta('ce_profile_empty')) ?></p>
+      <?php endif; ?>
+      <?php if ($profile['data'] || $profile['bio'] !== '' || $photo): ?>
+      <?php if ($photo): Img::ensure($photo, 'square'); ?><div class="admin-photo"><?= Img::tag($photo, 'square', ['alt' => '']) ?></div><?php endif; ?>
+      <?php if ($profile['bio'] !== ''): ?><p><strong><?= e(ta('ce_bio')) ?></strong><br><?= nl2br(e($profile['bio'])) ?></p><?php endif; ?>
+      <table class="tbl"><tbody>
+        <?php /* [V16-DATES] Les réponses passent par le même filtre que la fiche
+                 imprimée : une date de naissance s'écrit 07.04.1990 et non
+                 1990-04-07, « yes » s'écrit Oui, et une question posée sous
+                 condition ne s'affiche que si la condition est remplie. */ ?>
+        <?php foreach ($infosFields as $fd):
+            if (in_array($fd['type'], ['section', 'file'], true)) continue;
+            $v = trim((string)($profile['data'][$fd['key']] ?? ''));
+            if ($v === '') continue;
+            if (!empty($fd['show_if'])) {
+                [$sk, $sv] = $fd['show_if'];
+                if (!in_array(trim((string)($profile['data'][$sk] ?? '')), (array)$sv, true)) continue;
+            }
+            $v = MemberSheet::valeur($fd, $v, I18n::$admin);
+        ?>
+        <tr><td style="width:42%"><?= e(Forms::label($fd['label'], I18n::$admin)) ?></td><td><?= nl2br(e($v)) ?></td></tr>
+        <?php endforeach; ?>
+      </tbody></table>
+      <?php endif; ?>
+    </div>
+
+    <div class="panel">
       <h2><?= e(ta('ce_documents')) ?></h2>
       <form method="post" enctype="multipart/form-data" class="mdoc-upload">
         <?= $csrf ?><input type="hidden" name="action" value="upload">
@@ -432,45 +493,6 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
       </table>
       <?php endforeach; endforeach; endif; ?>
     </div>
-
-    <div class="panel">
-      <h2><?= e(ta('ce_profile')) ?></h2>
-      <?php /* [V30-FICHE-PRE] « saisi » et non « data » : la fiche propose
-               désormais le nom et l'e-mail du compte dans les cases vides, pour
-               que le collaborateur n'ait pas à les retaper. Ici, c'est ce qu'il
-               a lui-même écrit qui compte — sans quoi toutes les fiches
-               paraîtraient commencées alors qu'aucune ne l'est.
-
-               [V31-FICHE-DEJA] La phrase reste donc affichée tant que la
-               personne n'a rien enregistré, mais elle ne cache plus rien : ce
-               qui lui est proposé d'avance — l'adresse, l'IBAN, ce que le
-               bureau savait déjà — se lit dessous, en le sachant. */ ?>
-      <?php if (!$profile['saisi']): ?>
-      <p class="hint"><?= e(ta('ce_profile_empty')) ?></p>
-      <?php endif; ?>
-      <?php if ($profile['data'] || $profile['bio'] !== '' || $photo): ?>
-      <?php if ($photo): Img::ensure($photo, 'square'); ?><div class="admin-photo"><?= Img::tag($photo, 'square', ['alt' => '']) ?></div><?php endif; ?>
-      <?php if ($profile['bio'] !== ''): ?><p><strong><?= e(ta('ce_bio')) ?></strong><br><?= nl2br(e($profile['bio'])) ?></p><?php endif; ?>
-      <table class="tbl"><tbody>
-        <?php /* [V16-DATES] Les réponses passent par le même filtre que la fiche
-                 imprimée : une date de naissance s'écrit 07.04.1990 et non
-                 1990-04-07, « yes » s'écrit Oui, et une question posée sous
-                 condition ne s'affiche que si la condition est remplie. */ ?>
-        <?php foreach ($infosFields as $fd):
-            if (in_array($fd['type'], ['section', 'file'], true)) continue;
-            $v = trim((string)($profile['data'][$fd['key']] ?? ''));
-            if ($v === '') continue;
-            if (!empty($fd['show_if'])) {
-                [$sk, $sv] = $fd['show_if'];
-                if (!in_array(trim((string)($profile['data'][$sk] ?? '')), (array)$sv, true)) continue;
-            }
-            $v = MemberSheet::valeur($fd, $v, I18n::$admin);
-        ?>
-        <tr><td style="width:42%"><?= e(Forms::label($fd['label'], I18n::$admin)) ?></td><td><?= nl2br(e($v)) ?></td></tr>
-        <?php endforeach; ?>
-      </tbody></table>
-      <?php endif; ?>
-    </div>
   </div>
 
   <div class="editside">
@@ -514,14 +536,20 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
         <button type="button" class="btn small" id="lv-copier"><?= e(ta('ce_link_copy')) ?></button>
         <span class="muted" id="lv-copie" hidden><?= e(ta('ce_link_copied')) ?></span>
       </p>
+      <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="lien_envoyer">
+        <button class="btn small" type="submit"><?= e(ta('ce_link_send')) ?></button></form>
       <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="lien">
         <button class="btn small ghost" type="submit"><?= e(ta('ce_link_remake')) ?></button></form>
       <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="lien_annuler">
         <button class="btn small ghost" type="submit"><?= e(ta('ce_link_cancel')) ?></button></form>
       <?php else: ?>
       <p class="hint"><?= e(ta('ce_link_none')) ?></p>
+      <form method="post"><?= $csrf ?><input type="hidden" name="action" value="lien_envoyer">
+        <button class="btn wide" type="submit"><?= e(ta('ce_link_send')) ?></button></form>
+      <?php /* Le second bouton fabrique le lien SANS l'envoyer : pour le coller
+               dans un message écrit à la main, ou pour le donner de vive voix. */ ?>
       <form method="post"><?= $csrf ?><input type="hidden" name="action" value="lien">
-        <button class="btn wide" type="submit"><?= e(ta('ce_link_make')) ?></button></form>
+        <button class="btn wide ghost" type="submit"><?= e(ta('ce_link_make')) ?></button></form>
       <?php endif; ?>
       <script>
       (function () {

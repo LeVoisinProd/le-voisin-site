@@ -43,22 +43,59 @@ class Invitations
             : $site . ' — votre accès à l’espace personnel';
     }
 
+    /**
+     * Le message d'origine.
+     *
+     * [12.08.2026] Il disait seulement « votre espace est prêt, choisissez un
+     * mot de passe ». C'est vrai et c'est insuffisant : la personne arrive
+     * devant quatre onglets sans savoir lequel la concerne, ni qu'elle devra
+     * revenir confirmer la réception d'un paiement. Elle repart, et l'espace
+     * ne sert à rien.
+     *
+     * Le message explique donc la procédure, en quatre lignes et dans l'ordre
+     * où elle la vivra. Il reste modifiable dans les réglages : ce texte n'est
+     * que le repli, celui qui part quand personne n'a rien écrit.
+     */
     public static function texteDefaut(string $lang): string
     {
         $j = MemberAuth::LIEN_JOURS;
         if (self::langue($lang) === 'en') {
             return "Hello {nom},\n\n"
-                 . "Your personal space on our website is ready.\n\n"
+                 . "Your personal space on our website is ready. You will find there everything "
+                 . "that concerns you, and you can send us your invoices from it.\n\n"
                  . "Open the link below and choose your own password:\n\n"
                  . "{lien}\n\n"
-                 . "The link works only once and stays valid for $j days. After that, just ask us for a new one.\n\n"
+                 . "The link works only once and stays valid for $j days. After that, just ask us "
+                 . "for a new one.\n\n"
+                 . "WHAT YOU WILL FIND THERE\n\n"
+                 . "1. Your details — to fill in once, so we can draw up your contracts and pay you.\n"
+                 . "2. Contracts and payslips — we file them there, you download them whenever you need.\n"
+                 . "3. Payments and reimbursements — you upload your invoices and receipts, and you follow "
+                 . "where they stand: sent, then paid by us, then you confirm you received the money.\n"
+                 . "4. Your projects — tour sheets, travel and accommodation, filed by production.\n\n"
+                 . "The third one asks something of you: once we mark an invoice as paid, please come back "
+                 . "and confirm. Without that we cannot tell what has actually reached your account.\n\n"
                  . "See you soon";
         }
         return "Bonjour {nom},\n\n"
-             . "Votre espace personnel sur notre site est prêt.\n\n"
+             . "Votre espace personnel sur notre site est prêt. Vous y trouverez tout ce qui vous "
+             . "concerne, et vous pourrez nous envoyer vos factures depuis là.\n\n"
              . "Ouvrez le lien ci-dessous et choisissez vous-même votre mot de passe :\n\n"
              . "{lien}\n\n"
-             . "Le lien ne sert qu’une fois et reste valable $j jours. Passé ce délai, demandez-nous-en simplement un autre.\n\n"
+             . "Le lien ne sert qu'une fois et reste valable $j jours. Passé ce délai, demandez-nous-en "
+             . "simplement un autre.\n\n"
+             . "CE QUE VOUS Y TROUVEREZ\n\n"
+             . "1. Vos informations — à remplir une fois, pour que nous puissions établir vos contrats "
+             . "et vous payer.\n"
+             . "2. Contrats et fiches de salaire — nous les y déposons, vous les téléchargez quand vous "
+             . "en avez besoin.\n"
+             . "3. Paiements et remboursements — vous y déposez vos factures et justificatifs, et vous "
+             . "suivez où ils en sont : envoyé, puis payé par nous, puis vous confirmez avoir bien reçu "
+             . "l'argent.\n"
+             . "4. Vos projets — feuilles de route, voyages et hébergements, classés par production.\n\n"
+             . "Le troisième point vous demande quelque chose : une fois que nous avons marqué une facture "
+             . "comme payée, revenez confirmer. Sans cela nous ne savons pas ce qui vous est réellement "
+             . "parvenu.\n\n"
              . "À bientôt";
     }
 

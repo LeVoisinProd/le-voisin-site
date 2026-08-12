@@ -385,6 +385,8 @@ return [
     'ce_link_head'       => 'Link to send to the person',
     'ce_link_help'       => 'The person opens this link and chooses their own password. Pass it on however you like: e-mail, message, in person. It works once and stays valid for %s days. This is the safer route: you have nothing to write down or keep.',
     'ce_link_make'       => 'Create a link',
+    'ce_link_send'       => 'Send the link by e-mail',
+    'ce_link_sent'       => 'Link sent to',
     'ce_link_remake'     => 'Create a new link',
     'ce_link_made'       => 'Link created. Copy it and pass it on to the person.',
     'ce_link_active'     => 'Link in progress, valid until %s:',
