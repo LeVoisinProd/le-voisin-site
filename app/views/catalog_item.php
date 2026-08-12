@@ -58,7 +58,11 @@ $annee = (int)($item['year_creation'] ?? 0);
                  peut se déplacer dans la vidéo sans rien coder. C'est aussi
                  pour cela que le mur de consentement ne s'affiche pas ici. */ ?>
         <div class="cat-video">
-          <video controls preload="metadata"<?= $poster ? ' poster="' . e($poster) . '"' : '' ?>>
+          <?php /* playsinline : sans lui, iOS ouvre la vidéo dans son propre lecteur
+                 plein écran dès la lecture, et l'on perd la page autour — un
+                 programmateur qui regarde sur iPad veut garder la fiche sous
+                 les yeux. Le bouton plein écran, lui, reste à sa disposition. */ ?>
+          <video controls playsinline preload="metadata"<?= $poster ? ' poster="' . e($poster) . '"' : '' ?>>
             <source src="<?= e(url('/' . Catalog::RACINE . '/' . $slug . '/video/' . $lecture['nom'])) ?>" type="video/mp4">
           </video>
           <p class="cat-video-lgd"><?= e($lecture['libelle']) ?></p>
