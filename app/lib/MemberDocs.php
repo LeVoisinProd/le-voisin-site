@@ -45,9 +45,21 @@ class MemberDocs
        restent exactement où ils sont. « logistics » rejoint les projets :
        c'est là qu'on ira chercher un ordre de mission.
        --------------------------------------------------------------------- */
+    /* [12.08.2026] La facture quitte le volet contractuel pour le sien.
+
+       Les deux volets mélangeaient deux sens opposés. Un contrat, une fiche de
+       salaire, une pièce d'identité : le bureau les dépose, la personne les
+       télécharge. Une facture : la personne la dépose, et elle en suit l'état.
+       Rangées ensemble, il fallait lire tout le bloc d'un employeur pour
+       retrouver la facture qu'on venait d'envoyer — et le circuit d'états
+       « envoyée → payée → bien reçue » n'a de sens que pour elle.
+
+       « perdiem » reste au volet projet : un reçu de per diem se rattache à
+       une production, et c'est là qu'on le cherche. */
     public const VOLETS = [
-        'contrat' => ['contract', 'payslip', 'invoice', 'identity', 'other'],
-        'projet'  => ['roadmap', 'travel', 'hotel', 'perdiem', 'logistics', 'prod_other'],
+        'contrat'  => ['contract', 'payslip', 'identity', 'other'],
+        'paiement' => ['invoice'],
+        'projet'   => ['roadmap', 'travel', 'hotel', 'perdiem', 'logistics', 'prod_other'],
     ];
 
     /* ---------------------------------------------------------------------

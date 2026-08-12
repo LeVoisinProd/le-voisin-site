@@ -210,6 +210,11 @@ return [
     'member_tab1'        => 'My information',
     'member_tab2'        => 'Contracts & payroll',
     'member_tab3'        => 'Projects',
+    // [12.08.2026] La quatrième partie : les paiements, séparés des contrats.
+    'member_tab_paie'     => 'Payments & reimbursements',
+    'member_part_paie'    => 'My payments and reimbursements',
+    'member_part_paie_i'  => 'The invoices and receipts you send us, and where they stand. You upload, we mark « paid », you confirm receipt.',
+    'member_no_paiement'  => 'You have not sent anything yet. Upload your first invoice above.',
 
     // Printable personal sheet  [V15-FICHE-PDF]
     // These labels also serve the sheet opened from the CMS: the template

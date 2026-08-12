@@ -44,7 +44,7 @@ $docs  = MemberDocs::forMember((int)$m['id']);
    le projet qui le range. La catégorie du document décide de son volet, donc de
    son classement : rien à choisir en plus, rien à oublier.
    --------------------------------------------------------------------------- */
-$parVolet = ['contrat' => [], 'projet' => []];
+$parVolet = ['contrat' => [], 'paiement' => [], 'projet' => []];
 foreach ($docs as $d) $parVolet[MemberDocs::volet((string)$d['category'])][] = $d;
 
 /* Un seul niveau de titre sous l'onglet : l'employeur, ou la production.
@@ -126,7 +126,8 @@ $depart = ($infos['saved'] || $infos['errors']) ? ' data-depart="partie-infos"' 
   <nav class="chips espace-tabs" aria-label="<?= e(t('member_area')) ?>">
     <a class="chip espace-tab" id="onglet-infos" href="#partie-infos" data-cible="partie-infos"><span class="espace-tab-num" aria-hidden="true">1</span><?= e(t('member_tab1')) ?></a>
     <a class="chip espace-tab" id="onglet-contrats" href="#partie-contrats" data-cible="partie-contrats"><span class="espace-tab-num" aria-hidden="true">2</span><?= e(t('member_tab2')) ?><?php if ($parVolet['contrat']): ?><span class="espace-tab-n"><?= count($parVolet['contrat']) ?></span><?php endif; ?></a>
-    <a class="chip espace-tab" id="onglet-projets" href="#partie-projets" data-cible="partie-projets"><span class="espace-tab-num" aria-hidden="true">3</span><?= e(t('member_tab3')) ?><?php if ($parVolet['projet']): ?><span class="espace-tab-n"><?= count($parVolet['projet']) ?></span><?php endif; ?></a>
+    <a class="chip espace-tab" id="onglet-paiements" href="#partie-paiements" data-cible="partie-paiements"><span class="espace-tab-num" aria-hidden="true">3</span><?= e(t('member_tab_paie')) ?><?php if ($parVolet['paiement']): ?><span class="espace-tab-n"><?= count($parVolet['paiement']) ?></span><?php endif; ?></a>
+    <a class="chip espace-tab" id="onglet-projets" href="#partie-projets" data-cible="partie-projets"><span class="espace-tab-num" aria-hidden="true">4</span><?= e(t('member_tab3')) ?><?php if ($parVolet['projet']): ?><span class="espace-tab-n"><?= count($parVolet['projet']) ?></span><?php endif; ?></a>
   </nav>
 
 <section class="espace-part" id="partie-infos" aria-labelledby="onglet-infos">
@@ -150,13 +151,6 @@ $depart = ($infos['saved'] || $infos['errors']) ? ' data-depart="partie-infos"' 
 <section class="espace-part" id="partie-contrats" aria-labelledby="onglet-contrats">
   <h2 class="espace-part-h"><span class="espace-part-n">2</span><?= e(t('member_part2')) ?></h2>
   <p class="espace-part-i"><?= e(t('member_part2_i')) ?></p>
-  <?php /* [V36-FACTURES] Le dépôt de facture et le mot qui suit un dépôt sont
-           EN DEHORS du cas « aucun document » : quelqu'un dont l'espace est
-           encore vide est précisément quelqu'un qui a une première facture à
-           envoyer. Les enfermer dans la branche « sinon » les rendrait
-           invisibles à ceux qui en ont le plus besoin. */ ?>
-  <?= espace_flash_html() ?>
-  <?= espace_facture_form($m) ?>
   <?php if (!$parVolet['contrat']): ?>
   <div class="espace-empty"><p><?= e(t('member_no_contrat')) ?></p></div>
   <?php else: foreach ($ordreAsso as $asso): $sigle = $asso === '' ? '' : MemberDocs::sigle($asso); ?>
@@ -167,8 +161,27 @@ $depart = ($infos['saved'] || $infos['errors']) ? ' data-depart="partie-infos"' 
   <?php endforeach; endif; ?>
 </section>
 
+<?php /* [12.08.2026] Les paiements, dans leur propre partie.
+
+         Le dépôt et le mot qui suit un envoi restent EN DEHORS du cas « aucun
+         document » : quelqu'un dont l'espace est vide est précisément
+         quelqu'un qui a une première facture à envoyer. Les enfermer dans la
+         branche « sinon » les rendrait invisibles à ceux qui en ont le plus
+         besoin. */ ?>
+<section class="espace-part" id="partie-paiements" aria-labelledby="onglet-paiements">
+  <h2 class="espace-part-h"><span class="espace-part-n">3</span><?= e(t('member_part_paie')) ?></h2>
+  <p class="espace-part-i"><?= e(t('member_part_paie_i')) ?></p>
+  <?= espace_flash_html() ?>
+  <?= espace_facture_form($m) ?>
+  <?php if (!$parVolet['paiement']): ?>
+  <div class="espace-empty"><p><?= e(t('member_no_paiement')) ?></p></div>
+  <?php else: ?>
+  <?= espace_liste_docs($ordonner($parVolet['paiement'], 'paiement')) ?>
+  <?php endif; ?>
+</section>
+
 <section class="espace-part" id="partie-projets" aria-labelledby="onglet-projets">
-  <h2 class="espace-part-h"><span class="espace-part-n">3</span><?= e(t('member_part3')) ?></h2>
+  <h2 class="espace-part-h"><span class="espace-part-n">4</span><?= e(t('member_part3')) ?></h2>
   <p class="espace-part-i"><?= e(t('member_part3_i')) ?></p>
   <?php if (!$parVolet['projet']): ?>
   <div class="espace-empty"><p><?= e(t('member_no_projet')) ?></p></div>

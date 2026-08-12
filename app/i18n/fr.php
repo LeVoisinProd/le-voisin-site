@@ -216,6 +216,11 @@ return [
     'member_tab1'        => 'Mes informations',
     'member_tab2'        => 'Contractualisation',
     'member_tab3'        => 'Projets',
+    // [12.08.2026] La quatrième partie : les paiements, séparés des contrats.
+    'member_tab_paie'     => 'Paiements & remboursements',
+    'member_part_paie'    => 'Mes paiements et remboursements',
+    'member_part_paie_i'  => 'Les factures et les justificatifs que vous nous envoyez, et où ils en sont. Vous déposez, nous marquons « payée », vous confirmez la réception.',
+    'member_no_paiement'  => 'Vous n\'avez encore rien envoyé. Déposez votre première facture ci-dessus.',
 
     // Fiche personnelle imprimable  [V15-FICHE-PDF]
     // Ces libellés servent aussi à la fiche ouverte depuis le CMS : le
