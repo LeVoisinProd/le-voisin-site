@@ -15,7 +15,22 @@
  *      réglages, la carte affiche « Bientôt » au lieu d'un lien mort. Même logique
  *      que pro.php avec pro_projects_url.
  */
+/* [12.08.2026] La carte trouve le Catalogue toute seule.
+
+   Elle lisait un réglage « catalogue_url » qu'aucun écran ne permettait de
+   remplir : la carte disait donc « Bientôt » indéfiniment, quoi qu'on fasse.
+   Ajouter le champ manquant aurait été la réponse évidente et la mauvaise —
+   une adresse recopiée à la main se périme au premier renommage de page.
+
+   Elle demande maintenant au site où vit le module « catalog », comme
+   detail_url() le fait pour les projets. La carte s'allume le jour où la page
+   existe, s'éteint si on la retire, et suit un changement d'adresse sans que
+   personne y pense.
+
+   Le réglage reste lu en premier, pour le cas où le Catalogue vivrait un jour
+   ailleurs que sur ce site. */
 $catUrl = trim((string)setting('catalogue_url', ''));
+if ($catUrl === '' && ($pCat = Pages::moduleP('catalog'))) $catUrl = Pages::url($pCat);
 ?>
 <section class="espaces">
   <div class="wrap espaces-grid">
