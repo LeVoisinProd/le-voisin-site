@@ -44,6 +44,14 @@ switch ($action) {
         VideoLib::remove((int)($in['id'] ?? 0));
         json_out(['ok' => true]);
 
+    /* [12.08.2026] Réservée au Catalogue, ou publique. Une seule colonne, une
+       seule question, et le même aller-retour que la durée juste en dessous. */
+    case 'catalog':
+        $id = (int)($in['id'] ?? 0);
+        if ($id <= 0) json_out(['error' => 'id'], 400);
+        DB::update('videos', ['catalog_only' => !empty($in['only']) ? 1 : 0], 'id = ?', [$id]);
+        json_out(['ok' => true]);
+
     case 'feed':
         json_out(['items' => VideoLib::youtubeFeed(setting('yt_channel_id'))]);
 

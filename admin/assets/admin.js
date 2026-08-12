@@ -575,6 +575,18 @@
       api('video.php', { action: 'duration', id: item.getAttribute('data-id'), seconds: secs })
         .then(function () { toast(t('durSaved')); }).catch(function (er) { toast(er.message, true); });
     });
+    /* [12.08.2026] La case « Catalogue seulement ». Elle s'enregistre au clic,
+       comme la durée : ranger vingt vidéos ne doit pas demander vingt
+       enregistrements de fiche. En cas d'échec on la remet dans son état
+       d'avant, sinon la case dirait le contraire de la base. */
+    list.addEventListener('change', function (e) {
+      var box = e.target.closest('.js-vid-cat');
+      if (!box) return;
+      var item = box.closest('.vid-item');
+      api('video.php', { action: 'catalog', id: item.getAttribute('data-id'), only: box.checked ? 1 : 0 })
+        .then(function () { toast(t('saved')); })
+        .catch(function (er) { box.checked = !box.checked; toast(er.message, true); });
+    });
   });
 
   /* ---------- Documents ---------- */

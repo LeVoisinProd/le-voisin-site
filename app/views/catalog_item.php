@@ -69,6 +69,21 @@ $annee = (int)($item['year_creation'] ?? 0);
         </div>
         <?php endif; ?>
 
+        <?php /* [12.08.2026] Les vidéos du projet, toutes : celles qui sont
+                 publiques et celles qui sont réservées. C'est le sens même du
+                 Catalogue — un programmateur voit ici ce que le public ne voit
+                 pas, et il l'a payé d'un mot de passe.
+
+                 Elles sont lues ici plutôt que passées par le contrôleur, pour
+                 que cette vue fonctionne des deux côtés sans rien exiger de
+                 personne. */ ?>
+        <?php $vids = VideoLib::forOwner('project', (int)$item['id']); ?>
+        <?php if ($vids): ?>
+        <div class="cat-videos">
+          <?php foreach ($vids as $v) echo video_embed($v); ?>
+        </div>
+        <?php endif; ?>
+
         <?php if (f($item, 'intro')): ?>
         <p class="lead"><?= nl2br(e(f($item, 'intro'))) ?></p>
         <?php endif; ?>

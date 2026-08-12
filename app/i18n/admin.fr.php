@@ -96,6 +96,8 @@ return [
     'fld_vid_hint'      => 'Deux options : téléverser un fichier vidéo (hébergé sur votre site) <strong>ou</strong> coller un lien de plateforme. Pour un fichier, optimisez-le (idéalement moins de 30 Mo) pour garder la page rapide.',
     'fld_vid_file'      => 'Fichier vidéo',
     'fld_vid_secs'      => 'Durée d’affichage dans le carrousel (secondes)',
+    'fld_vid_cat'        => 'Catalogue seulement',
+    'fld_vid_cat_h'      => 'Cochée, cette vidéo quitte la page publique du projet et ne se voit plus que dans le Catalogue, derrière le mot de passe. C\'est ainsi qu\'une captation intégrale reste protégée.',
     'fld_doc_drop'      => 'Glissez vos documents ici ou cliquez pour choisir',
     'fld_doc_hint'      => 'PDF, Word, Excel, PowerPoint ou ZIP — la couverture des PDF est extraite automatiquement quand le serveur le permet. Un document trop lourd pour être déposé ici (captation, dossier complet en pleine définition) s’ajoute par son lien : il reste chez vous, sur Drive, Dropbox ou WeTransfer, et la ligne s’affiche comme les autres.',
     'fld_doc_title'     => 'Titre %s',

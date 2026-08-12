@@ -2271,3 +2271,7 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
   padding: 12px 16px; margin: 4px 0 20px;
   font-size: 14px; line-height: 1.5;
 }
+
+/* Les vidéos de la fiche du Catalogue : mêmes cartes que sur le site public,
+   posées avant le texte parce qu'on vient d'abord pour voir. */
+.cat-videos { display: grid; gap: 16px; margin-bottom: 28px; }

@@ -80,6 +80,18 @@
         <?php endforeach; ?>
         <?php endif; ?>
 
+        <?php /* [12.08.2026] Les vidéos réservées au Catalogue ne sortent pas ici.
+
+                 Le tri se fait dans la vue et non dans le routeur, parce que
+                 index.php ne peut pas être mis à jour sur ce serveur : son cache
+                 d'opcode le garde en mémoire. La conséquence est heureuse — le
+                 filtre est à trois lignes de l'endroit qui affiche, donc on ne
+                 peut pas afficher sans le voir.
+
+                 empty() et non == 0 : la colonne n'existe qu'après la mise à
+                 jour de la base, et sans elle toutes les vidéos restent
+                 publiques, comme avant. */ ?>
+        <?php $videos = array_values(array_filter($videos, fn($v) => empty($v['catalog_only']))); ?>
         <?php if ($videos): ?>
         <h2 class="sub"><?= e(t('videos')) ?></h2>
         <div class="videos"><?php foreach ($videos as $v) echo video_embed($v); ?></div>

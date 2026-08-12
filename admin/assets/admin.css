@@ -411,3 +411,11 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--ink); outli
   .content { padding: 20px; }
   .gal-grid, .vids-feed { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* [12.08.2026] « Catalogue seulement », dans la ligne d'une vidéo. Discret au
+   repos et lisible une fois coché : c'est un état qu'on vérifie du coin de
+   l'oeil en parcourant vingt lignes, pas une commande qu'on cherche. */
+.vid-cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+           color: var(--gris, #666); cursor: pointer; white-space: nowrap; }
+.vid-cat input { margin: 0; }
+.vid-cat:has(input:checked) { color: var(--encre, #111); font-weight: 600; }

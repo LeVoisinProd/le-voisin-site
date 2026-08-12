@@ -610,6 +610,16 @@ function video_item_html(array $v): string
         . '<span class="vid-meta"><strong>' . e($title) . '</strong><em>' . e($kind) . '</em></span>'
         . '<label class="vid-secs" title="' . e(ta('fld_vid_secs')) . '">'
             . '<input type="number" class="js-vid-secs" min="1" max="60" step="1" value="' . (int)($v['duration'] ?? 6) . '"><span>s</span></label>'
+        /* [12.08.2026] Où va cette vidéo. Cochée, elle quitte la page publique
+           du projet et ne se voit plus que dans le Catalogue, derrière le mot
+           de passe. C'est le seul réglage qui donne un sens au Catalogue :
+           sans lui, une captation intégrale reste visible de tous, et les
+           droits des artistes et de la musique avec elle.
+           Décochée par défaut : on retire une vidéo du public en le voulant,
+           jamais par omission. */
+        . '<label class="vid-cat" title="' . e(ta('fld_vid_cat_h')) . '">'
+            . '<input type="checkbox" class="js-vid-cat"' . (!empty($v['catalog_only']) ? ' checked' : '') . '>'
+            . '<span>' . e(ta('fld_vid_cat')) . '</span></label>'
         . '<a class="icon-btn" href="' . e($link) . '" target="_blank" title="' . e(ta('com_view')) . '">' . Ico::ext() . '</a>'
         . '<button type="button" class="icon-btn js-vid-del" title="' . e(ta('com_delete')) . '">×</button>'
         . '</div>';

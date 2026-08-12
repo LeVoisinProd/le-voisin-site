@@ -95,6 +95,8 @@ return [
     'fld_vid_hint'      => 'Two options: upload a video file (hosted on your site) <strong>or</strong> paste a platform link. For a file, optimise it (ideally under 30 MB) to keep the page fast.',
     'fld_vid_file'      => 'Video file',
     'fld_vid_secs'      => 'Display time in the carousel (seconds)',
+    'fld_vid_cat'        => 'Catalogue only',
+    'fld_vid_cat_h'      => 'Ticked, this video leaves the public project page and is only visible in the Catalogue, behind the password. This is how a full recording stays protected.',
     'fld_doc_drop'      => 'Drag your documents here or click to choose',
     'fld_doc_hint'      => 'PDF, Word, Excel, PowerPoint or ZIP — the PDF cover is extracted automatically when the server allows it. A document too heavy to upload here (a full recording, a complete press kit at full resolution) can be added as a link instead: it stays where it is, on Drive, Dropbox or WeTransfer, and the row looks like all the others.',
     'fld_doc_title'     => 'Title %s',
