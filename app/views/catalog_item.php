@@ -69,15 +69,21 @@ $annee = (int)($item['year_creation'] ?? 0);
         </div>
         <?php endif; ?>
 
-        <?php /* [12.08.2026] Les vidéos du projet, toutes : celles qui sont
-                 publiques et celles qui sont réservées. C'est le sens même du
-                 Catalogue — un programmateur voit ici ce que le public ne voit
-                 pas, et il l'a payé d'un mot de passe.
+        <?php /* [12.08.2026] SEULEMENT les vidéos réservées au Catalogue.
 
-                 Elles sont lues ici plutôt que passées par le contrôleur, pour
-                 que cette vue fonctionne des deux côtés sans rien exiger de
-                 personne. */ ?>
-        <?php $vids = VideoLib::forOwner('project', (int)$item['id']); ?>
+                 Ma première version les montrait toutes, en me disant que qui
+                 entre avec un mot de passe doit tout voir. C'était faux à
+                 l'usage : le teaser est déjà sur la page publique, et le
+                 remettre ici prend la place de ce qu'on est venu chercher. Un
+                 programmateur ouvre cette fiche pour la captation, pas pour la
+                 bande annonce qu'il vient de regarder.
+
+                 Les vidéos sont lues ici plutôt que passées par le contrôleur,
+                 pour que cette vue fonctionne des deux côtés sans rien exiger
+                 de personne. */ ?>
+        <?php $vids = array_values(array_filter(
+                VideoLib::forOwner('project', (int)$item['id']),
+                fn($v) => !empty($v['catalog_only']))); ?>
         <?php if ($vids): ?>
         <div class="cat-videos">
           <?php foreach ($vids as $v) echo video_embed($v); ?>
