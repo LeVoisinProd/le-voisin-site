@@ -1,7 +1,5 @@
-
-
 Options -Indexes
-DirectoryIndex index2.php
+DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -11,14 +9,15 @@ DirectoryIndex index2.php
     RewriteRule ^config\.php$ - [F]
     RewriteRule ^config\.sample\.php$ - [F]
 
-    # [12.08.2026] Le contrôleur s'appelle index2.php, pas index.php. La raison est
-    # écrite en tête de ce fichier-là : le cache d'opcode gardait « index.php »
-    # compilé en mémoire et refusait de le relire, quoi qu'on écrive sur le
-    # disque. Un nom neuf n'a pas d'entrée en mémoire.
-    # Tout le reste (hors fichiers/dossiers réels) passe par le contrôleur
+    # Documentation, paquets et sauvegardes : jamais servis au public.
+    # robots.txt est produit par index.php — la condition l'épargne.
+    RewriteCond %{REQUEST_URI} !^/robots\.txt$
+    RewriteRule \.(md|txt|zip|sql|local|bak)$ - [F]
+
+    # Tout le reste (hors fichiers/dossiers réels) passe par index.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^ index2.php [L]
+    RewriteRule ^ index.php [L]
 </IfModule>
 
 # Compression et cache raisonnables
