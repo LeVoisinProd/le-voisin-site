@@ -44,7 +44,7 @@ $KEYS = [
     'pro_cms_url', 'pro_dashboard_url', 'pro_dashboard_label',
     // [V42-CATALOGUE] Sans cette clef ici, le champ s'affiche et ne s'enregistre
     // pas : la liste est fermée, et settings.php ignore ce qu'elle ne connaît pas.
-    'catalogue_password',
+    'catalogue_password', 'catalogue_email',
     'skribble_username', 'skribble_api_key', 'skribble_quality',
     'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user',
 ];
@@ -513,6 +513,7 @@ admin_top(ta('st_title'), 'settings');
              dit sur sa page. Il ne s'ouvre jamais par omission. */ ?>
     <div class="grid2">
       <?= field_wrap(ta('st_f_cat'), s_in('catalogue_password', 'text', '…'), ta('st_f_cat_h')) ?>
+      <?= field_wrap(ta('st_f_catmail'), s_in('catalogue_email', 'text', 'anna@le-voisin.com'), ta('st_f_catmail_h')) ?>
     </div>
   </div>
 

@@ -143,7 +143,13 @@ $annee = (int)($item['year_creation'] ?? 0);
                  personne sait ce qu'elle a vu, il lui faut à qui écrire. */ ?>
         <div class="cat-bloc cat-contact">
           <p><?= e(t('cat_contact')) ?></p>
-          <p><a class="btn" href="mailto:<?= e(setting('contact_email', 'talkto@le-voisin.com')) ?>"><?= e(t('cat_ecrire')) ?></a></p>
+          <?php /* [12.08.2026] L'adresse du Catalogue, et non celle du site.
+                   Qui arrive ici a déjà écrit, déjà parlé, souvent déjà reçu un
+                   devis : le renvoyer vers une boîte générale lui fait
+                   recommencer, et fait perdre le fil de la conversation.
+                   Réglable dans le CMS ; à défaut, l'adresse d'Anna. */ ?>
+          <?php $catMail = trim((string)setting('catalogue_email', '')) ?: 'anna@le-voisin.com'; ?>
+          <p><a class="btn" href="mailto:<?= e($catMail) ?>"><?= e(t('cat_ecrire')) ?></a></p>
         </div>
 
       </aside>
