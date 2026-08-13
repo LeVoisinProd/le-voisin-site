@@ -414,6 +414,18 @@ class MemberAuth
         return url('/espace/entrer.php?jeton=' . urlencode($jeton));
     }
 
+    /**
+     * La porte, sans clé.                                     [14.08.2026]
+     *
+     * L'invitation y mène désormais : la personne y indique son adresse et
+     * reçoit elle-même sa première clé. Un envoi cesse ainsi de détruire quoi
+     * que ce soit, et peut donc être refait autant de fois qu'il le faut.
+     */
+    public static function porteUrl(): string
+    {
+        return url('/espace/entrer.php');
+    }
+
     /** Le collaborateur désigné par ce jeton, si le lien n'a pas expiré. */
     public static function parJeton(string $jeton): ?array
     {

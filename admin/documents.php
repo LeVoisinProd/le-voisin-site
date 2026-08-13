@@ -219,30 +219,43 @@ if (($_GET['export'] ?? '') === 'zip') {
     exit;
 }
 
-/* ---- Supprimer, en lot, avec confirmation nommée --------------------------
-   Sans exception : l'administration décide. La confirmation ne montre pas un
-   compte mais la liste, parce qu'un « 214 documents » ne dit pas si le filtre
-   portait sur l'année ou sur l'association. */
-$aSupprimer = [];
+/* ---- Supprimer, en lot ----------------------------------------------------
+
+   EN UN SEUL GESTE, et la première version en demandait deux. [14.08.2026]
+
+   Elle répondait au clic par un écran de confirmation nommant chaque fichier,
+   écrit en tête de page. C'était juste sur le papier et faux à l'usage : le
+   bouton est au BAS d'une liste qui fait plusieurs écrans, le navigateur garde
+   la position au rechargement, et l'écran de confirmation apparaissait tout en
+   haut, hors de vue. On cochait, on cliquait, il ne se passait rien de visible,
+   et l'on en concluait que la suppression ne marchait pas. Anna l'a constaté
+   dès le premier essai.
+
+   La confirmation passe donc dans une boîte de dialogue du navigateur, qui a
+   la seule qualité qui compte ici : elle est impossible à manquer. C'est déjà
+   ce que fait la fiche d'une personne pour le même geste.
+
+   ET LE RETOUR GARDE LES FILTRES. La première version renvoyait vers la page
+   nue : on supprimait trois doublons d'une association et l'on se retrouvait
+   devant les mille trois cents documents de tout le monde, sans savoir si le
+   geste avait porté. */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
     $ids = array_values(array_unique(array_filter(array_map('intval', (array)($_POST['ids'] ?? [])))));
-    $action = (string)($_POST['lv_action'] ?? '');
 
     if (!$ids) {
         flash(ta('doc_none_selected'), 'err');
-    } elseif ($action === 'suppr_confirmer') {
-        $aSupprimer = DB::all(
-            'SELECT d.*, c.name AS personne FROM member_documents d
-               LEFT JOIN collaborators c ON c.id = d.collaborator_id
-              WHERE d.id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')
-              ORDER BY c.name, d.created_at DESC', $ids);
-    } elseif ($action === 'suppr') {
+    } else {
         $n = 0;
         foreach ($ids as $i) { MemberDocs::delete($i); $n++; }
         flash(ta('doc_deleted', $n));
-        redirect('/admin/documents.php');
     }
+    /* Redirection même en cas d'erreur : sans elle, actualiser la page renvoie
+       le formulaire et supprime une seconde fois des identifiants qui, entre
+       temps, peuvent désigner autre chose. */
+    $q = $_GET;
+    unset($q['export']);
+    redirect('/admin/documents.php' . ($q ? '?' . http_build_query($q) : ''));
 }
 
 /* ---- Ce qui remplit les menus de filtre ---------------------------------- */
@@ -271,33 +284,6 @@ admin_top(ta('doc_title'), 'documents');
 </div>
 <p class="hint"><?= e(ta('doc_intro')) ?></p>
 
-<?php if ($aSupprimer): ?>
-<div class="panel doc-danger">
-  <h2><?= e(ta('doc_del_confirm', count($aSupprimer))) ?></h2>
-  <p class="hint"><?= e(ta('doc_del_warn')) ?></p>
-  <div class="rowlist">
-    <?php foreach ($aSupprimer as $d): ?>
-    <div class="rowitem">
-      <span class="row-main"><strong><?= e((string)($d['filename'] ?? '')) ?></strong>
-        <em><?= e((string)($d['personne'] ?? '')) ?> ·
-            <?= e(MemberDocs::catLabel((string)$d['category'], 'fr')) ?> ·
-            <?= e(Dates::afficher((string)($d['created_at'] ?? ''))) ?></em></span>
-    </div>
-    <?php endforeach; ?>
-  </div>
-  <form method="post">
-    <?= $csrf ?>
-    <input type="hidden" name="lv_action" value="suppr">
-    <?php foreach ($aSupprimer as $d): ?>
-    <input type="hidden" name="ids[]" value="<?= (int)$d['id'] ?>">
-    <?php endforeach; ?>
-    <p>
-      <button class="btn ce-del" type="submit"><?= e(ta('doc_del_go')) ?></button>
-      <a class="btn ghost" href="<?= e(admin_url('documents.php')) ?>"><?= e(ta('doc_cancel')) ?></a>
-    </p>
-  </form>
-</div>
-<?php endif; ?>
 
 <form class="panel doc-filtres" method="get">
   <div class="doc-f-grille">
@@ -352,9 +338,13 @@ admin_top(ta('doc_title'), 'documents');
 <?php if (!$docs): ?>
 <p class="hint"><?= e(ta('doc_empty')) ?></p>
 <?php else: ?>
-<form method="post" class="panel">
+<?php /* Le libellé part avec son %d intact : c'est le script qui met le
+         nombre, parce que lui seul sait combien de cases sont cochées au
+         moment du clic. */ ?>
+<form method="post" class="panel" id="doc-liste"
+      data-confirme="<?= e(ta('doc_del_confirm') . "\n\n" . ta('doc_del_warn')) ?>"
+      data-vide="<?= e(ta('doc_none_selected')) ?>">
   <?= $csrf ?>
-  <input type="hidden" name="lv_action" value="suppr_confirmer">
   <p class="doc-compte">
     <strong><?= count($docs) ?></strong> <?= e(ta('doc_count')) ?> · <?= e(Docs::human($total)) ?>
     <label class="doc-f-case"><input type="checkbox" class="doc-tout"> <?= e(ta('doc_all')) ?></label>
@@ -383,14 +373,27 @@ admin_top(ta('doc_title'), 'documents');
   <p><button class="btn ce-del" type="submit"><?= e(ta('doc_del_sel')) ?></button></p>
 </form>
 <script>
-/* Tout cocher. Un script de trois lignes plutôt qu'un attribut onclick : la
-   page en aurait porté un par ligne, et l'administration a déjà une politique
-   de contenu qui les refuse. */
+/* Tout cocher. Un script plutôt que des attributs onclick : la page en aurait
+   porté un par ligne, et l'administration a déjà une politique de contenu qui
+   les refuse. */
 document.querySelectorAll('.doc-tout').forEach(function (t) {
   t.addEventListener('change', function () {
     document.querySelectorAll('.doc-case').forEach(function (c) { c.checked = t.checked; });
   });
 });
+
+/* La confirmation. Sans JavaScript le formulaire part quand même : le serveur
+   refuse une sélection vide et la suppression reste possible, seule la
+   question disparaît. C'est le bon sens de la dégradation — on ne bloque pas
+   un geste parce qu'un script ne s'est pas chargé. */
+var f = document.getElementById('doc-liste');
+if (f) {
+  f.addEventListener('submit', function (e) {
+    var n = f.querySelectorAll('.doc-case:checked').length;
+    if (n === 0) { e.preventDefault(); alert(f.dataset.vide); return; }
+    if (!confirm(f.dataset.confirme.replace('%d', n))) e.preventDefault();
+  });
+}
 </script>
 <?php endif; ?>
 <?php admin_bottom();

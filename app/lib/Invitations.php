@@ -66,48 +66,48 @@ We are pleased to introduce the new look of the Le Voisin website. It comes with
 
 The first new feature concerns you directly. You now have a personal space, where you will find everything that connects you to the associations we manage, and from which you send us your invoices and receive your contractual documents.
 
-{bouton}
+{bouton:Request my entry key}
 
 ~ No password to choose or remember.
-~ This button is your first key, and it works only once.
+~ Your space is tied to this email address, and to this one only.
 
-Next time you come back to your personal space, you just enter your email address on the space's page and you receive a new key. Between visits, your browser keeps you recognised for a month.
+The button takes you to the entry page. You enter this address, the one where you are reading this message, and you receive your key straight away. One click on the key and you are home. Any other address will not recognise you. It works the same way at every visit, and between visits your browser keeps you recognised for a month.
 
 WHAT YOU WILL FIND THERE
 
-The Collaborator Space has four tabs.
+The collaborator space has four tabs.
 
-1. My details
-Available at any time. This is where you keep your contact details, your short biography and your profile photo up to date: these are what we reuse in subsidy applications, and an up to date biography makes a better dossier. If you move, you change your address right there, without writing to us. We then receive a message telling us what you changed.
+1. My information
+Available at any time. You keep your contact details, your short biography and your profile photo up to date there: they are what we reuse in grant applications, and an up to date biography makes a better application. If you move house or change bank account, you can update your details directly in your profile. It can be edited at any time. We receive a notice of the changes straight away.
 
-2. Contracts
-Contracts, payslips and AGI forms. We file them there, you download them whenever you need, and you confirm you have them with the button "I have received it". Contracts are signed straight from the space, with a click on "Sign": nothing left to print, scan or send back to us.
+2. Contracts and payroll
+Contracts, payslips and AGIs. We deposit them there, you download them when you need them, and you confirm you received them with the "I have received it" button. Contracts are signed directly from the space, with one click on "Sign": nothing left to print, scan or send back.
 
-3. Payments & reimbursements
-You upload your invoices and expense receipts, and you follow where they stand. Every time you upload a document you receive a confirmation email: it is your proof, with the what and the when.
+3. Payments and reimbursements
+You deposit your invoices and expense receipts there, and you follow where they stand. For every document you deposit, you receive a confirmation email: it is your proof, with the what and the when.
 
 4. Projects
-Tour sheets, travel, accommodation and logistics, filed by production. Every accessible document about the tours sits in one place.
+Roadmaps, travel, accommodation and logistics, sorted by production. Every available document about the tours is in the same place.
 
-THE MOST IMPORTANT PART
+THE MOST IMPORTANT POINT
 
-An invoice goes through three states, and each step is confirmed by the person who alone can see it.
+An invoice goes through three states, and each step is confirmed by the person who alone can observe it.
 
-> You upload your invoice: it is sent.
-> We settle it: we mark it as paid.
+> You deposit your invoice: it is sent.
+> We settle it: we mark it paid.
 > The money reaches your account: you click "I have received the payment".
 
-That last step is the only one we cannot take for you. A transfer sent is not a transfer arrived, and without your confirmation we cannot tell what has actually reached you. We sometimes chase amounts already paid, or believe settled what is not. Our accounting software sometimes misleads us.
+That last gesture is what confirms to us that everything went through.
 
-/ Please note: payments go out in the last week of each month. A transfer to an account outside Switzerland takes about two extra working days to be credited.
+/ Please note: payments go out in the last week of each month. A transfer to an account outside Switzerland takes about two more working days to be credited.
 
-WHY THIS CHANGE
+WHY THIS EVOLUTION
 
-The feedback we have been getting for months all says much the same thing, and I wanted to answer it properly: a clear administrative framework, one that lets artistic work move without friction. Invoices followed, contracts within reach and payments traced means time given back to your work.
+The feedback we have been receiving for months all says much the same thing, and I wanted to answer it seriously: a clear administrative framework, one that lets the artistic work move forward more smoothly. Invoices followed, contracts within reach and payments traced, that is time given back to your main work.
 
-We are a very small team, and by making our tools better we defend our associated artists' projects as best we can, with partners and funders.
+We are a very small team, and by improving our tools we defend as best we can the projects of our associate artists, with partners and funders.
 
-Together we can improve our practices. We have tried to make this new experience as smooth as possible. But if despite our efforts you have a question, or any trouble connecting, just reply to this message. Thank you in advance for your collaboration.
+We have tried to make this new experience as smooth as possible. But if despite our efforts you have a question, or any trouble connecting, just reply to this message. Together we can improve our practices. Thank you in advance for your collaboration.
 
 See you soon,
 Anna
@@ -120,19 +120,19 @@ Nous sommes heureuses de te présenter le nouveau visage du site de Le Voisin. I
 
 La première nouveauté te concerne directement. Tu as désormais un espace personnel, où tu trouveras tout ce qui te lie aux associations que nous gérons, et depuis lequel tu nous envoies tes factures et reçois tes documents contractuels.
 
-{bouton}
+{bouton:Demander ma clé d'entrée}
 
 ~ Aucun mot de passe à choisir ni à retenir.
-~ Ce bouton est ta première clé d'entrée, et elle ne sert qu'une fois.
+~ Ton espace est lié à cette adresse mail, et à elle seule.
 
-La prochaine fois que tu reviendras sur ton espace personnel, il te suffira d'indiquer ton adresse mail sur la page de l'espace et tu recevras une nouvelle clé d'entrée. Entre deux visites, ton navigateur te garde reconnu·e pendant un mois.
+Le bouton t'amène sur la page d'entrée. Tu y indiques cette adresse, celle à laquelle tu lis ce message, et tu reçois aussitôt ta clé. Un clic sur la clé et tu es chez toi. Une autre adresse ne te reconnaîtra pas. C'est la même chose à chaque visite, et entre deux visites ton navigateur te garde reconnu·e pendant un mois.
 
 CE QUE TU Y TROUVERAS
 
 L'Espace collaborateur tient en quatre onglets.
 
 1. Mes informations
-Accessible à tout moment. Tu y tiens à jour tes coordonnées, ta courte biographie et ta photo de profil : ce sont elles que nous reprenons dans les dossiers de subvention, et une biographie à jour fait un meilleur dossier. Si tu déménages, tu changes ton adresse ici même, sans nous écrire. Nous recevons alors un message qui nous dit ce que tu as modifié.
+Accessible à tout moment. Tu y tiens à jour tes coordonnées, ta courte biographie et ta photo de profil : ce sont elles que nous reprenons dans les dossiers de subvention, et une biographie à jour fait un meilleur dossier. Si tu déménages ou changes de compte bancaire, tu peux actualiser tes infos directement dans ton profil. Il est modifiable à tout moment. Nous recevons directement un avertissement des changements.
 
 2. Contractualisation
 Contrats, fiches de salaire et AGIs. Nous les y déposons, tu les télécharges quand tu en as besoin, et tu confirmes leur bonne réception avec le bouton « J'ai bien reçu ». Les contrats se signent directement depuis l'espace, d'un clic sur « Signer » : plus rien à imprimer, ni à scanner, ni à nous renvoyer.
@@ -151,17 +151,17 @@ Une facture passe par trois états, et chaque étape est confirmée par la perso
 > Nous la réglons : nous la marquons payée.
 > L'argent arrive sur ton compte : tu cliques sur « J'ai reçu le paiement ».
 
-Ce dernier geste est le seul que nous ne pouvons pas faire à ta place. Un virement parti n'est pas un virement arrivé, et sans ta confirmation nous ne savons pas ce qui t'est réellement parvenu. Il nous arrive ainsi de relancer pour des sommes déjà versées, ou de croire réglé ce qui ne l'est pas. Nos logiciels comptables nous trompent parfois.
+Ce dernier geste permet de nous confirmer que tout s'est bien passé.
 
 / À noter : les paiements partent la dernière semaine de chaque mois. Un virement vers un compte hors de Suisse met environ deux jours ouvrables de plus à être crédité.
 
-POURQUOI CE CHANGEMENT
+POURQUOI CETTE ÉVOLUTION
 
-Les retours que nous recevons depuis des mois disent tous un peu la même chose, et j'ai voulu y répondre sérieusement : un cadre administratif clair, qui laisse le travail artistique avancer sans friction. Des factures suivies, des contrats accessibles et des paiements tracés, c'est du temps rendu à ton travail.
+Les retours que nous recevons depuis des mois disent tous un peu la même chose, et j'ai voulu y répondre sérieusement : un cadre administratif clair, qui laisse le travail artistique avancer avec plus de fluidité. Des factures suivies, des contrats accessibles et des paiements tracés, c'est du temps rendu à ton travail principal.
 
-Nous sommes une toute petite équipe, et en faisant évoluer nos outils nous défendons du mieux que nous pouvons les projets de nos artistes associé·es, auprès des partenaires et des financeurs.
+Nous sommes une toute petite équipe, et en faisant progresser nos outils nous défendons du mieux que nous pouvons les projets de nos artistes associé·es, auprès des partenaires et des financeurs.
 
-Ensemble nous pouvons améliorer nos pratiques. Nous avons essayé de rendre cette nouvelle expérience la plus fluide possible. Mais si malgré nos efforts tu as une question, ou une difficulté pour te connecter, réponds simplement à ce message. Nous te remercions dès maintenant pour ta collaboration.
+Nous avons essayé de rendre cette nouvelle expérience la plus fluide possible. Mais si malgré nos efforts tu as une question, ou une difficulté pour te connecter, réponds simplement à ce message. Ensemble nous pouvons améliorer nos pratiques. Nous te remercions dès maintenant pour ta collaboration.
 
 À bientôt,
 Anna
@@ -484,24 +484,34 @@ TXT;
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $r['raison'] = ta('inv_err_email'); return $r; }
         if (empty($c['active']))                        { $r['raison'] = ta('inv_err_off');   return $r; }
 
-        try {
-            $jeton = MemberAuth::lienNouveau($id);
-        } catch (Throwable $ex) {
-            // Les colonnes du lien n'existent qu'après « Mettre à jour la base ».
-            $r['raison'] = ta('inv_err_link');
-            return $r;
-        }
-        $r['lien'] = true;
+        /* [14.08.2026] L'INVITATION NE PORTE PLUS DE CLÉ.
 
-        $lien  = MemberAuth::lienUrl($jeton);
+           Elle en portait une, à usage unique et sans expiration, fabriquée
+           ici même. Comme lienNouveau() écrase la précédente, réexpédier à
+           soixante-dix-sept personnes annulait les clés de celles qui avaient
+           déjà reçu la leur : un envoi de trop ne coûtait pas un message, il en
+           coûtait soixante-dix-sept, et toute la prudence de l'écran d'envoi
+           venait de là.
+
+           Le bouton mène maintenant à la porte, où la personne demande sa clé
+           elle-même. L'envoi devient répétable sans dégât, ce qui vaut mieux
+           qu'un clic de moins. La clé manuelle existe toujours, à la demande,
+           depuis la fiche de la personne : c'est le dépannage de celle qui ne
+           reçoit rien.
+
+           Effet de bord assumé : le freinage de la porte compte 8 demandes par
+           dix minutes et par adresse IP, pas par adresse mail. Une personne
+           chez elle n'y touche jamais ; plusieurs derrière un même réseau, dans
+           un théâtre, partagent le compteur. */
+        $lien = MemberAuth::porteUrl();
         $sujet = self::rendreTexte(self::sujet($lang), $nom, $lien);
         $html  = Mailer::wrap($sujet, self::rendreHtml(self::texte($lang), $nom, $lien, $lang));
 
         if (Mailer::send([$email], $sujet, $html)) { $r['ok'] = true; return $r; }
 
-        // Le lien existe désormais mais n'est arrivé nulle part. On ne l'efface
-        // pas : il reste copiable à la main depuis la fiche de la personne,
-        // c'est le seul dépannage possible tant que l'envoi ne passe pas.
+        // Un échec ne laisse plus rien derrière lui : rien n'a été écrit en
+        // base, il n'y a donc rien à rattraper ni à nettoyer. On réessaie, tout
+        // simplement, et autant de fois qu'il le faut.
         $r['raison'] = trim(Smtp::$erreur) !== '' ? trim(Smtp::$erreur) : ta('inv_err_send');
         return $r;
     }
@@ -521,7 +531,11 @@ TXT;
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $r['raison'] = ta('inv_err_email'); return $r; }
 
         $nom   = ta('inv_demo_name');
-        $lien  = MemberAuth::lienUrl(str_repeat('0', 64));
+        /* [14.08.2026] La même adresse que l'envoi réel, et non plus une fausse
+           clé de soixante-quatre zéros. Un exemple qui ne mène pas où mène le
+           vrai message ne prouve rien : c'est justement le bouton qu'on vient
+           vérifier en s'envoyant l'exemple, et il doit pouvoir être cliqué. */
+        $lien  = MemberAuth::porteUrl();
         $sujet = ta('inv_test_prefix') . ' ' . self::rendreTexte(self::sujet($lang), $nom, $lien);
         $html  = Mailer::wrap($sujet, self::rendreHtml(self::texte($lang), $nom, $lien, $lang));
 
