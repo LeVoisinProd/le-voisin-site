@@ -167,6 +167,24 @@ class MemberAuth
         $_SESSION['lv_member_id'] = (int)$m['id'];
         $_SESSION['lv_member_vu'] = time();
         unset($_SESSION['lv_member_visite']);
+
+        /* [13.08.2026] ET l'on referme la porte du bureau.
+
+           Les deux authentifications partagent une seule session PHP, et
+           requireAdmin() ne regarde que « lv_admin_id ». session_regenerate_id()
+           change l'identifiant mais RECOPIE les données : la clef du bureau
+           survivait donc à l'entrée d'un collaborateur.
+
+           Quelqu'un qui ouvre son espace sur un navigateur où le CMS est resté
+           ouvert franchissait les deux portes : /admin/, les soixante-dix-sept
+           IBAN, et users.php pour s'y fabriquer un compte permanent. Un poste
+           partagé au bureau suffisait, et soixante-dix-sept personnes reçoivent
+           leur accès demain.
+
+           visiteOuvrir() n'est pas concernée : c'est l'autre chemin, celui du
+           bureau qui regarde, et il garde ses deux clefs exprès. */
+        unset($_SESSION['lv_admin_id']);
+
         DB::run('UPDATE collaborators SET last_login = NOW() WHERE id = ?', [$m['id']]);
         DB::delete('login_attempts', 'ip = ?', ['e:' . self::ip()]);
         AccessLog::ecrire((int)$m['id'], 'member', null, 'login');
@@ -326,6 +344,44 @@ class MemberAuth
      *
      * @param int|null $minutes Durée de validité, ou null pour aucune échéance.
      */
+    /**
+     * La clé à envoyer : celle qui vit déjà, ou une neuve.  [13.08.2026]
+     *
+     * lienNouveau() écrase sans regarder, et c'est ce qu'il faut quand le bureau
+     * décide de refaire une clé. Mais pas quand la personne en redemande une, et
+     * surtout pas quand n'importe qui peut en redemander une à sa place :
+     *
+     * les soixante-dix-sept invitations n'expirent pas et attendent dans autant
+     * de boîtes aux lettres. Écrire l'adresse de quelqu'un sur la page d'entrée
+     * détruisait la sienne — huit fois par dix minutes, contre une liste
+     * d'adresses au motif évident. La victime cliquait sur le message reçu le
+     * matin et lisait « cette clé n'est plus valable », et le bureau passait sa
+     * journée à en refaire.
+     *
+     * Donc : s'il en existe une vivante, on la renvoie. Elle ne sert toujours
+     * qu'une fois, et redemander une clé cesse de détruire quoi que ce soit.
+     * Une clé sans échéance en garde une : prolonger l'infini n'a pas de sens.
+     */
+    public static function lienPour(int $id, ?int $minutes = null): string
+    {
+        $m = DB::one('SELECT reset_token, reset_expires FROM collaborators WHERE id = ?', [$id]);
+        $jeton = trim((string)($m['reset_token'] ?? ''));
+        if ($jeton === '') return self::lienNouveau($id, $minutes);
+
+        $fin = trim((string)($m['reset_expires'] ?? ''));
+        if ($fin === '') return $jeton;                       // vivante, sans échéance
+        if (strtotime($fin) <= time()) return self::lienNouveau($id, $minutes);
+
+        /* Vivante et datée : on repousse l'échéance, sinon quelqu'un qui
+           redemande sa clé à la vingt-neuvième minute en recevrait une qui
+           meurt pendant qu'il lit le message. */
+        if ($minutes !== null) {
+            DB::update('collaborators',
+                ['reset_expires' => date('Y-m-d H:i:s', time() + $minutes * 60)], 'id = ?', [$id]);
+        }
+        return $jeton;
+    }
+
     public static function lienNouveau(int $id, ?int $minutes = null): string
     {
         $jeton = bin2hex(random_bytes(32));

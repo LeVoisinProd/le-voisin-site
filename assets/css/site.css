@@ -753,6 +753,16 @@ a.ecard-btn:hover { background: #fff; color: var(--ink); }
 .espace-autre > summary { cursor: pointer; color: var(--grey); font-size: 14px; }
 .espace-autre .form { margin-top: 14px; }
 
+/* [13.08.2026] Les rubriques dans l'espace, et les années repliées.
+   Le titre est discret : il sépare, il n'annonce pas. Ce qu'on vient chercher
+   reste le nom du document, pas le nom du rayon. */
+.mdoc-cat { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--grey); margin: 22px 0 8px; }
+.mdoc-cat:first-child { margin-top: 4px; }
+.mdoc-annee { margin: 0 0 6px; }
+.mdoc-annee > summary { cursor: pointer; color: var(--grey); font-size: 14px; padding: 6px 0; }
+.mdoc-annee[open] > summary { margin-bottom: 4px; }
+
 /* [13.08.2026] La zone de suppression d'une fiche. Séparée du reste par un
    trait et rangée tout en bas : on ne tombe pas dessus, on va la chercher. */
 .ce-danger { margin-top: 30px; padding-top: 18px; border-top: var(--trait) solid var(--line); }

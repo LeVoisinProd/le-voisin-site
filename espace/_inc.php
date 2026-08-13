@@ -234,14 +234,77 @@ function espace_doc_statut(array $d): string
  * fois ici, pour qu'une correction sur un bouton n'ait pas à être faite à
  * quatre endroits — et oubliée au troisième.
  *
- * La fonction ne pose plus de titre de rubrique : la rubrique est passée sur la
- * ligne grise de chaque document. Un titre par rubrique produisait une cascade
- * de titres pour un ou deux fichiers chacun, alors que la rubrique est un
- * renseignement sur le document — pas un rayonnage.
+ * [13.08.2026] LES TITRES DE RUBRIQUE REVIENNENT, mais seulement quand il y a
+ * plus d'une rubrique à séparer.
+ *
+ * Ils avaient été retirés parce qu'un titre par rubrique produisait une cascade
+ * de titres pour un ou deux fichiers chacun. C'était vrai un espace vide, et
+ * cela cesse de l'être au bout d'un an : les fiches de salaire arrivent douze
+ * fois par an dans le même onglet que les contrats, qui sont deux ou trois. Le
+ * contrat finit noyé, et c'est le document qu'on vient chercher.
+ *
+ * Donc : une seule rubrique, pas de titre, la page d'hier. Plusieurs rubriques,
+ * un titre chacune, et la rubrique quitte la ligne grise puisqu'elle est écrite
+ * au-dessus. Le plus récent d'abord, parce que l'ordre de dépôt mettait le
+ * contrat de 2024 au-dessus de la fiche de salaire de ce mois-ci.
+ *
+ * Et les fiches de salaire se replient par année. C'est la seule rubrique qui
+ * grossit sans fin ; les autres se comptent sur une main.
  *
  * @param array<int, array<string, mixed>> $docs
  */
 function espace_liste_docs(array $docs): string
+{
+    if (!$docs) return '';
+
+    $par = [];
+    foreach ($docs as $d) $par[(string)($d['category'] ?? 'other')][] = $d;
+
+    /* Une seule rubrique : rien ne change, et la rubrique reste sur la ligne
+       grise. C'est le cas de la plupart des fiches aujourd'hui. */
+    if (count($par) < 2) return espace_liste_docs_brut($docs, true);
+
+    $out = '';
+    foreach ($par as $cat => $lot) {
+        usort($lot, static fn($a, $b) => strcmp(
+            (string)($b['created_at'] ?? ''), (string)($a['created_at'] ?? '')));
+        $out .= '<h4 class="mdoc-cat">' . e(MemberDocs::catLabel($cat, I18n::$lang)) . '</h4>';
+        $out .= $cat === 'payslip' ? espace_docs_par_annee($lot) : espace_liste_docs_brut($lot, false);
+    }
+    return $out;
+}
+
+/**
+ * Les fiches de salaire, par année, l'année en cours ouverte.
+ *
+ * Douze par an, pour toujours : au bout de trois ans une seule liste en compte
+ * trente-six, et celle qu'on cherche est toujours l'une des deux dernières.
+ * Les années passées se replient, avec leur compte écrit sur le repli pour
+ * qu'on sache ce qu'il y a derrière sans l'ouvrir.
+ */
+function espace_docs_par_annee(array $docs): string
+{
+    $par = [];
+    foreach ($docs as $d) {
+        $an = substr((string)($d['created_at'] ?? ''), 0, 4) ?: '—';
+        $par[$an][] = $d;
+    }
+    krsort($par);
+    $courante = date('Y');
+    $out = '';
+    foreach ($par as $an => $lot) {
+        if ((string)$an === $courante || count($par) === 1) {
+            $out .= espace_liste_docs_brut($lot, false);
+            continue;
+        }
+        $out .= '<details class="mdoc-annee"><summary>' . e($an) . ' (' . count($lot) . ')</summary>'
+              . espace_liste_docs_brut($lot, false) . '</details>';
+    }
+    return $out;
+}
+
+/** Le rendu d'une liste, sans titre ni regroupement. */
+function espace_liste_docs_brut(array $docs, bool $avecRubrique = true): string
 {
     if (!$docs) return '';
     ob_start();
@@ -258,7 +321,7 @@ function espace_liste_docs(array $docs): string
                  contredire. La date sert à distinguer deux fiches de salaire
                  dont le nom, par construction, se ressemble. */ ?>
         <span class="mdoc-meta"><?= e(implode(' · ', array_filter([
-            MemberDocs::catLabel((string)$d['category'], I18n::$lang),
+            $avecRubrique ? MemberDocs::catLabel((string)$d['category'], I18n::$lang) : '',
             strtoupper((string)$d['ext']),
             Docs::human((int)$d['size']),
             Dates::afficher((string)($d['created_at'] ?? '')),

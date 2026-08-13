@@ -13,6 +13,18 @@ class MemberDocs
         // Volet « contractualisation »
         'contract'   => ['fr' => 'Contrats', 'en' => 'Contracts'],
         'payslip'    => ['fr' => 'Fiches de salaire', 'en' => 'Payslips'],
+        /* [13.08.2026] L'attestation de gain intermédiaire arrivait sous
+           « Autres documents », faute d'avoir sa ligne. C'est une pièce que la
+           personne présente au chômage pour être indemnisée du manque à gagner :
+           elle est réclamée à date, elle se cherche par mois, et la retrouver
+           parmi les « autres » demandait d'ouvrir les PDF un par un.
+
+           Elle se range à côté de la fiche de salaire, et pour la même raison :
+           c'est l'employeur qui l'établit et la dépose, la personne ne fait que
+           la télécharger. Le sigle reste dans le libellé — c'est sous ce nom-là
+           qu'on la demande, jamais sous le nom complet. */
+        'agi'        => ['fr' => 'Attestations de gain intermédiaire (AGI)',
+                         'en' => 'Intermediate earnings certificates (AGI)'],
         'invoice'    => ['fr' => 'Factures', 'en' => 'Invoices'],        // [V36-FACTURES]
         /* [13.08.2026] Une facture et un justificatif de dépense ne sont pas la
            même chose, et tout arrivait sous « Factures ». Une facture, on la
@@ -63,7 +75,7 @@ class MemberDocs
        « perdiem » reste au volet projet : un reçu de per diem se rattache à
        une production, et c'est là qu'on le cherche. */
     public const VOLETS = [
-        'contrat'  => ['contract', 'payslip', 'identity', 'other'],
+        'contrat'  => ['contract', 'payslip', 'agi', 'identity', 'other'],
         'paiement' => ['invoice', 'expense'],
         'projet'   => ['roadmap', 'travel', 'hotel', 'perdiem', 'logistics', 'prod_other'],
     ];

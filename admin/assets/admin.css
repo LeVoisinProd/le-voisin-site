@@ -223,6 +223,57 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--ink); outli
 .mdoc-range { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; }
 .mdoc-range .mdoc-asso { margin-top: 0; }
 
+/* [13.08.2026] La liste des documents d'une personne, sur une ligne par pièce.
+
+   Elle était un <table class="tbl"> sans une seule règle de style : les
+   cellules s'étiraient, les deux menus de rangement retombaient sous le nom du
+   fichier, et un document occupait environ deux cent cinquante pixels. Le
+   classement mensuel en dépose plusieurs dizaines par personne, ce qui rendait
+   la fiche impraticable au défilement.
+
+   Rien de neuf n'est inventé ici : la rangée est celle de « .rowitem », déjà
+   employée par les autres listes de cette administration. Ne s'ajoutent que la
+   répartition des quatre zones — nom, rangement, état, actions — et le menu du
+   « ⋯ ». */
+.mdocs .mdoc { gap: 10px 14px; flex-wrap: wrap; }
+.mdoc-nom { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.mdoc-nom > a { font-weight: 700; color: inherit; text-decoration: none; }
+.mdoc-nom > a:hover { text-decoration: underline; }
+.mdoc-nom .muted { font-size: 12.5px; }
+/* Les deux menus reviennent côte à côte : ils sont un rangement, pas une
+   fiche, et empilés ils doublaient la hauteur de chaque rangée. */
+.mdocs .mdoc-range { margin-top: 0; flex: 0 1 auto; gap: 6px; }
+.mdocs .mdoc-asso { display: inline-block; margin-top: 0; }
+.mdocs .mdoc-asso select { max-width: 165px; }
+.mdoc-etat { display: flex; flex-wrap: wrap; gap: 4px; }
+.mdoc-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+/* Le menu des gestes de rattrapage. Un <details> plutôt qu'un script : le
+   reste de cette administration en emploie déjà, et une fiche doit rester
+   utilisable si le JavaScript ne se charge pas. */
+.mdoc-plus { position: relative; }
+.mdoc-plus > summary {
+  cursor: pointer; list-style: none; user-select: none;
+  border: 1px solid var(--line); border-radius: 99px;
+  padding: 5px 12px; line-height: 1; font-size: 15px; color: var(--grey);
+}
+.mdoc-plus > summary::-webkit-details-marker { display: none; }
+.mdoc-plus > summary:hover { border-color: var(--ink); color: var(--ink); }
+.mdoc-plus[open] > summary { border-color: var(--ink); color: var(--ink); }
+.mdoc-menu {
+  position: absolute; right: 0; top: calc(100% + 5px); z-index: 20;
+  display: flex; flex-direction: column; gap: 4px; min-width: 190px;
+  padding: 6px; background: #fff;
+  border: 1px solid var(--ink); border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+}
+.mdoc-menu form { margin: 0; }
+.mdoc-menu .btn { display: block; width: 100%; text-align: left; border-color: transparent; border-radius: 9px; }
+/* La suppression se lit comme telle avant d'être cliquée, et non après, dans
+   la fenêtre de confirmation. */
+.mdoc-menu .mdoc-sup { color: var(--error); }
+.mdoc-menu .mdoc-sup:hover { background: var(--error); color: #fff; }
+
 /* [V36-FACTURES] Le statut d'un document, dans la colonne où se lit déjà celui
    de la signature. La forme est celle des pastilles voisines, sinon deux
    états affichés l'un sous l'autre paraîtraient de nature différente alors

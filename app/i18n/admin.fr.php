@@ -382,6 +382,7 @@ return [
     'ce_refresh_status'  => 'Actualiser le statut',
     'ce_sign_link'       => 'Lien de signature',
     'ce_mark_signed'     => 'Marquer signé',
+    'ce_more_actions'    => 'Autres actions',
     'ce_del_doc_confirm' => 'Supprimer ce document ?',
     'ce_profile'         => 'Fiche personnelle (remplie par le collaborateur)',
     'ce_profile_empty'   => 'Le collaborateur n’a pas encore rempli ses informations dans son espace.',

@@ -375,6 +375,7 @@ return [
     'ce_refresh_status'  => 'Refresh the status',
     'ce_sign_link'       => 'Signature link',
     'ce_mark_signed'     => 'Mark as signed',
+    'ce_more_actions'    => 'More actions',
     'ce_del_doc_confirm' => 'Delete this document?',
     'ce_profile'         => 'Personal details (filled in by the team member)',
     'ce_profile_empty'   => 'The team member has not filled in their details in their area yet.',

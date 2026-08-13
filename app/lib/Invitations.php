@@ -400,7 +400,10 @@ TXT;
         $email = trim((string)($c['email'] ?? ''));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || empty($c['active'])) return false;
 
-        try { $jeton = MemberAuth::lienNouveau((int)$c['id'], self::CLE_MINUTES); }
+        /* lienPour et non lienNouveau : cette page est publique, et n'importe
+           qui peut y écrire l'adresse d'un autre. Réutiliser la clé vivante fait
+           que demander une clé ne détruit jamais celle de quelqu'un. */
+        try { $jeton = MemberAuth::lienPour((int)$c['id'], self::CLE_MINUTES); }
         catch (Throwable $ex) { return false; }
 
         $lang = self::langue((string)($c['lang'] ?? ''));

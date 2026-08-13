@@ -440,8 +440,17 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
       <h3 class="mdoc-volet"><?= e($voletTitres[$volet] ?? $volet) ?></h3>
       <?php foreach ($catsV as $cat): $group = array_filter($duVolet, fn($d) => (string)$d['category'] === $cat); if (!$group) continue; ?>
       <h4 class="mdoc-cat"><?= e(isset(MemberDocs::CATEGORIES[$cat]) ? tc(MemberDocs::CATEGORIES[$cat]) : $cat) ?></h4>
-      <table class="tbl">
-        <tbody>
+      <?php /* [13.08.2026] Une liste, plus un tableau. « .tbl » n'a jamais eu
+               de style : les cellules s'étiraient, les deux menus de rangement
+               tombaient sous le nom du fichier, et un document occupait la
+               hauteur d'un paragraphe. Avec quarante documents par personne —
+               ce que le classement mensuel produit — la fiche devenait
+               impraticable au défilement.
+
+               « .rowlist / .rowitem » est le motif de liste déjà employé
+               ailleurs dans cette administration, et il aligne tout sur une
+               seule ligne sans rien inventer. */ ?>
+      <div class="rowlist mdocs">
           <?php foreach ($group as $d):
             $needs   = (int)$d['needs_signature'] === 1;
             $st      = (string)($d['sign_status'] ?? '');
@@ -455,9 +464,25 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
             $stClef = MemberDocs::statutClef($d);
             $stVers = MemberDocs::statutSuivant($d, 'admin');
             $stQuand = $stClef !== '' ? Dates::afficher((string)($d['status_at'] ?? '')) : '';
+            /* Le nom du fichier ne se répète que s'il dit autre chose que le
+               titre. « 2026 06 Invernon Mathilde Contrat » au-dessus de
+               « 2026_06_Invernon_Mathilde_Contrat.pdf » occupait deux lignes
+               pour une seule information. Il reste affiché dès qu'il diverge —
+               et il diverge précisément quand le sigle de l'association a été
+               ajouté à la fin, ce qui est justement ce qu'on veut voir. */
+            $titre   = trim((string)$d['title']) !== '' ? (string)$d['title'] : (string)$d['filename'];
+            $sansExt = preg_replace('/\.[^.]+$/', '', (string)$d['filename']);
+            $memeNom = trim((string)$d['title']) === ''
+                    || strcasecmp(str_replace('_', ' ', $sansExt), trim((string)$d['title'])) === 0;
           ?>
-          <tr>
-            <td><strong><?= e($d['title'] ?: $d['filename']) ?></strong><br><span class="muted"><?= e($d['filename']) ?> · <?= e(Docs::human((int)$d['size'])) ?></span>
+          <div class="rowitem mdoc">
+            <div class="mdoc-nom">
+              <?php /* Le titre EST le lien de téléchargement : un bouton
+                       « Télécharger » par ligne répétait quarante fois ce que
+                       le nom du document dit déjà. */ ?>
+              <a href="<?= e(admin_url('collaborator-edit.php?id=' . $id . '&dl=' . (int)$d['id'])) ?>"><?= e($titre) ?></a>
+              <span class="muted"><?php if (!$memeNom): ?><?= e($d['filename']) ?> · <?php endif; ?><?= e(Docs::human((int)$d['size'])) ?></span>
+            </div>
               <?php /* [V32-DOC-ASSO] Les menus s'enregistrent au changement :
                        ranger quarante documents ne doit pas demander
                        quatre-vingts clics. Sans JavaScript, le bouton OK
@@ -502,8 +527,7 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
                 </form>
                 <?php endif; ?>
               </div>
-            </td>
-            <td>
+            <div class="mdoc-etat">
               <?php if ($needs): ?>
                 <?php if ($st === 'signed'): ?><span class="badge ok"><?= e(ta('ce_signed')) ?></span>
                 <?php elseif ($st === 'sent'): ?><span class="badge warn"><?= e(ta('ce_sent_waiting')) ?></span>
@@ -514,29 +538,45 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
                        lit chez elle doivent être le même mot, sinon on se
                        téléphone pour comparer. */ ?>
               <?php if ($stClef !== ''): ?><span class="mdoc-st mdoc-st-<?= e((string)$d['status']) ?>"><?= e(tu($stClef)) ?><?php if ($stQuand !== ''): ?> <span class="mdoc-st-d"><?= e($stQuand) ?></span><?php endif; ?></span><?php endif; ?>
-            </td>
-            <td style="text-align:right; white-space:nowrap">
+            </div>
+            <?php /* [13.08.2026] Deux boutons au plus, et le reste sous « ⋯ ».
+
+                     La ligne en portait cinq, tous de la même taille : rien ne
+                     disait lequel faisait avancer le document et lequel
+                     rattrapait une exception. Restent visibles les gestes qui
+                     font avancer l'état où il en est — envoyer à signer, puis
+                     actualiser et ouvrir le lien tant qu'on attend. Passent
+                     sous le menu les deux gestes de rattrapage : déclarer
+                     signé à la main, et supprimer.
+
+                     « Télécharger » a disparu de la rangée : c'est le titre du
+                     document qui l'ouvre, comme partout ailleurs. */ ?>
+            <div class="mdoc-actions">
               <?php if ($stVers !== ''): ?>
-              <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="doc_statut"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><input type="hidden" name="vers" value="<?= e($stVers) ?>"><button class="btn small" type="submit"><?= e(tu(MemberDocs::boutonClef($d, $stVers))) ?></button></form>
+              <form method="post" class="inline-form"><?= $csrf ?><input type="hidden" name="action" value="doc_statut"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><input type="hidden" name="vers" value="<?= e($stVers) ?>"><button class="btn small" type="submit"><?= e(tu(MemberDocs::boutonClef($d, $stVers))) ?></button></form>
               <?php endif; ?>
-              <a class="btn small ghost" href="<?= e(admin_url('collaborator-edit.php?id=' . $id . '&dl=' . (int)$d['id'])) ?>"><?= e(ta('com_download')) ?></a>
-              <?php if ($needs && $st !== 'signed'): ?>
-                <?php if (Skribble::configured() && $isPdf): ?>
-                  <?php if (!$hasReq): ?>
-                  <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="sign_send"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small" type="submit"><?= e(ta('ce_send_sign')) ?></button></form>
-                  <?php else: ?>
-                  <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="sign_refresh"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small" type="submit"><?= e(ta('ce_refresh_status')) ?></button></form>
-                  <?php if ($signUrl !== ''): ?><a class="btn small ghost" href="<?= e($signUrl) ?>" target="_blank" rel="noopener"><?= e(ta('ce_sign_link')) ?></a><?php endif; ?>
-                  <?php endif; ?>
+              <?php if ($needs && $st !== 'signed' && Skribble::configured() && $isPdf): ?>
+                <?php if (!$hasReq): ?>
+                <form method="post" class="inline-form"><?= $csrf ?><input type="hidden" name="action" value="sign_send"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small" type="submit"><?= e(ta('ce_send_sign')) ?></button></form>
+                <?php else: ?>
+                <form method="post" class="inline-form"><?= $csrf ?><input type="hidden" name="action" value="sign_refresh"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small" type="submit"><?= e(ta('ce_refresh_status')) ?></button></form>
+                <?php if ($signUrl !== ''): ?><a class="btn small ghost" href="<?= e($signUrl) ?>" target="_blank" rel="noopener"><?= e(ta('ce_sign_link')) ?></a><?php endif; ?>
                 <?php endif; ?>
-                <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="doc_signed"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small ghost" type="submit"><?= e(ta('ce_mark_signed')) ?></button></form>
               <?php endif; ?>
-              <form method="post" style="display:inline" onsubmit="return confirm('<?= e(addslashes(ta('ce_del_doc_confirm'))) ?>')"><?= $csrf ?><input type="hidden" name="action" value="doc_delete"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small ghost" type="submit">×</button></form>
-            </td>
-          </tr>
+              <details class="mdoc-plus">
+                <summary title="<?= e(ta('ce_more_actions')) ?>" aria-label="<?= e(ta('ce_more_actions')) ?>">⋯</summary>
+                <div class="mdoc-menu">
+                  <a class="btn small ghost" href="<?= e(admin_url('collaborator-edit.php?id=' . $id . '&dl=' . (int)$d['id'])) ?>"><?= e(ta('com_download')) ?></a>
+                  <?php if ($needs && $st !== 'signed'): ?>
+                  <form method="post"><?= $csrf ?><input type="hidden" name="action" value="doc_signed"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small ghost" type="submit"><?= e(ta('ce_mark_signed')) ?></button></form>
+                  <?php endif; ?>
+                  <form method="post" onsubmit="return confirm('<?= e(addslashes(ta('ce_del_doc_confirm'))) ?>')"><?= $csrf ?><input type="hidden" name="action" value="doc_delete"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>"><button class="btn small ghost mdoc-sup" type="submit"><?= e(ta('com_delete')) ?></button></form>
+                </div>
+              </details>
+            </div>
+          </div>
           <?php endforeach; ?>
-        </tbody>
-      </table>
+      </div>
       <?php endforeach; endforeach; endif; ?>
     </div>
   </div>
