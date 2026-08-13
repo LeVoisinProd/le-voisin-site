@@ -1,0 +1,308 @@
+/* ==========================================================================
+   La page « À propos ».   [V43-APROPOS]
+
+   Chargée uniquement sur les pages du module « team », c'est-à-dire, en
+   pratique, la seule page « À propos ». Un fichier à part plutôt que trois
+   cents lignes ajoutées à site.css, pour la même raison qu'au chantier du
+   Catalogue : site.css fait 92 Ko, la copie locale et le serveur divergent
+   régulièrement, et chaque fichier partagé qu'on touche est un fichier qu'il
+   faut d'abord récupérer et comparer. Un fichier neuf ne pose pas la question.
+
+   Aucune variable n'est définie ici. Les couleurs, la fonte, les rayons et
+   l'épaisseur des traits viennent de site.css : cette page doit ressembler au
+   site, pas s'en distinguer.
+   ========================================================================== */
+
+/* --- Rythme général -------------------------------------------------------- */
+
+/* Les deux écarts de la page portent un nom, parce qu'ils servent chacun à
+   plus d'un endroit : celui qui sépare deux rubriques, et celui qui sépare un
+   titre de ce qu'il annonce. Les valeurs sont exactement celles d'avant,
+   recopiées sans être touchées — nommer ne change rien à l'affichage.
+
+   [13.08.2026] Elles sont nommées parce que la règle qui recolle les portraits
+   à leur titre a besoin des deux à la fois : sans elles, elle s'écrivait avec
+   des variables inexistantes, le calc() était invalide, et la déclaration
+   était ignorée sans le moindre message. */
+.about-page {
+  display: flex;
+  flex-direction: column;
+  --gap-section: clamp(56px, 8vw, 112px);
+  --gap-interne: clamp(20px, 3vw, 36px);
+  gap: var(--gap-section);
+}
+
+.ap-section { display: flex; flex-direction: column; gap: var(--gap-interne); }
+.ap-head { display: flex; flex-direction: column; gap: 12px; }
+.ap-head h2 {
+  font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-wrap: balance;
+  margin: 0;
+}
+/* Le texte suivi reste sur DEUX colonnes, d'un bord à l'autre.
+   C'est la règle du site, posée dans site.css pour « .page-body > .rich » :
+   deux colonnes à partir de 900 px, gouttière de 52 px. Les paragraphes de
+   cette page ne portent pas cette classe, donc la règle ne les atteignait pas
+   et ils s'étaient retrouvés sur une seule colonne — une régression que rien
+   ne signalait, sinon l'œil.
+
+   Les valeurs sont recopiées à l'identique plutôt que devinées : le jour où
+   celles de site.css changent, il faut changer celles-ci de la même façon. */
+.ap-intro, .ap-outro { max-width: none; }
+
+@media (min-width: 900px) {
+  .ap-intro, .ap-outro { columns: 2; column-gap: 52px; orphans: 3; widows: 3; }
+  .ap-intro > :first-child, .ap-outro > :first-child { margin-top: 0; }
+  /* Un sous-titre ne coupe pas la page en tranches : il reste dans sa colonne,
+     collé au texte qu'il annonce. */
+  .ap-intro h3, .ap-intro h4,
+  .ap-outro h3, .ap-outro h4 { column-span: none; break-inside: avoid; break-after: avoid; }
+
+  /* Recopié de site.css, et pour la même raison : une phrase d'annonce
+     (« Vous pouvez nous contacter à tout moment : ») reste collée à la liste
+     qu'elle introduit, une puce ne se coupe pas d'une colonne à l'autre, et
+     une liste de trois puces au plus reste d'un seul tenant. Sans ces règles,
+     le courriel et le téléphone se retrouvaient séparés par un saut de
+     colonne, au milieu de la phrase qui les annonce. */
+  .ap-intro li, .ap-outro li { break-inside: avoid; }
+  .ap-intro p:has(+ ul), .ap-intro p:has(+ ol),
+  .ap-outro p:has(+ ul), .ap-outro p:has(+ ol) { break-after: avoid; }
+  .ap-intro ul:not(:has(> li:nth-child(4))),
+  .ap-intro ol:not(:has(> li:nth-child(4))),
+  .ap-outro ul:not(:has(> li:nth-child(4))),
+  .ap-outro ol:not(:has(> li:nth-child(4))) { break-inside: avoid; }
+}
+
+/* --- Les cartes de services ------------------------------------------------
+   Un intitulé, une promesse d'une ligne s'il y en a une, puis les puces.
+   C'est le motif de la page « Espaces Dédiés », qui fonctionne parce qu'il
+   répond dans l'ordre à trois questions : quoi, pour quoi, concrètement. */
+
+.ap-cartes {
+  /* Quatre par rangée, comme la grille de l'agenda (.events-grid dans
+     site.css). Les valeurs et les paliers sont recopiés de là : c'est la
+     grille de référence du site, celle de la page « En tournée », et deux
+     grilles qui se ressemblent à l'œil doivent se ressembler dans le code.
+
+     Le nombre est fixe et non calculé : une grille qui s'adapte toute seule
+     laissait une cinquième carte orpheline sur une deuxième ligne. */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.ap-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(22px, 2.6vw, 32px);
+  border: var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  transition: border-color .2s ease;
+}
+.ap-carte:hover { border-color: var(--ink); }
+
+/* Le jaune du logo sur la première carte, et une seule fois par section :
+   au-delà, l'accent cesse d'accentuer. */
+.ap-carte-phare { background: var(--yellow); border-color: var(--yellow); }
+.ap-carte-phare .ap-num, .ap-carte-phare .ap-liste { color: #3a3000; }
+.ap-carte-phare:hover { border-color: var(--ink); }
+
+.ap-num {
+  font-size: .9rem;
+  font-weight: 500;
+  letter-spacing: .1em;
+  color: var(--grey);
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-carte h3 {
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.ap-carte-intro { font-size: 1.1rem; line-height: 1.5; color: var(--grey); }
+.ap-carte-intro p { margin: 0; }
+
+.ap-liste {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 10px;
+  color: var(--grey); font-size: 1.1rem; line-height: 1.5;
+}
+.ap-liste li { display: flex; gap: 10px; align-items: baseline; }
+.ap-liste li::before {
+  content: ""; flex: 0 0 auto;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; opacity: .55;
+  transform: translateY(-2px);
+}
+
+/* --- Les blocs de fonctionnement ------------------------------------------- */
+
+.ap-blocs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+.ap-bloc {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: clamp(22px, 2.6vw, 30px);
+  border-radius: var(--radius);
+  background: var(--wash);
+}
+.ap-bloc h3 { font-size: 1.25rem; font-weight: 500; line-height: 1.3; margin: 0; }
+.ap-bloc .rich { font-size: 1.1rem; line-height: 1.55; color: var(--grey); }
+.ap-bloc .rich p { margin: 0; }
+.ap-bloc .rich p + p { margin-top: 8px; }
+.ap-bloc strong { color: var(--ink); font-weight: 500; }
+
+/* Le premier bloc d'une section porte l'engagement le plus ferme — « assuré
+   chaque année » — et se distingue de ceux qui l'entourent. */
+.ap-bloc-fort { background: var(--yellow); }
+.ap-bloc-fort .rich, .ap-bloc-fort .rich p { color: #3a3000; }
+.ap-bloc-fort strong { color: #000; }
+
+/* --- Les citations ---------------------------------------------------------
+   Une barre qui désigne au lieu d'un cadre qui enferme : c'est la règle du
+   design-guide pour les citations, et c'est le seul endroit de la page qui
+   porte un trait épais. */
+
+.ap-citations {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(20px, 2.6vw, 36px);
+}
+.ap-citation {
+  margin: 0;
+  padding-left: clamp(16px, 1.8vw, 22px);
+  border-left: var(--trait-fort) solid var(--ink);
+}
+.ap-citation p {
+  margin: 0;
+  font-size: clamp(1.2rem, 1.6vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+/* --- L'équipe --------------------------------------------------------------
+   Quatre fiches courtes au lieu de quatre biographies d'affilée. Personne ne
+   lit quatre parcours à la suite ; tout le monde lit celui qu'il est venu
+   chercher. La biographie n'est pas raccourcie, elle est repliée. */
+
+.team {
+  /* La même grille que les cartes ci-dessus et que l'agenda. */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+/* [13.08.2026] Trois annulations, et pas une règle de plus.
+
+   La grille était juste depuis le début : quatre colonnes, gouttière de 18 px,
+   les mêmes que « .ap-cartes ». Les portraits s'affichaient pourtant à moins de
+   la moitié de la largeur d'une carte, et la raison n'était pas ici — elle
+   était dans ce que ce fichier ne dit PAS.
+
+   Cette feuille est chargée après site.css et redéfinit « .team », « .member »
+   et « .member-photo ». Mais à spécificité égale, elle ne l'emporte que sur les
+   propriétés qu'elle réécrit : tout ce qu'elle passe sous silence continue de
+   venir de site.css, sans que rien ne le signale. Trois déclarations restaient
+   ainsi en vigueur, écrites pour l'ancienne mise en page où le portrait était
+   une vignette posée à gauche d'une biographie.
+
+   C'est le piège de ce fichier, et il se retendra à chaque bloc qu'on
+   redéfinira ici : redéfinir n'est pas remplacer. */
+
+/* site.css l.1301 — « .member { align-items: flex-start } ». En colonne, la
+   photo cessait de s'étirer à la largeur de sa cellule. */
+.member { display: flex; flex-direction: column; gap: 18px; align-items: stretch; }
+
+/* site.css l.1302 — « .member-photo { flex: 0 0 150px; max-width: 150px } ».
+   C'est la cause principale : la photo était plafonnée à 150 px dans une
+   colonne qui en fait environ 330. */
+.member-photo { flex: 0 1 auto; max-width: none; width: 100%; }
+
+/* site.css l.1300 — « .team { margin-top: 40px } », qui s'ajoutait à l'écart
+   entre deux sections et détachait les visages de leur titre « Équipe », alors
+   que toutes les autres rubriques collent au leur. La grille des portraits est
+   le CONTENU du titre, pas la section d'après. Les deux valeurs viennent des
+   variables déclarées en tête de fichier : changer l'une change l'autre. */
+.about-page > .team { margin-top: calc(var(--gap-interne) - var(--gap-section)); }
+
+.member-photo {
+  /* 4/5, exactement le format que le site fabrique pour la zone « team »
+     (800 x 1000, voir app/config/formats.php). Tant que les deux coïncident,
+     le cadrage choisi dans l'administration est celui qui s'affiche. */
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
+  background: var(--wash);
+  overflow: hidden;
+  display: grid;
+}
+
+/* Tout ce que contient le cadre occupe la même cellule et la remplit.
+   Il y avait ici « place-items: center », posé pour les initiales affichées
+   quand une fiche n'a pas de photo. Mais Img::tag() enveloppe chaque image
+   dans une balise <picture>, et « center » CENTRE le contenu au lieu de
+   l'étirer : la photo se retrouvait au milieu du cadre, à sa taille naturelle,
+   visiblement plus petite que les cartes de la même grille. Le cadrage était
+   bon, la grille était bonne, et l'image ne remplissait rien.
+
+   La règle est donc séparée en deux : l'image remplit, les initiales se
+   centrent. */
+.member-photo > * { grid-area: 1 / 1; }
+.member-photo picture { display: block; width: 100%; height: 100%; }
+.member-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.member-photo .card-ph {
+  place-self: center;
+  font-size: clamp(2.6rem, 5vw, 3.6rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  color: var(--grey);
+}
+
+.member-text { display: flex; flex-direction: column; gap: 4px; }
+.member-name { font-size: 1.4rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.01em; margin: 0; }
+.member-role {
+  font-size: 1rem; font-weight: 500;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--grey); margin: 0;
+}
+
+.member-plus { border-top: var(--rule); padding-top: 10px; }
+.member-plus > summary {
+  cursor: pointer; list-style: none;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 1.05rem; color: var(--grey);
+}
+.member-plus > summary::-webkit-details-marker { display: none; }
+.member-plus > summary::after { content: "+"; margin-left: auto; font-size: 1.1rem; line-height: 1; }
+.member-plus[open] > summary::after { content: "–"; }
+.member-plus > summary:hover { color: var(--ink); }
+.member-plus > summary:focus-visible { outline: var(--trait-fort) solid var(--ink); outline-offset: 3px; }
+
+.member-bio { margin-top: 12px; font-size: 1.05rem; line-height: 1.55; color: var(--grey); }
+.member-bio p { margin: 0; }
+.member-bio p + p { margin-top: 10px; }
+.member-credit { margin-top: 12px; font-size: .95rem; color: var(--grey); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-carte { transition: none; }
+}
+
+/* Les mêmes paliers que .events-grid dans site.css : quatre par rangée,
+   deux sous 1000 px, une seule sous 640 px. Recopiés plutôt que devinés. */
+@media (max-width: 1000px) {
+  .ap-cartes, .team { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .ap-cartes, .team { grid-template-columns: 1fr; gap: 14px; }
+}

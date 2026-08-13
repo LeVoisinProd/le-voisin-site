@@ -8,8 +8,28 @@ class Docs
     public const MAX_SIZE = 25 * 1024 * 1024; // 25 Mo
     public const EXTS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip'];
 
+    /**
+     * Le dossier d'un document, avec la porte fermée derrière.
+     *
+     * [13.08.2026] La règle de refus est déposée dans uploads/d/ au premier
+     * passage, exactement comme MemberDocs::privateRoot() le fait pour les
+     * documents des collaborateurs. Elle est écrite ICI plutôt que livrée dans
+     * un paquet parce que uploads/ n'est pas dans le dépôt : un fichier envoyé
+     * par l'installateur y serait un accident, celui-ci est du code.
+     *
+     * Ce que cela change : /uploads/d/12/rider.pdf cesse de répondre, et les
+     * liens passent par document.php. Une adresse de ce genre collée à la main
+     * dans le corps d'une page cesserait donc de fonctionner ; il n'y en a pas
+     * dans le code, mais c'est le seul cas à surveiller.
+     */
     public static function dir(int $id): string
     {
+        $racine = LV_UPLOADS . '/d';
+        if (!is_dir($racine)) @mkdir($racine, 0775, true);
+        $ht = $racine . '/.htaccess';
+        if (!is_file($ht)) {
+            @file_put_contents($ht, "Require all denied\n<IfModule !mod_authz_core.c>\nOrder allow,deny\nDeny from all\n</IfModule>\n");
+        }
         return LV_UPLOADS . '/d/' . $id;
     }
 
@@ -184,10 +204,22 @@ class Docs
         return self::row($id);
     }
 
+    /**
+     * L'adresse d'un document.               [V42-PORTIER] [13.08.2026]
+     *
+     * Elle passe désormais par document.php et non plus par le chemin direct.
+     * Le chemin direct était servi par Apache, donc jamais par PHP, donc sans
+     * jamais consulter une session : les fiches techniques « passées derrière
+     * le mot de passe » le 11.08 s'ouvraient encore à leur ancienne adresse.
+     *
+     * Le portier laisse passer tout ce qui est public et ne retient que ce qui
+     * est réservé — un document de projet en zone « doc ». Rien à changer chez
+     * les appelants : ils demandent une adresse, ils en reçoivent une.
+     */
     public static function fileUrl(array $doc): string
     {
         if (self::estLien($doc)) return (string)$doc['url'];
-        return upload_url('d/' . $doc['id'] . '/' . $doc['filename']);
+        return url('/document.php?d=' . (int)$doc['id']);
     }
 
     /**
