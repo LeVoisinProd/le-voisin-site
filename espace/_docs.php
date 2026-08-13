@@ -191,8 +191,29 @@ function espace_docs_depot(array $m, string $retour): void
        le nom du fichier, parce qu'il en fait partie : un justificatif rangé sous
        « _Facture » ramène exactement le problème qu'on venait de supprimer. */
     $genre = ((string)($_POST['genre'] ?? '')) === 'expense' ? 'expense' : 'invoice';
+
+    /* [13.08.2026] LE MONTANT EST DEMANDÉ, et il est obligatoire.
+
+       Sans lui, le bureau ouvrait le PDF pour savoir ce que valait une facture
+       arrivée par l'espace, alors que le formulaire public, lui, le demandait
+       depuis toujours et l'écrivait dans le nom du fichier. Deux portes, deux
+       nomenclatures, et une seule des deux disait combien.
+
+       La virgule est acceptée autant que le point : personne n'écrit 2100.50
+       en Suisse romande. On garde les centimes seulement quand il y en a, pour
+       ne pas nommer un fichier « 2100.00 ». */
+    $montant = str_replace([' ', "'", ','], ['', '', '.'], trim((string)($_POST['montant'] ?? '')));
+    if ($montant === '' || !is_numeric($montant) || (float)$montant <= 0) {
+        espace_flash('err', t('member_depot_montant_err'));
+        redirect($retour);
+    }
+    $montant = rtrim(rtrim(number_format((float)$montant, 2, '.', ''), '0'), '.');
+    $devise  = in_array((string)($_POST['devise'] ?? ''), ['CHF', 'EUR'], true)
+             ? (string)$_POST['devise'] : 'CHF';
+
     $ext = mb_strtolower(pathinfo((string)($fichier['name'] ?? ''), PATHINFO_EXTENSION));
-    $nom = MemberDocs::nomFacture(espace_nom_personne($m), $annee, $mois, $ext, $genre);
+    $nom = MemberDocs::nomDepot(espace_nom_personne($m), $montant, $devise,
+                                $assoc, $genre, (string)($projets[$projet] ?? ''), $ext);
 
     try {
         $doc = MemberDocs::upload($fichier, (int)$m['id'], $genre,
@@ -327,6 +348,20 @@ function espace_facture_form(array $m): string
                  réponses seulement, et la première est celle de la plupart des
                  dépôts : on ne fait pas choisir entre huit rubriques quelqu'un
                  qui vient envoyer une facture. */ ?>
+        <?php /* Le montant d'abord : c'est la première chose que le bureau
+                 cherche, et la première que la personne a sous les yeux. */ ?>
+        <div class="field">
+          <label for="depot-montant"><?= e(t('member_depot_montant')) ?></label>
+          <input type="text" id="depot-montant" name="montant" inputmode="decimal" required
+                 placeholder="<?= e(t('member_depot_montant_ph')) ?>">
+        </div>
+        <div class="field">
+          <label for="depot-devise"><?= e(t('member_depot_devise')) ?></label>
+          <select id="depot-devise" name="devise">
+            <option value="CHF">CHF</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
         <div class="field">
           <label for="depot-genre"><?= e(t('member_depot_genre')) ?></label>
           <select id="depot-genre" name="genre">

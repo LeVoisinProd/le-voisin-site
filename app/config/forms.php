@@ -59,6 +59,29 @@ return [
              'label' => ['en' => 'Residence permit (max. 5 MB)', 'fr' => 'Permis de séjour (max. 5 Mo)']],
 
             ['key' => 'sec_pro', 'type' => 'section', 'label' => ['en' => 'Professional information', 'fr' => 'Informations professionnelles']],
+            /* [13.08.2026] Salarié·e ou indépendant·e, et ce que cela entraîne.
+
+               La question décide de tout ce qui suit : un·e indépendant·e n'est
+               pas payé·e par une fiche de salaire mais sur facture, et la loi
+               suisse demande l'attestation de son caisse AVS pour l'année en
+               cours. Sans elle, l'association qui le paie risque d'être
+               requalifiée en employeur et de devoir les charges rétroactivement.
+               D'où l'attestation OBLIGATOIRE dès que la réponse est
+               « indépendant·e », et invisible sinon.
+               Le show_if compare la valeur envoyée, qui est le libellé dans la
+               langue de la personne : les deux langues doivent donc y figurer. */
+            ['key' => 'statut_pro', 'type' => 'select', 'required' => true,
+             'label' => ['en' => 'Status', 'fr' => 'Statut'],
+             'options' => [
+                 ['en' => 'Employee', 'fr' => 'Salarié·e'],
+                 ['en' => 'Self-employed', 'fr' => 'Indépendant·e'],
+             ]],
+            ['key' => 'attestation_independant', 'type' => 'file', 'required' => true,
+             'show_if' => ['statut_pro', ['Indépendant·e', 'Self-employed']],
+             'accept' => '.pdf',
+             'rename' => ['from' => 'full_name', 'suffix' => 'AttestationIndependant'],
+             'label' => ['en' => 'Certificate of self-employed status for the current year (PDF)',
+                         'fr' => 'Attestation d\'indépendant·e de l\'année en cours (PDF)']],
             ['key' => 'profession', 'type' => 'text', 'required' => true, 'label' => ['en' => 'Profession', 'fr' => 'Profession']],
             ['key' => 'avs_number', 'type' => 'text', 'required' => true,
              'label' => ['en' => 'AVS / social security number', 'fr' => 'Numéro AVS / Sécurité sociale']],
@@ -178,7 +201,12 @@ return [
             // devenait fausse et la comptabilité recevait des lots impossibles
             // à ventiler. Une dépense = un envoi.
             ['key' => 'receipt', 'type' => 'file', 'required' => true, 'wide' => true, 'accept' => '.pdf,.jpg,.jpeg,.png',
-             'rename' => ['template' => ['amount', 'currency', 'expense_type', 'project_place', 'full_name']],
+             /* [13.08.2026] L'association entre dans le nom, en troisième position.
+                Le bureau tient treize associations et les justificatifs de toutes
+                arrivent dans les mêmes dossiers : sans elle, le nom ne dit pas qui
+                paie. Même ordre que le dépôt depuis l'espace, pour qu'un fichier
+                se lise pareil d'où qu'il vienne. */
+             'rename' => ['template' => ['amount', 'currency', 'association', 'expense_type', 'project_place', 'full_name']],
              'label' => ['en' => 'Receipt — one single file (PDF, JPG or PNG, max. 5 MB)', 'fr' => 'Justificatif — un seul fichier (PDF, JPG ou PNG, max. 5 Mo)'],
              'help'  => ['en' => 'One file for this expense. Several receipts of the SAME category and the SAME currency may be gathered in a single PDF. As soon as the category or the currency changes, it is a separate submission — after sending, a button lets you start again with your details already filled in. No need to rename your file: the site does it for you.',
                          'fr' => 'Un seul fichier pour cette dépense. Plusieurs quittances de la MÊME catégorie et de la MÊME devise peuvent être réunies dans un seul PDF. Dès que la catégorie ou la devise change, c\'est un envoi séparé — après l\'envoi, un bouton vous permet de recommencer avec vos coordonnées déjà remplies. Inutile de renommer votre fichier : le site s\'en charge.']],

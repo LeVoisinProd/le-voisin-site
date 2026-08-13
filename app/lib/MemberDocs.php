@@ -531,14 +531,30 @@ class MemberDocs
      * bureau à ouvrir le PDF pour savoir ce qu'il tenait : précisément le
      * problème que la distinction facture / justificatif venait supprimer.
      */
-    public static function nomFacture(string $personne, int $annee, int $mois, string $ext, string $categorie = 'invoice'): string
+    /**
+     * Le nom d'un dépôt fait par la personne depuis son espace.
+     *
+     * [13.08.2026] Même nomenclature que le formulaire public, par le même
+     * constructeur : un justificatif doit se lire pareil d'où qu'il vienne, et
+     * le bureau les range dans les mêmes dossiers. Voir app/lib/NomFichier.php
+     * pour l'ordre et la raison de chaque morceau.
+     *
+     * Le montant est demandé au dépôt depuis ce jour-là. Sans lui, il fallait
+     * ouvrir le PDF pour savoir ce que valait une facture arrivée par l'espace.
+     */
+    public static function nomDepot(string $personne, string $montant, string $devise,
+                                    string $assoc, string $categorie, string $projet, string $ext): string
     {
-        $nom = trim((string)@iconv('UTF-8', 'ASCII//TRANSLIT', $personne));
-        $nom = trim((string)preg_replace('/[^A-Za-z0-9]+/', '-', $nom), '-');
-        $quoi = $categorie === 'expense' ? 'Frais' : 'Facture';
-        if ($nom === '') $nom = $quoi;
-        return sprintf('%04d_%02d_%s_%s.%s', $annee, $mois, $nom, $quoi, $ext);
+        return NomFichier::construire([
+            $montant,
+            $devise,
+            mb_strtoupper($assoc),
+            $categorie === 'expense' ? 'Frais' : 'Facture',
+            $projet,
+            $personne,
+        ], $ext, $categorie === 'expense' ? 'Frais' : 'Facture');
     }
+
 
     /**
      * Un nom que la personne n'a pas déjà employé.

@@ -494,13 +494,14 @@ class Forms
                     // Nom du fichier joint (renommage automatique éventuel)
                     if (!empty($field['rename']['template'])) {
                         // Nomenclature construite depuis plusieurs champs (ex. factures)
-                        $parts = [];
-                        foreach ($field['rename']['template'] as $fk) {
-                            $p = self::filePart((string)($post[$fk] ?? ''));
-                            if ($p !== '') $parts[] = $p;
-                        }
-                        $base = implode('_', $parts) ?: 'justificatif';
-                        $name = $base . (count($items) > 1 ? '_' . $i : '') . '.' . $ext;
+                        /* [13.08.2026] Par NomFichier, comme le dépôt depuis
+                           l'espace : un justificatif doit se lire pareil d'où
+                           qu'il vienne, et la règle ne doit exister qu'à un
+                           endroit. */
+                        $morceaux = [];
+                        foreach ($field['rename']['template'] as $fk) $morceaux[] = (string)($post[$fk] ?? '');
+                        if (count($items) > 1) $morceaux[] = (string)$i;
+                        $name = NomFichier::construire($morceaux, $ext, 'justificatif');
                     } elseif (!empty($field['rename']['from'])) {
                         // Renommage depuis un seul champ + suffixe (ex. passeport)
                         $base = self::cleanName((string)($post[$field['rename']['from']] ?? '')) ?: 'document';
@@ -569,7 +570,16 @@ class Forms
         $rows .= '<tr><td style="padding:6px 8px;color:#555;">Langue du site</td><td style="padding:6px 8px;">' . e(mb_strtoupper(I18n::$lang)) . '</td></tr>';
 
         $title = self::label($def['name'], 'fr');
-        $subject = '[' . setting('site_name', 'Le Voisin') . '] ' . $def['subject'];
+        /* [13.08.2026] Le crochet porte l'ASSOCIATION, pas le nom du site.
+
+           « [Le Voisin] Facture — PERRIN LUCA — 2100 CHF » : le bureau tient
+           treize associations, et l'objet disait chaque fois la même chose.
+           Celui qui trie sa boîte le matin a besoin de savoir laquelle paie
+           avant d'ouvrir. Le nom du site reste quand la personne n'a rien
+           choisi, ce qui ne devrait pas arriver — le champ est obligatoire —
+           mais un objet vide serait pire qu'un objet générique. */
+        $asso = trim((string)($values[$def['assoc_key'] ?? 'association'] ?? ''));
+        $subject = '[' . ($asso !== '' ? $asso : setting('site_name', 'Le Voisin')) . '] ' . $def['subject'];
         if (!empty($values['full_name'])) $subject .= ' — ' . $values['full_name'];
         if ($form === 'form_expenses' && !empty($values['amount'])) {
             $subject .= ' — ' . $values['amount'] . ' ' . ($values['currency'] ?? '');
