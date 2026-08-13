@@ -345,6 +345,39 @@ TXT;
 
     public const CLE_MINUTES = 30;
 
+    /**
+     * Le journal des envois, écrit ligne par ligne PENDANT la boucle.
+     *
+     * Le compte rendu à l'écran n'est déposé en session qu'après la boucle
+     * entière : une coupure à la trentième personne perd donc le résultat des
+     * vingt-neuf premières, et le bureau se retrouve sans savoir qui a reçu
+     * quoi. Ce fichier-ci est écrit au fur et à mesure et survit à tout, y
+     * compris à un processus tué par le serveur, cas où aucune fonction de fin
+     * ne s'exécute.
+     *
+     * Une ligne FIN manquante est le signal d'une coupure, et la dernière
+     * ligne « #id » dit exactement où reprendre.
+     *
+     * Modelé sur Mailer::log(), et déposé dans le même dossier, fermé au web
+     * par app/.htaccess.
+     */
+    public static function journal(string $ligne): void
+    {
+        $dir = LV_APP . '/logs';
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        @file_put_contents($dir . '/invitations.log',
+            '[' . date('Y-m-d H:i:s') . '] ' . $ligne . "\n", FILE_APPEND);
+    }
+
+    /** Les dernières lignes du journal, pour les montrer dans l'administration. */
+    public static function journalLire(int $lignes = 40): string
+    {
+        $f = LV_APP . '/logs/invitations.log';
+        if (!is_file($f)) return '';
+        $t = @file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        return implode("\n", array_slice($t, -$lignes));
+    }
+
     /** Un libellé dans la langue de la personne, sans toucher à celle de la page. */
     private static function m(string $cle, string $lang, ...$args): string
     {

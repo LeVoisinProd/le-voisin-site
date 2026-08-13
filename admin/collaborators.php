@@ -11,9 +11,14 @@ $rapport    = null;   // le compte rendu du dernier envoi groupé
  * ici. Sans cette redirection, actualiser la page après un envoi renverrait le
  * formulaire : toute l'équipe recevrait un second message, et les liens du
  * premier cesseraient de fonctionner. */
+$restants = [];
 if (!empty($_SESSION['lv_invit_rapport'])) {
     $rapport = $_SESSION['lv_invit_rapport'];
     unset($_SESSION['lv_invit_rapport']);
+}
+if (!empty($_SESSION['lv_invit_restants'])) {
+    $restants = (array)$_SESSION['lv_invit_restants'];
+    unset($_SESSION['lv_invit_restants']);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''), ['confirmer', 'envoyer'], true)) {
@@ -33,9 +38,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''
     elseif ($_POST['lv_action'] === 'confirmer') {
         $aConfirmer = $gens;
     } else {
+        /* [13.08.2026] La boucle, avec de quoi survivre à une coupure.
+
+           Trois précautions, et chacune répare un cas vu ou évité :
+
+           — un BUDGET DE TEMPS. Chaque message ouvre sa propre connexion SMTP,
+             avec TLS et authentification, soit une dizaine d'allers-retours par
+             personne ; à soixante-dix-sept, on dépasse largement ce qu'un
+             serveur web laisse durer à une requête. La boucle s'arrête donc
+             d'elle-même plutôt que d'être tuée, et le compte rendu propose de
+             reprendre avec celles qui restent.
+
+           — set_time_limit(0) écarte la limite de PHP, mais PAS celle du
+             serveur web, invisible d'ici. C'est bien pour cela que le budget
+             existe : on ne fait pas confiance à la limite, on s'arrête avant.
+
+           — le JOURNAL sur disque, écrit à chaque personne. Si malgré tout le
+             processus est tué, c'est la seule trace qui reste. */
+        @set_time_limit(0);
+        @ignore_user_abort(true);
+        $BUDGET = 180;
+        $depart = time();
+
         $res = [];
-        foreach ($gens as $g) $res[] = Invitations::envoyer($g);
-        $_SESSION['lv_invit_rapport'] = $res;
+        $restants = [];
+        Invitations::journal('DÉBUT | ' . count($gens) . ' personne(s)');
+        foreach ($gens as $g) {
+            if (time() - $depart > $BUDGET) { $restants[] = (int)$g['id']; continue; }
+            $r = Invitations::envoyer($g);
+            $res[] = $r;
+            Invitations::journal(sprintf('#%d | %s | %s | %s',
+                (int)$g['id'], $r['nom'] ?: '?', $r['email'] ?: '?',
+                $r['ok'] ? 'OK' : 'ÉCHEC : ' . ($r['raison'] ?: '?')));
+        }
+        $partis = count(array_filter($res, fn($r) => $r['ok']));
+        Invitations::journal($restants
+            ? sprintf('INTERROMPU | %d parti(s), %d en échec, %d non tenté(s)',
+                      $partis, count($res) - $partis, count($restants))
+            : sprintf('FIN | %d parti(s), %d en échec', $partis, count($res) - $partis));
+
+        $_SESSION['lv_invit_rapport']  = $res;
+        $_SESSION['lv_invit_restants'] = $restants;
         redirect('/admin/collaborators.php');
     }
 }
@@ -111,9 +154,21 @@ function lv_acces(array $c): array
 {
     if (empty($c['active']))                    return ['off',  ta('col_acc_off')];
     if (!empty($c['last_login']))               return ['ok',   ta('col_acc_ok', Dates::afficherHeure((string)$c['last_login']))];
+    /* [13.08.2026] Une clé sans échéance est une clé VIVANTE.
+
+       Cette ligne exigeait une date de fin pour reconnaître un lien en cours.
+       Depuis que l'invitation n'expire plus, sa date est nulle, et la colonne
+       aurait affiché « aucun accès » à toutes les personnes qui viennent d'en
+       recevoir une. La condition porte donc sur le jeton, et l'échéance ne
+       disqualifie que si elle existe et qu'elle est passée. */
+    if (!empty($c['reset_token'])
+        && (empty($c['reset_expires']) || strtotime((string)$c['reset_expires']) > time())) {
+        return ['warn', ta('col_acc_link')];
+    }
+    /* Le mot de passe ne vaut plus « compte prêt » depuis qu'il n'y en a plus,
+       mais la colonne existe encore en base pour d'anciens comptes : on la lit
+       après le jeton, et non avant, pour ne pas masquer une clé en cours. */
     if (trim((string)($c['pass_hash'] ?? '')) !== '') return ['', ta('col_acc_ready')];
-    if (!empty($c['reset_token']) && !empty($c['reset_expires'])
-        && strtotime((string)$c['reset_expires']) > time())  return ['warn', ta('col_acc_link')];
     return ['warn', ta('col_acc_none')];
 }
 
@@ -137,19 +192,27 @@ if ($aConfirmer):
 <div class="panel">
   <p class="hint"><?= e(ta('inv_conf_intro', count($aConfirmer))) ?></p>
   <table class="tbl">
-    <thead><tr><th><?= e(ta('col_th_name')) ?></th><th><?= e(ta('col_th_email')) ?></th><th><?= e(ta('inv_th_lang')) ?></th></tr></thead>
+    <?php /* [13.08.2026] Deux colonnes de plus, pour que cet écran dise ce
+             qu'il taisait. L'ÉTAT D'ACCÈS d'abord : la fonction existait et
+             servait déjà dans la liste, mais pas ici, si bien qu'on renvoyait
+             une invitation à quelqu'un déjà installé sans le voir. Et la
+             LANGUE : tout ce qui n'est pas exactement « en » devient français
+             en silence, donc une colonne vide se lit « Français » sans se
+             distinguer d'un choix délibéré. On le dit. */ ?>
+    <thead><tr><th><?= e(ta('col_th_name')) ?></th><th><?= e(ta('col_th_email')) ?></th><th><?= e(ta('inv_th_lang')) ?></th><th><?= e(ta('col_th_access')) ?></th></tr></thead>
     <tbody>
-      <?php foreach ($aConfirmer as $g): ?>
+      <?php foreach ($aConfirmer as $g): [$cls, $lib] = lv_acces($g); ?>
       <tr>
         <td><strong><?= e($g['name']) ?></strong></td>
         <td><?= e($g['email']) ?></td>
-        <td><?= e(lv_langue_nom($g['lang'] ?? '')) ?></td>
+        <td><?= e(lv_langue_nom($g['lang'] ?? '')) ?><?php if (trim((string)($g['lang'] ?? '')) === ''): ?>
+            <span class="hint"><?= e(ta('inv_lang_defaut')) ?></span><?php endif; ?></td>
+        <td<?= $cls ? ' class="' . e($cls) . '"' : '' ?>><?= e($lib) ?></td>
       </tr>
       <?php endforeach; ?>
     </tbody>
   </table>
-  <p class="hint"><?= e(ta('inv_conf_w1', MemberAuth::LIEN_JOURS)) ?></p>
-  <p class="hint"><?= e(ta('inv_conf_w2')) ?></p>
+  <p class="hint"><?= e(ta('inv_conf_w1b')) ?></p>
   <form method="post" style="margin-top:18px;">
     <?= Auth::csrfField() ?>
     <input type="hidden" name="lv_action" value="envoyer">
@@ -172,6 +235,33 @@ admin_top(ta('nav_collab'), 'collab');
 <?php if ($errors): ?><div class="flash err"><?php foreach ($errors as $er) echo e($er) . '<br>'; ?></div><?php endif; ?>
 
 <?php if (!empty($_GET['texte'])): ?><div class="flash ok"><?= e(ta('st_saved')) ?></div><?php endif; ?>
+
+<?php /* [13.08.2026] Reprendre l'envoi là où le budget de temps l'a arrêté.
+         Sans ce bouton, il faudrait retrouver à la main qui n'a pas reçu,
+         c'est-à-dire exactement ce que le compte rendu ne dit pas. */ ?>
+<?php if ($restants): ?>
+<div class="panel">
+  <h2><?= e(ta('inv_rest_head', count($restants))) ?></h2>
+  <p class="hint"><?= e(ta('inv_rest_h')) ?></p>
+  <form method="post">
+    <?= Auth::csrfField() ?>
+    <input type="hidden" name="lv_action" value="confirmer">
+    <?php foreach ($restants as $rid): ?><input type="hidden" name="ids[]" value="<?= (int)$rid ?>"><?php endforeach; ?>
+    <button class="btn" type="submit"><?= e(ta('inv_rest_go', count($restants))) ?></button>
+  </form>
+</div>
+<?php endif; ?>
+
+<?php /* Le journal des envois, replié. C'est la seule trace qui survit à une
+         coupure, parce qu'il s'écrit personne par personne et non à la fin. */ ?>
+<?php $jrn = Invitations::journalLire(); ?>
+<?php if ($jrn !== ''): ?>
+<details class="panel">
+  <summary style="cursor:pointer;font-weight:600;"><?= e(ta('inv_jrn_head')) ?></summary>
+  <p class="hint" style="margin-top:12px;"><?= e(ta('inv_jrn_h')) ?></p>
+  <pre style="overflow-x:auto;font-size:12.5px;line-height:1.6;margin:0;"><?= e($jrn) ?></pre>
+</details>
+<?php endif; ?>
 
 <?php /* ---- Le message d'invitation, replié ----
          Replié, parce qu'on l'ouvre une fois par saison et qu'un bloc de

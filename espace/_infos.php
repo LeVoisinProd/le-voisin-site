@@ -121,7 +121,41 @@ function espace_infos_traiter(int $cid): array
                 $errors[] = espace_visite_t('member_visit_no_' . $case);
             }
         } else {
+            /* [13.08.2026] Ce qui a changé se calcule AVANT d'écrire, en
+               comparant à $profile, chargé en tête de fonction et jamais
+               touché depuis. Et l'on compare à $profile['data'], la vue
+               fusionnée déjà montrée à l'écran, et non à ce qui était
+               enregistré : le formulaire renvoie aussi ce que le bureau avait
+               pré-rempli, si bien que comparer à l'enregistré signalerait comme
+               « modifié » tout le pré-remplissage, pour chaque personne, dès la
+               première sauvegarde.
+
+               La première saisie est un événement à part : c'est celui que le
+               bureau attend, et il n'a pas de « ce qui a changé » à montrer. */
+            $premiere = empty($profile['saisi']);
+            $changes  = [];
+            foreach ($fields as $fd) {
+                if (in_array($fd['type'], ['section', 'file'], true)) continue;
+                $k = $fd['key'];
+                if (trim((string)($vals[$k] ?? '')) !== trim((string)($profile['data'][$k] ?? ''))) {
+                    $changes[] = Forms::label($fd['label'], I18n::ADMIN_DEFAULT);
+                }
+            }
+            /* Libellés propres, dans la langue du bureau : le libellé public
+               de la bio porte un « %s » pour le nombre de signes, qui sortirait
+               tel quel dans le message. */
+            if ($bio !== $profile['bio'])                 $changes[] = ta('mn_fic_bio');
+            if ((int)$photoId !== (int)$profile['photo_image_id']) $changes[] = ta('mn_fic_photo');
+
             MemberProfile::save($cid, $vals, $bio, $photoId);
+
+            /* L'avis part après l'enregistrement, et son échec ne défait rien :
+               la fiche est écrite, c'est le courriel qui manque. */
+            if ($changes || $premiere) {
+                try {
+                    MemberNotify::ficheModifiee(MemberAuth::member() ?? [], $changes, $premiere);
+                } catch (Throwable $e) { /* rien à dire ici */ }
+            }
         }
     }
 

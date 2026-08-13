@@ -184,6 +184,55 @@ class MemberNotify
     }
 
     /**
+     * La personne a modifié sa fiche. → le bureau.       [13.08.2026]
+     *
+     * L'invitation annonce que le bureau est prévenu de ce qui change. Ceci
+     * tient la promesse, et surtout : la première saisie est l'événement que le
+     * bureau attend depuis des semaines, celui après lequel un contrat peut
+     * enfin s'établir. Elle a donc son propre sujet.
+     *
+     * CE MESSAGE NE PORTE AUCUNE VALEUR, ni ancienne ni nouvelle. Il porte les
+     * NOMS des cases qui ont changé, et l'adresse de la fiche. Trois raisons,
+     * dans l'ordre d'importance :
+     *
+     *   — l'IBAN et le numéro AVS sont chiffrés dans la base. Les envoyer en
+     *     clair par courriel, dans une boîte qui les gardera pour toujours,
+     *     annulerait tout le travail du chiffrement ;
+     *   — une liste de cases interdites pourrit. Le jour où quelqu'un ajoute un
+     *     champ au formulaire, il fuit par défaut, et personne ne s'en aperçoit.
+     *     Ne rien porter du tout ne peut pas pourrir ;
+     *   — c'est suffisant. « Adresse et Téléphone ont changé, voici la fiche »
+     *     répond à la question ; les vraies valeurs se lisent dans le CMS,
+     *     déchiffrées, derrière la connexion de l'administration.
+     *
+     * @param string[] $champs Les libellés, déjà traduits, des cases changées.
+     */
+    public static function ficheModifiee(array $c, array $champs, bool $premiere = false): bool
+    {
+        if (!$champs && !$premiere) return false;
+        $to = trim((string)(Settings::emails('form_infos_to')[0] ?? ''));
+        if ($to === '') $to = self::adresseBureau('');
+        if ($to === '') return false;
+
+        $lang  = I18n::ADMIN_DEFAULT;
+        $nom   = trim((string)($c['name'] ?? '')) ?: (string)($c['email'] ?? '');
+        $sujet = self::m($premiere ? 'mn_fic_s1' : 'mn_fic_s', $lang, $nom);
+
+        $corps  = self::p(self::m($premiere ? 'mn_fic_1a' : 'mn_fic_1b', $lang, $nom));
+        if ($champs) {
+            $corps .= self::p(self::m('mn_fic_2', $lang));
+            $corps .= '<ul style="font-size:15px;line-height:1.65;margin:0 0 14px;padding-left:20px;">';
+            foreach ($champs as $ch) $corps .= '<li>' . e($ch) . '</li>';
+            $corps .= '</ul>';
+        }
+        $corps .= self::p(self::m('mn_fic_3', $lang));
+        $corps .= self::lien(url('/admin/collaborator-edit.php?id=' . (int)($c['id'] ?? 0)),
+                             self::m('mn_dep_go', $lang));
+
+        return Mailer::send([$to], $sujet, Mailer::wrap($sujet, $corps));
+    }
+
+    /**
      * La personne vient de déposer. → elle, en accusé de réception.
      *
      * [13.08.2026] C'était le seul des quatre sens qui manquait. Un dépôt
