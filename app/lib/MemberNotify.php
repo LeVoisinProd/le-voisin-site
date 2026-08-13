@@ -267,7 +267,10 @@ class MemberNotify
     {
         $pid = (int)($doc['project_id'] ?? 0);
         if ($pid <= 0) return '';
-        return (string)(MemberDocs::projetChoix(Invitations::langue($lang))[$pid] ?? '');
+        /* projetTitres() : le courriel NOMME le projet d'un document, il ne le
+           propose pas. Avec la liste des seuls projets en cours, une facture
+           rattachée à une tournée finie arrivait sans son projet. */
+        return (string)(MemberDocs::projetTitres(Invitations::langue($lang))[$pid] ?? '');
     }
 
     /**

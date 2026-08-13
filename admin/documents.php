@@ -115,7 +115,7 @@ function lv_doc_montant(string $nom): array
 function lv_doc_index(array $d, bool $avecStatut): array
 {
     static $projets = null;
-    if ($projets === null) $projets = MemberDocs::projetChoix('fr');
+    if ($projets === null) $projets = MemberDocs::projetTitres('fr');
 
     [$montant, $devise] = lv_doc_montant((string)($d['filename'] ?? ''));
     return [

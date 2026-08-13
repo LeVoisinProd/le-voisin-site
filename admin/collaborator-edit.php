@@ -507,11 +507,19 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
                   <noscript><button class="btn small ghost" type="submit">OK</button></noscript>
                 </form>
                 <?php if ($volet === 'projet'): ?>
-                  <?php if ($projChoix): $pDoc = (int)($d['project_id'] ?? 0); ?>
+                  <?php /* [13.08.2026] Le second argument force le projet DE CE
+                           document à figurer dans la liste, même s'il est
+                           terminé. Sans lui son <option> n'existe pas, le menu
+                           retombe sur « — », et le premier enregistrement de la
+                           fiche détache le document de son projet sans que
+                           personne ne le voie. */ ?>
+                  <?php $pDoc = (int)($d['project_id'] ?? 0);
+                        $projDoc = MemberDocs::projetChoix(I18n::$admin, $pDoc ?: null);
+                        if ($projDoc): ?>
                   <form method="post" class="inline-form mdoc-asso"><?= $csrf ?><input type="hidden" name="action" value="doc_project"><input type="hidden" name="doc" value="<?= (int)$d['id'] ?>">
                     <select name="project_id" onchange="this.form.submit()">
                       <option value="">—</option>
-                      <?php foreach ($projChoix as $pid => $ptitre): ?><option value="<?= (int)$pid ?>"<?= (int)$pid === $pDoc ? ' selected' : '' ?>><?= e($ptitre) ?></option><?php endforeach; ?>
+                      <?php foreach ($projDoc as $pid => $ptitre): ?><option value="<?= (int)$pid ?>"<?= (int)$pid === $pDoc ? ' selected' : '' ?>><?= e($ptitre) ?></option><?php endforeach; ?>
                     </select>
                     <noscript><button class="btn small ghost" type="submit">OK</button></noscript>
                   </form>

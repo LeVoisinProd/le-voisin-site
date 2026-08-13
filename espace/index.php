@@ -100,7 +100,12 @@ foreach (array_keys($byAsso) as $nom) if (!in_array($nom, $ordreAsso, true)) $or
    pas une rubrique — le mettre en tête donnerait à toute la partie l'air d'un
    fourre-tout. Un projet effacé du site garde malgré tout ses documents
    visibles, sous son numéro. */
-$projTitres = MemberDocs::projetChoix(I18n::$lang);
+/* [13.08.2026] projetTitres() et non projetChoix() : depuis que le menu de
+   dépôt ne propose plus que les projets en cours, choisir et afficher sont
+   deux listes différentes. Ici on AFFICHE le titre d'un projet auquel des
+   documents sont déjà rattachés — une tournée finie garde ses billets, et
+   ils doivent rester sous son nom et non sous « #12 ». */
+$projTitres = MemberDocs::projetTitres(I18n::$lang);
 $byProj = [];
 foreach ($parVolet['projet'] as $d) $byProj[(int)($d['project_id'] ?? 0)][] = $d;
 

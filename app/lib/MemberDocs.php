@@ -136,17 +136,56 @@ class MemberDocs
     }
 
     /**
-     * Les projets proposables : numéro => titre.
+     * Les projets qu'on peut CHOISIR : numéro => titre. Les projets actuels
+     * seulement.
      *
-     * Tous les projets, y compris ceux qui ne sont plus affichés sur le site :
-     * une tournée terminée garde ses billets et ses reçus, et la personne doit
-     * pouvoir les retrouver l'année suivante.
+     * [13.08.2026] Cette liste rendait tous les projets, anciens compris, et le
+     * menu était devenu illisible : on déposait un billet de train en cherchant
+     * une production en cours au milieu de tournées finies depuis des années.
+     *
+     * La note d'origine justifiait le contraire — « une tournée terminée garde
+     * ses billets et ses reçus, la personne doit pouvoir les retrouver l'année
+     * suivante ». Elle confondait deux choses. RETROUVER un document déjà rangé
+     * sous un ancien projet ne demande rien à ce menu : le rangement est déjà
+     * enregistré, et il continue de s'afficher. Ce menu ne sert qu'à CHOISIR,
+     * et on ne classe pas un document neuf sous une tournée finie.
+     *
+     * D'où le second argument : il force un projet à figurer dans la liste même
+     * s'il n'est plus actuel. Il sert au menu qui range un document DÉJÀ déposé,
+     * pour que son rattachement d'hier reste visible et sélectionné. Sans lui,
+     * ouvrir la fiche et toucher à autre chose détacherait le document de son
+     * projet sans que personne ne le voie — c'est le même filet que celui du
+     * menu « association », juste au-dessus.
+     *
+     * @param int|null $inclure projet à garder dans la liste même s'il est ancien
      */
-    public static function projetChoix(?string $lang = null): array
+    public static function projetChoix(?string $lang = null, ?int $inclure = null): array
+    {
+        $sql  = "SELECT id, title_en, title_fr FROM projects WHERE status = 'current'";
+        $args = [];
+        if ($inclure) { $sql .= ' OR id = ?'; $args[] = $inclure; }
+
+        return self::titrer(DB::all($sql . ' ORDER BY sort, title_en', $args), $lang);
+    }
+
+    /**
+     * TOUS les projets, anciens compris : numéro => titre.
+     *
+     * Sert à retrouver le nom d'un projet déjà rattaché à un document, sans
+     * pour autant le proposer au choix. Lue une fois par page plutôt qu'une
+     * fois par document : une fiche en porte plusieurs dizaines.
+     */
+    public static function projetTitres(?string $lang = null): array
+    {
+        return self::titrer(DB::all('SELECT id, title_en, title_fr FROM projects ORDER BY sort, title_en'), $lang);
+    }
+
+    /** Le titre d'un projet dans la langue demandée, avec repli sur l'autre. */
+    private static function titrer(array $lignes, ?string $lang): array
     {
         $lang = $lang === 'en' ? 'en' : 'fr';
         $out  = [];
-        foreach (DB::all('SELECT id, title_en, title_fr FROM projects ORDER BY sort, title_en') as $p) {
+        foreach ($lignes as $p) {
             $t = trim((string)($lang === 'en' ? $p['title_en'] : $p['title_fr']));
             if ($t === '') $t = trim((string)($p['title_fr'] ?: $p['title_en']));
             $out[(int)$p['id']] = $t !== '' ? $t : ('#' . (int)$p['id']);
