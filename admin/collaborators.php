@@ -5,6 +5,7 @@ Auth::requireAdmin();
 
 $errors = [];
 $aConfirmer = [];     // les personnes à qui l'on s'apprête à écrire   [V28-INVIT]
+$aSupprimer = [];     // celles que l'on s'apprête à supprimer          [V41-SUPPR]
 $rapport    = null;   // le compte rendu du dernier envoi groupé
 
 /* Le compte rendu est déposé en session juste avant une redirection, puis relu
@@ -16,9 +17,42 @@ if (!empty($_SESSION['lv_invit_rapport'])) {
     $rapport = $_SESSION['lv_invit_rapport'];
     unset($_SESSION['lv_invit_rapport']);
 }
+if (!empty($_SESSION['lv_suppr_rapport'])) {
+    $sr = $_SESSION['lv_suppr_rapport'];
+    unset($_SESSION['lv_suppr_rapport']);
+    flash(ta('col_del_done', (int)$sr['n']) . ((int)$sr['refus'] ? ' ' . ta('col_del_kept', (int)$sr['refus']) : ''));
+}
 if (!empty($_SESSION['lv_invit_restants'])) {
     $restants = (array)$_SESSION['lv_invit_restants'];
     unset($_SESSION['lv_invit_restants']);
+}
+
+/* [13.08.2026] Supprimer en lot, depuis les mêmes cases que l'envoi.
+
+   Douze fiches créées par erreur de saisie, jamais servies : les ouvrir une à
+   une pour les supprimer était le vrai coût. La règle, elle, ne bouge pas et
+   n'est écrite qu'à un endroit, dans Collaborateurs::supprimer() : une fiche
+   qui porte un document n'est pas supprimable, et l'écran de confirmation le
+   montre AVANT, personne par personne, plutôt que de refuser après coup. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''), ['suppr_confirmer', 'suppr'], true)) {
+    Auth::requireCsrf();
+    $ids = array_values(array_unique(array_filter(array_map('intval', (array)($_POST['ids'] ?? [])))));
+    $gens = $ids
+        ? DB::all('SELECT * FROM collaborators WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')'
+                . ' ORDER BY name, id', $ids)
+        : [];
+    if (!$gens) {
+        $errors[] = ta('inv_none_sel');
+    } elseif ($_POST['lv_action'] === 'suppr_confirmer') {
+        $aSupprimer = $gens;
+    } else {
+        $n = 0; $refus = 0;
+        foreach ($gens as $g) {
+            if (Collaborateurs::supprimer((int)$g['id'])) $n++; else $refus++;
+        }
+        $_SESSION['lv_suppr_rapport'] = ['n' => $n, 'refus' => $refus];
+        redirect('/admin/collaborators.php');
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''), ['confirmer', 'envoyer'], true)) {
@@ -185,6 +219,52 @@ function lv_langue_nom(?string $l): string
  * exacte des destinataires, avec l'adresse et la langue de chacun, et rien
  * d'autre sur la page — pas de tableau à côté où l'on croirait pouvoir encore
  * cocher quelqu'un. */
+if ($aSupprimer):
+    admin_top(ta('nav_collab'), 'collab');
+    $peut = []; $nePeutPas = [];
+    foreach ($aSupprimer as $g) {
+        $nd = Collaborateurs::documents((int)$g['id']);
+        if ($nd > 0) $nePeutPas[] = [$g, $nd]; else $peut[] = $g;
+    }
+    ?>
+<div class="page-head"><h1><?= e(ta('col_del_head')) ?></h1></div>
+<div class="panel">
+  <?php if ($peut): ?>
+  <p class="hint"><?= e(ta('col_del_intro', count($peut))) ?></p>
+  <table class="tbl"><tbody>
+    <?php foreach ($peut as $g): ?>
+    <tr><td><strong><?= e($g['name']) ?></strong></td><td><?= e($g['email']) ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table>
+  <?php endif; ?>
+
+  <?php /* Celles qu'on ne peut pas supprimer sont montrées AVANT, avec la
+           raison chiffrée. Refuser après coup, sans dire lesquelles, oblige à
+           recommencer à l'aveugle. */ ?>
+  <?php if ($nePeutPas): ?>
+  <p class="hint"><?= e(ta('col_del_gardees', count($nePeutPas))) ?></p>
+  <table class="tbl"><tbody>
+    <?php foreach ($nePeutPas as [$g, $nd]): ?>
+    <tr><td><strong><?= e($g['name']) ?></strong></td><td><?= e($g['email']) ?></td>
+        <td><?= e(ta('col_del_ndocs', $nd)) ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table>
+  <?php endif; ?>
+
+  <form method="post" style="margin-top:18px;">
+    <?= Auth::csrfField() ?>
+    <?php foreach ($peut as $g): ?><input type="hidden" name="ids[]" value="<?= (int)$g['id'] ?>"><?php endforeach; ?>
+    <?php if ($peut): ?>
+    <button class="btn ce-del" type="submit" name="lv_action" value="suppr"><?= e(ta('col_del_go', count($peut))) ?></button>
+    <?php endif; ?>
+    <a class="btn ghost" href="<?= e(admin_url('collaborators.php')) ?>"><?= e(ta('inv_conf_cancel')) ?></a>
+  </form>
+</div>
+<?php
+    admin_bottom();
+    exit;
+endif;
+
 if ($aConfirmer):
     admin_top(ta('nav_collab'), 'collab');
     ?>
@@ -348,7 +428,6 @@ admin_top(ta('nav_collab'), 'collab');
            mène d'abord à la liste des destinataires. */ ?>
   <form method="post" id="lv-envoi">
     <?= Auth::csrfField() ?>
-    <input type="hidden" name="lv_action" value="confirmer">
   <table class="tbl">
     <thead><tr>
       <th style="width:1%"><input type="checkbox" id="lv-tout" title="<?= e(ta('inv_pick_all')) ?>"></th>
@@ -374,8 +453,15 @@ admin_top(ta('nav_collab'), 'collab');
       <?php endforeach; ?>
     </tbody>
   </table>
-    <p style="margin:16px 0 4px;"><button class="btn" type="submit"><?= e(ta('inv_send_btn')) ?></button></p>
+    <?php /* [13.08.2026] Deux actions pour une même sélection. L'action n'est
+             plus un champ caché mais le nom du bouton : celui sur lequel on
+             appuie décide, et les deux gestes partent des mêmes cases. */ ?>
+    <p style="margin:16px 0 4px;">
+      <button class="btn" type="submit" name="lv_action" value="confirmer"><?= e(ta('inv_send_btn')) ?></button>
+      <button class="btn ghost ce-del" type="submit" name="lv_action" value="suppr_confirmer" style="margin-left:10px;"><?= e(ta('col_del_btn')) ?></button>
+    </p>
     <p class="hint"><?= e(ta('inv_send_help')) ?></p>
+    <p class="hint"><?= e(ta('col_del_help')) ?></p>
   </form>
   <script>
   (function () {

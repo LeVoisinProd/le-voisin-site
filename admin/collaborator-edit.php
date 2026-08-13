@@ -85,20 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            Dès qu'il y a un document, on refuse et l'on rappelle le bon geste,
            qui est de décocher « Actif » : l'accès se ferme à l'instant et les
            documents restent là où la comptabilité les cherchera. */
-        $nDocs = (int)DB::val('SELECT COUNT(*) FROM member_documents WHERE collaborator_id = ?', [$id]);
-        if ($nDocs > 0) {
-            flash(ta('ce_del_refus', $nDocs), 'err');
+        $nom = trim((string)($c['name'] ?? '')) ?: (string)($c['email'] ?? '');
+        if (!Collaborateurs::supprimer($id)) {
+            flash(ta('ce_del_refus', Collaborateurs::documents($id)), 'err');
             redirect('/admin/collaborator-edit.php?id=' . $id);
         }
-        $nom = trim((string)($c['name'] ?? '')) ?: (string)($c['email'] ?? '');
-        /* La photo d'abord : Img::delete() retire aussi les fichiers du disque,
-           qu'une suppression en base laisserait derrière elle. */
-        foreach (DB::all('SELECT id FROM images WHERE owner_type = ? AND owner_id = ?', ['collaborator', $id]) as $im) {
-            try { Img::delete((int)$im['id']); } catch (Throwable $e) { /* le fichier manquait déjà */ }
-        }
-        DB::delete('member_profiles', 'collaborator_id = ?', [$id]);
-        DB::delete('access_log', 'collaborator_id = ?', [$id]);
-        DB::delete('collaborators', 'id = ?', [$id]);
         flash(ta('ce_del_ok', $nom));
         redirect('/admin/collaborators.php');
 
@@ -626,7 +617,7 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
                cherchera pendant dix ans. Ce bouton-ci ne sert qu'aux fiches qui
                n'auraient jamais dû exister, un doublon, un essai. Il refuse de
                lui-même dès qu'un document est attaché, et le dit. */ ?>
-      <?php $nDocsSup = (int)DB::val('SELECT COUNT(*) FROM member_documents WHERE collaborator_id = ?', [$id]); ?>
+      <?php $nDocsSup = Collaborateurs::documents($id); ?>
       <div class="ce-danger">
         <h3 class="mdoc-cat"><?= e(ta('ce_del_head')) ?></h3>
         <?php if ($nDocsSup > 0): ?>

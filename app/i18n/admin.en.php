@@ -289,6 +289,15 @@ return [
 
     // --- Where each person stands with access   [V27-ACCES] ---
     'col_th_access'      => 'Access',
+    'col_del_btn'        => 'Delete',
+    'col_del_help'      => 'Deleting only applies to records with no documents attached: a duplicate, a typing error, a record never used. For someone who has worked with us, untick “Active” on their record: access closes and the documents stay.',
+    'col_del_head'      => 'Delete records',
+    'col_del_intro'     => '%d record(s) will be permanently deleted, along with their personal details and photo:',
+    'col_del_gardees'   => '%d record(s) cannot be deleted: documents are attached to them, and contracts and payslips are kept for ten years. They will be left as they are. To withdraw their access, untick “Active” on their record.',
+    'col_del_ndocs'     => '%d document(s)',
+    'col_del_go'        => 'Permanently delete these %d records',
+    'col_del_done'      => '%d record(s) deleted.',
+    'col_del_kept'      => '%d kept, documents are attached to them.',
     'col_acc_off'        => 'Account disabled',
     'col_acc_none'       => 'No password',
     'col_acc_link'       => 'Link sent, waiting',

@@ -295,6 +295,15 @@ return [
     // Une colonne qui répond à la seule question qu'on se pose vraiment en
     // regardant cette liste : est-ce que cette personne peut entrer ?
     'col_th_access'      => 'Accès',
+    'col_del_btn'        => 'Supprimer',
+    'col_del_help'      => 'Supprimer ne concerne que les fiches qui ne portent aucun document : un doublon, une erreur de saisie, une fiche jamais servie. Pour quelqu’un qui a travaillé, décochez « Actif » sur sa fiche : l’accès se ferme et les documents restent.',
+    'col_del_head'      => 'Supprimer des fiches',
+    'col_del_intro'     => '%d fiche(s) vont être supprimées définitivement, avec leur fiche personnelle et leur photo :',
+    'col_del_gardees'   => '%d fiche(s) ne peuvent pas être supprimées : des documents y sont attachés, et contrats et fiches de salaire se conservent dix ans. Elles seront laissées telles quelles. Pour leur retirer l’accès, décochez « Actif » sur leur fiche.',
+    'col_del_ndocs'     => '%d document(s)',
+    'col_del_go'        => 'Supprimer définitivement ces %d fiches',
+    'col_del_done'      => '%d fiche(s) supprimée(s).',
+    'col_del_kept'      => '%d gardée(s), des documents y sont attachés.',
     'col_acc_off'        => 'Compte désactivé',
     'col_acc_none'       => 'Pas de mot de passe',
     'col_acc_link'       => 'Lien envoyé, en attente',
