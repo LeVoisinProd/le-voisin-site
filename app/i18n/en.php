@@ -273,6 +273,7 @@ return [
     'form_file_type'     => 'File format not accepted.',
     'form_file_single'   => 'One file per submission — please fill in the form once for each receipt.',
     'form_error_generic' => 'Please check this field.',
+    'form_error_trop'    => 'Too many submissions in the last few minutes. Wait a moment and try again: your message is not lost, it simply has not been sent.',
     'form_has_errors'    => 'Please correct the fields highlighted below.',
     'form_send_failed'   => 'Your message could not be sent. Please try again or contact us by e-mail.',
     'form_no_recipient'  => 'This form is not yet linked to a destination address, so your submission could not be delivered. Nothing is lost on your side — please let us know by e-mail and we will fix it right away.',

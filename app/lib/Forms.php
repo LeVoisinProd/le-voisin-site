@@ -417,11 +417,41 @@ class Forms
         $def = self::def($form);
         if (!$def) return ['ok' => false, 'errors' => ['_' => 'Formulaire inconnu.']];
 
-        // Anti-spam : champ piège + délai minimal
-        if (trim((string)($post['website'] ?? '')) !== '') return ['ok' => true, 'errors' => []]; // silencieux
+        /* ==================================================================
+           ANTI-SPAM. Trois barrières, et la troisième est nouvelle.
+                                                            [13.08.2026]
+           Ces formulaires sont ouverts à tous et font envoyer du courrier par
+           le site. Jusqu'à aujourd'hui ce courrier partait de talkto@ ; depuis
+           ce matin il part de la boîte Google d'Anna, avec son SPF et sa
+           signature. Ce qui n'était qu'une nuisance est devenu sa réputation
+           d'expéditrice et son compte : un robot qui trouve ce formulaire ne
+           salit plus une adresse de service, il salit celle par laquelle
+           partent les fiches de salaire et les dossiers de subvention.
+           ================================================================== */
+
+        // 1. Le champ piège : rempli, c'est un robot. On répond « merci » et
+        //    l'on n'envoie rien — il ne doit pas apprendre qu'il a été vu.
+        if (trim((string)($post['website'] ?? '')) !== '') return ['ok' => true, 'errors' => []];
+
+        // 2. Le délai minimal, désormais OBLIGATOIRE. Il ne s'appliquait que
+        //    « si le champ est présent » : ne pas l'envoyer suffisait à le
+        //    sauter, ce qui est exactement ce que fait un script.
         $t = (int)($post['_t'] ?? 0);
-        if ($t > 0 && time() - $t < 3) return ['ok' => false, 'errors' => ['_' => t('form_error_generic')]];
+        if ($t <= 0 || time() - $t < 3) return ['ok' => false, 'errors' => ['_' => t('form_error_generic')]];
+
         if (!Auth::csrfOk()) return ['ok' => false, 'errors' => ['_' => t('form_error_generic')]];
+
+        /* 3. Le nombre. Rien ne limitait combien de fois une même adresse IP
+              pouvait faire partir un message : le compteur existait dans la
+              maison, branché sur la connexion de l'administration, et pas ici.
+              Il compte sous « f: », à part des autres guichets, pour qu'un
+              robot sur les formulaires ne ferme pas la porte de l'espace.
+              Le compte est fait AVANT le travail, et l'essai est noté même
+              lorsqu'il est refusé : sinon réessayer serait gratuit. */
+        if (MemberAuth::throttled('f:')) {
+            return ['ok' => false, 'errors' => ['_' => t('form_error_trop')]];
+        }
+        MemberAuth::noter('f:');
 
         $errors = [];
         $values = [];

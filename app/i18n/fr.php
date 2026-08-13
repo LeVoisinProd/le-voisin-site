@@ -279,6 +279,7 @@ return [
     'form_file_type'     => 'Format de fichier non accepté.',
     'form_file_single'   => 'Un seul fichier par envoi : merci de remplir le formulaire une fois par justificatif.',
     'form_error_generic' => 'Merci de vérifier ce champ.',
+    'form_error_trop'    => 'Trop d’envois depuis quelques minutes. Patientez un instant et réessayez : votre message n’est pas perdu, il n’est simplement pas parti.',
     'form_has_errors'    => 'Merci de corriger les champs signalés ci-dessous.',
     'form_send_failed'   => 'Votre message n\'a pas pu être envoyé. Réessayez ou contactez-nous par e-mail.',
     'form_no_recipient'  => 'Ce formulaire n\'est pas encore relié à une adresse de destination : votre envoi n\'a pas pu être transmis. Rien n\'est perdu de votre côté — merci de nous prévenir par e-mail, nous corrigeons cela tout de suite.',
