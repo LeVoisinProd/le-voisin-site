@@ -76,7 +76,15 @@ function espace_infos_traiter(int $cid): array
 
     if (!empty($_FILES['photo']['tmp_name']) && is_uploaded_file($_FILES['photo']['tmp_name']) && (int)($_FILES['photo']['error'] ?? 1) === 0) {
         try {
-            $img = Img::importFile($_FILES['photo']['tmp_name'], 'collaborator', $cid, 'cover');
+            /* [13.08.2026] upload() et non importFile(). La différence n'est pas
+               cosmétique : importFile() ne vérifie ni le poids, ni l'erreur de
+               transfert, ni que le fichier vienne bien d'un envoi. Avec
+               upload_max_filesize à 300 Mo, une personne connectée remplissait
+               le quota du site autant de fois qu'elle voulait, et le site
+               cessait alors d'écrire, dépôt de documents compris.
+               En prime, upload() redresse l'orientation EXIF : les photos
+               prises avec un téléphone tenu de côté ne restent plus couchées. */
+            $img = Img::upload($_FILES['photo'], 'collaborator', $cid, 'cover');
             if ($photoId) Img::delete($photoId);
             $photoId = (int)$img['id'];
         } catch (Throwable $e) { $errors[] = 'Photo : ' . $e->getMessage(); }

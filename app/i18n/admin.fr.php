@@ -529,6 +529,7 @@ return [
     'sys_doc_url'       => 'Ce lien n’est pas une adresse valable — elle doit commencer par http:// ou https://.',
     'sys_pdf_only'      => 'Seuls les PDF peuvent être envoyés à la signature.',
     'sys_img_big'       => 'Image trop lourde (max. 20 Mo).',
+    'sys_img_pixels'    => 'Image trop grande en dimensions (maximum 40 mégapixels).',
     'sys_img_invalid'   => 'Le fichier n’est pas une image valide.',
     'sys_img_formats'   => 'Format accepté : JPG, PNG ou WebP.',
     'sys_img_bad'       => 'Image invalide : %s',

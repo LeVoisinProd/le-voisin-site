@@ -521,6 +521,7 @@ return [
     'sys_doc_url'       => 'That link is not a valid address — it must start with http:// or https://.',
     'sys_pdf_only'      => 'Only PDF files can be sent for signature.',
     'sys_img_big'       => 'Image too large (max. 20 MB).',
+    'sys_img_pixels'    => 'Image dimensions too large (maximum 40 megapixels).',
     'sys_img_invalid'   => 'The file is not a valid image.',
     'sys_img_formats'   => 'Accepted formats: JPG, PNG or WebP.',
     'sys_img_bad'       => 'Invalid image: %s',

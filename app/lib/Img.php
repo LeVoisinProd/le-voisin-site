@@ -23,6 +23,14 @@ class Img
 {
     public const MAX_SIZE = 20 * 1024 * 1024; // 20 Mo
 
+    /* [13.08.2026] Plafond de pixels, vérifié AVANT tout décodage.
+       Le contrôle des 20 Mo ne protège pas de ce cas : un PNG de 25000 sur
+       25000, uni, tient en quelques centaines de Ko sur le disque et réclame
+       2,5 Go une fois ouvert en mémoire. Le processus meurt avant d'avoir rien
+       validé. `getimagesize()` lit les dimensions dans l'entête sans décoder
+       l'image, donc la vérification coûte zéro et arrive à temps. */
+    public const MAX_PIXELS = 40_000_000; // 40 mégapixels
+
     private static ?array $conf = null;
 
     public static function conf(): array
@@ -61,6 +69,9 @@ class Img
         }
         $info = @getimagesize($file['tmp_name']);
         if (!$info) throw new RuntimeException(tu('sys_img_invalid'));
+        if ($info[0] * $info[1] > self::MAX_PIXELS) {
+            throw new RuntimeException(tu('sys_img_pixels'));
+        }
         $ext = match ($info[2]) {
             IMAGETYPE_JPEG => 'jpg',
             IMAGETYPE_PNG  => 'png',
@@ -100,6 +111,9 @@ class Img
     {
         $info = @getimagesize($path);
         if (!$info) throw new RuntimeException(tu('sys_img_bad', basename($path)));
+        if ($info[0] * $info[1] > self::MAX_PIXELS) {
+            throw new RuntimeException(tu('sys_img_pixels'));
+        }
         $ext = match ($info[2]) {
             IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp',
             default => throw new RuntimeException(tu('sys_img_unsup')),

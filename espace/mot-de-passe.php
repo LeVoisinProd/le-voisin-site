@@ -23,7 +23,7 @@ if ($m && (int)$m['active'] === 1 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     MemberAuth::requireCsrf();
     $p1 = (string)($_POST['password'] ?? '');
     $p2 = (string)($_POST['password2'] ?? '');
-    if (mb_strlen($p1) < 8)  $erreur = t('member_pw_short');
+    if (mb_strlen($p1) < 12) $erreur = t('member_pw_short');
     elseif ($p1 !== $p2)     $erreur = t('member_pw_diff');
     else {
         MemberAuth::motDePasse((int)$m['id'], $p1);
