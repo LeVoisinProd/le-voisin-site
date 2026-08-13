@@ -21,6 +21,20 @@ espace_docs_traiter($m);
    les documents après elle, sinon la pièce qu'on vient d'envoyer manquerait à
    l'appel jusqu'au prochain rafraîchissement. */
 $infos = espace_infos_traiter((int)$m['id']);
+
+/* [13.08.2026] Avant de relire les documents, on redemande à Skribble l'état de
+   ceux qui attendent une signature, au plus une fois toutes les trois minutes.
+
+   C'est ce qui manquait le plus : quelqu'un signait, revenait dans son espace,
+   et retrouvait le bouton « Signer » à la même place. Il avait raison de croire
+   que rien ne s'était passé — le site ne le savait pas encore. Personne ne
+   devrait avoir à demander au bureau de cliquer quelque part pour que son
+   propre écran cesse de mentir.
+
+   L'appel vient AVANT forMember() : sans cela, la page montrerait l'état
+   d'avant le rafraîchissement qu'elle vient elle-même de déclencher. */
+try { Skribble::rafraichirSiBesoin((int)$m['id'], 'esp'); } catch (Throwable $e) { /* le journal l'a noté */ }
+
 $docs  = MemberDocs::forMember((int)$m['id']);
 
 /* ---------------------------------------------------------------------------
