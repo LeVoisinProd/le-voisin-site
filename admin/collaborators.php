@@ -17,11 +17,6 @@ if (!empty($_SESSION['lv_invit_rapport'])) {
     $rapport = $_SESSION['lv_invit_rapport'];
     unset($_SESSION['lv_invit_rapport']);
 }
-$essai = null;
-if (!empty($_SESSION['lv_essai_rapport'])) {
-    $essai = $_SESSION['lv_essai_rapport'];
-    unset($_SESSION['lv_essai_rapport']);
-}
 if (!empty($_SESSION['lv_suppr_rapport'])) {
     $sr = $_SESSION['lv_suppr_rapport'];
     unset($_SESSION['lv_suppr_rapport']);
@@ -160,10 +155,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''
        l'adresse et l'on cherchait un bouton d'envoi qui n'existait pas.
        Celui-ci enregistre PUIS envoie, dans cet ordre, sinon on relirait autre
        chose que ce qui vient d'être écrit. */
+    /* [13.08.2026] La réponse de l'essai passe par le bandeau du haut, comme
+       toutes les autres. Elle s'affichait à l'intérieur du bloc dépliant, qui se
+       referme au rechargement : on lisait « Réglages enregistrés » en vert tout
+       en haut et le compte rendu de l'envoi restait invisible, dans un bloc
+       fermé, sous une phrase qui parlait d'autre chose. */
     if (($_POST['lv_action'] ?? '') === 'texte_essai' && trim((string)($_POST['lv_essai_to'] ?? '')) !== '') {
-        $_SESSION['lv_essai_rapport'] = Invitations::essai(
-            trim((string)$_POST['lv_essai_to']), (string)($_POST['lv_essai_lang'] ?? 'fr'));
+        $e = Invitations::essai(trim((string)$_POST['lv_essai_to']), (string)($_POST['lv_essai_lang'] ?? 'fr'));
+        flash($e['ok'] ? ta('st_inv_test_ok', $e['email']) : ta('st_inv_test_ko', $e['raison']),
+              $e['ok'] ? 'ok' : 'err');
+        redirect('/admin/collaborators.php?texte=1#texte-invitation');
     }
+    flash(ta('st_saved'));
     redirect('/admin/collaborators.php?texte=1#texte-invitation');
 }
 
@@ -366,8 +369,6 @@ admin_top(ta('nav_collab'), 'collab');
 
 <?php if ($errors): ?><div class="flash err"><?php foreach ($errors as $er) echo e($er) . '<br>'; ?></div><?php endif; ?>
 
-<?php if (!empty($_GET['texte'])): ?><div class="flash ok"><?= e(ta('st_saved')) ?></div><?php endif; ?>
-
 <?php /* [13.08.2026] Reprendre l'envoi là où le budget de temps l'a arrêté.
          Sans ce bouton, il faudrait retrouver à la main qui n'a pas reçu,
          c'est-à-dire exactement ce que le compte rendu ne dit pas. */ ?>
@@ -400,7 +401,9 @@ admin_top(ta('nav_collab'), 'collab');
          quatre champs déroulé pousserait la liste hors de l'écran. Les champs
          ne sont jamais vides : ils s'ouvrent sur le texte en vigueur, qu'on
          relit et qu'on retouche, plutôt que sur un carré blanc. */ ?>
-<details class="panel" id="texte-invitation">
+<?php /* Ouvert quand on vient d'y toucher : sinon on est renvoyé sur une page
+         qui a l'air de n'avoir rien fait, le bloc s'étant refermé. */ ?>
+<details class="panel" id="texte-invitation"<?= !empty($_GET['texte']) ? ' open' : '' ?>>
   <summary style="cursor:pointer;font-weight:600;"><?= e(ta('st_p_invite')) ?></summary>
   <p class="hint" style="margin-top:14px;"><?= ta('st_invite_h') ?></p>
   <p class="hint"><?= ta('st_invite_marks') ?></p>
@@ -425,11 +428,6 @@ admin_top(ta('nav_collab'), 'collab');
              l'envoie, on le relit. Aucun collaborateur n'est touché et le lien
              de l'exemple ne mène nulle part. */ ?>
     <p class="hint"><?= e(ta('st_inv_test_h')) ?></p>
-    <?php if ($essai): ?>
-    <div class="flash <?= $essai['ok'] ? 'ok' : 'err' ?>"><?= e($essai['ok']
-        ? ta('st_inv_test_ok', $essai['email'])
-        : ta('st_inv_test_ko', $essai['raison'])) ?></div>
-    <?php endif; ?>
     <div class="grid2">
       <?php /* L'adresse est PRÉ-REMPLIE et non suggérée en gris : un texte gris
                se lit comme une valeur, on appuie sur envoyer, et rien ne part. */ ?>
