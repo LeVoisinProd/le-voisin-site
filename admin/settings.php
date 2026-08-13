@@ -420,6 +420,11 @@ admin_top(ta('st_title'), 'settings');
 
   <div class="panel" id="smtp">
     <h2><?= ta('st_p_smtp') ?></h2>
+    <?php /* [13.08.2026] Le renvoi vers l'autre panneau. La boîte qui authentifie
+             est ici, le nom qui s'affiche au destinataire est plus haut, dans
+             « Formulaires » : deux champs, deux panneaux, et le diagnostic
+             réclamait le second pendant qu'on cherchait dans le premier. */ ?>
+    <p class="hint"><?= ta('st_smtp_from_h') ?></p>
     <p class="hint"><?= ta('st_smtp_h') ?></p>
     <div class="grid2">
       <?= field_wrap(ta('st_f_host'), s_in('smtp_host', 'text', 'mail.infomaniak.com'), ta('st_f_host_h')) ?>
