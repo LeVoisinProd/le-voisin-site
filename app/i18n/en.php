@@ -127,7 +127,7 @@ return [
     'footer_nav_h'    => 'Navigation',
     'footer_follow_h' => 'Follow us',
     'footer_rights'   => 'All rights reserved.',
-    'footer_admin'    => 'Espace Pro',
+    'footer_admin'    => 'Administration',
 
     // Espace collaborateur
     'member_area'        => 'Collaborator area',
