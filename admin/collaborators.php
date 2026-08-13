@@ -17,6 +17,11 @@ if (!empty($_SESSION['lv_invit_rapport'])) {
     $rapport = $_SESSION['lv_invit_rapport'];
     unset($_SESSION['lv_invit_rapport']);
 }
+$essai = null;
+if (!empty($_SESSION['lv_essai_rapport'])) {
+    $essai = $_SESSION['lv_essai_rapport'];
+    unset($_SESSION['lv_essai_rapport']);
+}
 if (!empty($_SESSION['lv_suppr_rapport'])) {
     $sr = $_SESSION['lv_suppr_rapport'];
     unset($_SESSION['lv_suppr_rapport']);
@@ -130,7 +135,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['lv_action'] ?? '') === 'te
     foreach (Invitations::CLES as $k) {
         if (array_key_exists($k, $_POST)) Settings::set($k, trim((string)$_POST[$k]));
     }
-    redirect('/admin/collaborators.php?texte=1');
+    /* [13.08.2026] L'essai part depuis ici, et plus seulement des Réglages.
+       On relit ce qu'on vient d'écrire, dans sa propre boîte, sans qu'aucun
+       collaborateur ni aucun vrai lien soit touché. Séparer le lieu où l'on
+       écrit du lieu où l'on essaie, c'est écrire sans jamais relire. */
+    if (trim((string)($_POST['lv_essai_to'] ?? '')) !== '') {
+        $_SESSION['lv_essai_rapport'] = Invitations::essai(
+            trim((string)$_POST['lv_essai_to']), (string)($_POST['lv_essai_lang'] ?? 'fr'));
+    }
+    redirect('/admin/collaborators.php?texte=1#texte-invitation');
+}
+
+/* [13.08.2026] Rétablir le texte d'origine.
+
+   Le texte du code ne sert que TANT QUE les réglages sont vides, et les deux
+   éditeurs ouvrent leurs champs déjà remplis avec le texte en vigueur. Il suffit
+   donc d'avoir enregistré une fois, un jour, pour figer une copie dans la base
+   et ne plus jamais voir les versions suivantes. C'est arrivé, et cela s'est vu
+   le 13.08 : le message annonçait encore un mot de passe à choisir et sept jours
+   de validité, longtemps après que ni l'un ni l'autre n'existent.
+
+   Vider quatre champs à la main pour s'en sortir n'est pas une manoeuvre qu'on
+   devine. Ce bouton le fait. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['lv_action'] ?? '') === 'texte_defaut') {
+    Auth::requireCsrf();
+    foreach (Invitations::CLES as $k) Settings::set($k, '');
+    flash(ta('inv_txt_reset'));
+    redirect('/admin/collaborators.php#texte-invitation');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['lv_action'])) {
@@ -366,7 +397,36 @@ admin_top(ta('nav_collab'), 'collab');
       <?= field_wrap(ta('st_f_inv_txt_en'),
           '<textarea name="invite_body_en" rows="13">' . e(trim((string)setting('invite_body_en', '')) ?: Invitations::texteDefaut('en')) . '</textarea>') ?>
     </div>
-    <p><button class="btn" type="submit"><?= e(ta('st_save')) ?></button></p>
+    <p><button class="btn" type="submit" name="lv_action" value="texte"><?= e(ta('st_save')) ?></button></p>
+
+    <hr style="border:0;border-top:1px solid #e4e4e0;margin:22px 0 18px;">
+    <?php /* L'essai, juste sous les champs : on écrit, on enregistre, on se
+             l'envoie, on le relit. Aucun collaborateur n'est touché et le lien
+             de l'exemple ne mène nulle part. */ ?>
+    <p class="hint"><?= e(ta('st_inv_test_h')) ?></p>
+    <?php if ($essai): ?>
+    <div class="flash <?= $essai['ok'] ? 'ok' : 'err' ?>"><?= e($essai['ok']
+        ? ta('st_inv_test_ok', $essai['email'])
+        : ta('st_inv_test_ko', $essai['raison'])) ?></div>
+    <?php endif; ?>
+    <div class="grid2">
+      <?= field_wrap(ta('st_f_inv_testto'),
+          '<input type="email" name="lv_essai_to" value="" placeholder="'
+          . e((string)(Auth::user()['email'] ?? setting('contact_email', ''))) . '">') ?>
+      <div class="f"><label class="f-label"><?= e(ta('st_f_inv_testlang')) ?></label>
+        <select name="lv_essai_lang"><option value="fr">Français</option><option value="en">English</option></select>
+      </div>
+    </div>
+    <p class="hint"><?= e(ta('inv_essai_h')) ?></p>
+  </form>
+
+  <?php /* Hors du formulaire au-dessus : sinon ce bouton emporterait avec lui
+           le contenu des quatre champs, qu'il est justement là pour effacer. */ ?>
+  <form method="post" style="margin-top:14px;">
+    <?= Auth::csrfField() ?>
+    <input type="hidden" name="lv_action" value="texte_defaut">
+    <button class="btn small ghost" type="submit"><?= e(ta('inv_txt_reset_btn')) ?></button>
+    <p class="hint"><?= e(ta('inv_txt_reset_h')) ?></p>
   </form>
 </details>
 
