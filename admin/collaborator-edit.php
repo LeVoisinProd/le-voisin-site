@@ -235,7 +235,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st = strtoupper(Skribble::status($doc['skribble_request_id']));
                 if ($st === 'SIGNED') {
                     DB::update('member_documents', ['sign_status' => 'signed', 'signed_at' => date('Y-m-d H:i:s')], 'id = ?', [$doc['id']]);
-                    flash(ta('ce_signed_ok'));
+
+                    /* [13.08.2026] Et l'on rapatrie le PDF signé, qui est un
+                       AUTRE fichier que celui qu'on a envoyé, et qui vit chez
+                       Skribble. Sans cette étape, le site dit « signé » et sert
+                       le fichier d'avant : c'est exactement ce qu'Anna a
+                       constaté, un document marqué signé où l'on ne voit rien.
+
+                       Le rapatriement ne remet pas le statut en cause : s'il
+                       échoue, la signature a bien eu lieu, c'est la copie qui
+                       manque, et le journal dit pourquoi. On la retentera au
+                       clic suivant. */
+                    $ok = ta('ce_signed_ok');
+                    try {
+                        $req = Skribble::requete((string)$doc['skribble_request_id']);
+                        $did = (string)($req['document_id'] ?? '');
+                        $pdf = $did !== '' ? Skribble::documentContenu($did) : '';
+                        if ($pdf !== '') {
+                            $nom = preg_replace('/\.pdf$/i', '', (string)$doc['filename']) . '_signe.pdf';
+                            file_put_contents(MemberDocs::dir((int)$doc['id']) . '/' . $nom, $pdf);
+                            DB::update('member_documents', ['signed_filename' => $nom], 'id = ?', [$doc['id']]);
+                            Skribble::journal('RAPATRIÉ | doc ' . (int)$doc['id'] . ' | ' . $nom . ' | ' . strlen($pdf) . ' octets');
+                        } else {
+                            $ok .= ' ' . ta('ce_signed_nofile');
+                            Skribble::journal('RAPATRIEMENT VIDE | doc ' . (int)$doc['id'] . ' | document_id ' . ($did ?: 'absent'));
+                        }
+                    } catch (Throwable $e) {
+                        $ok .= ' ' . ta('ce_signed_nofile');
+                        Skribble::journal('RAPATRIEMENT ERREUR | doc ' . (int)$doc['id'] . ' | ' . $e->getMessage());
+                    }
+                    flash($ok);
                 } else {
                     flash(ta('ce_skribble_status', $st ?: ta('ce_unknown')));
                 }

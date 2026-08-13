@@ -45,7 +45,7 @@ $KEYS = [
     // [V42-CATALOGUE] Sans cette clef ici, le champ s'affiche et ne s'enregistre
     // pas : la liste est fermée, et settings.php ignore ce qu'elle ne connaît pas.
     'catalogue_password', 'catalogue_email',
-    'skribble_username', 'skribble_api_key', 'skribble_quality',
+    'skribble_username', 'skribble_api_key', 'skribble_quality', 'skribble_signataire',
     'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user',
 ];
 // Le message d'invitation des collaborateurs, en français et en anglais. [V28-INVIT]
@@ -300,6 +300,16 @@ function lv_controle_envoi(string $destination, bool $mdpSaisi = false): array
         $bloc('info', ta('st_d_log'), ta('st_d_log_none'));
     }
 
+    /* [13.08.2026] Le journal Skribble, à côté de celui du courrier et pour la
+       même raison : un message qui s'affiche une fois en haut d'une longue page
+       et disparaît ne se diagnostique pas. Il porte aussi le rapatriement du
+       document signé, écrit d'après une documentation lue de loin : c'est ici
+       qu'on verra si la réponse de l'API est celle qu'on attendait. */
+    $jSkr = Skribble::journalLire(12);
+    if ($jSkr !== '') {
+        $bloc('info', ta('st_d_skrlog'), 'app/logs/skribble.log', '<pre>' . e($jSkr) . '</pre>');
+    }
+
     return $r;
 }
 
@@ -524,6 +534,7 @@ admin_top(ta('st_title'), 'settings');
     <div class="grid2">
       <?= field_wrap(ta('st_f_skr_user'), s_in('skribble_username', 'text', ta('st_ph_skr_user'))) ?>
       <?= field_wrap(ta('st_f_skr_key'), s_in('skribble_api_key', 'text', ta('st_ph_skr_key')), ta('st_f_skr_key_h')) ?>
+      <?= field_wrap(ta('st_f_skr_sig'), s_in('skribble_signataire', 'text', 'anna@le-voisin.com'), ta('st_f_skr_sig_h')) ?>
       <div class="f"><label class="f-label"><?= e(ta('st_f_skr_q')) ?></label>
         <select name="skribble_quality">
           <?php $q = strtoupper(setting('skribble_quality', 'SES')); foreach (['SES' => ta('st_o_ses'), 'AES' => ta('st_o_aes'), 'QES' => ta('st_o_qes')] as $k => $lbl): ?>
