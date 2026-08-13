@@ -260,10 +260,13 @@ function espace_liste_docs(array $docs): string
     $par = [];
     foreach ($docs as $d) $par[(string)($d['category'] ?? 'other')][] = $d;
 
-    /* Une seule rubrique : rien ne change, et la rubrique reste sur la ligne
-       grise. C'est le cas de la plupart des fiches aujourd'hui. */
-    if (count($par) < 2) return espace_liste_docs_brut($docs, true);
-
+    /* [13.08.2026, deuxième version] Le titre est là MÊME quand il n'y a qu'une
+       rubrique. La première version l'omettait dans ce cas, pour éviter un titre
+       solitaire au-dessus d'un seul fichier — et le résultat est qu'un onglet
+       ressemblait à une chose et le suivant à une autre. Anna l'a vu tout de
+       suite : « Projets » portait ses intertitres, « Contractualisation » non.
+       L'incohérence coûte plus cher que le titre de trop, parce qu'elle oblige
+       à réapprendre la page d'un onglet à l'autre. */
     $out = '';
     foreach ($par as $cat => $lot) {
         usort($lot, static fn($a, $b) => strcmp(

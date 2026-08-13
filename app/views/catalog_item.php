@@ -31,7 +31,7 @@ foreach ($res as $r) {
     if ($lecture === null && $r['cle'] === 'teaser') $lecture = $r;
 }
 $poster = is_file(Catalog::dossier($slug) . '/video/poster.jpg')
-        ? url('/' . Catalog::RACINE . '/' . $slug . '/video/poster.jpg') : '';
+        ? url('/telechargement.php') . '?p=' . (int)$item['id'] . '&f=video/poster.jpg' : '';
 
 $PUBLICS = ['young' => t('cat_pub_young'), 'all' => t('cat_pub_all'), 'adult' => t('cat_pub_adult')];
 $pub   = (string)($item['public_cible'] ?? '');
@@ -63,7 +63,12 @@ $annee = (int)($item['year_creation'] ?? 0);
                  programmateur qui regarde sur iPad veut garder la fiche sous
                  les yeux. Le bouton plein écran, lui, reste à sa disposition. */ ?>
           <video controls playsinline preload="metadata"<?= $poster ? ' poster="' . e($poster) . '"' : '' ?>>
-            <source src="<?= e(url('/' . Catalog::RACINE . '/' . $slug . '/video/' . $lecture['nom'])) ?>" type="video/mp4">
+            <?php /* [13.08.2026] Par le portier, et non par l'adresse directe.
+                     Celle-ci était servie par Apache : la captation intégrale
+                     s'ouvrait sans mot de passe, le contraire de ce que le
+                     Catalogue existe pour faire. Le portier répond aux requêtes
+                     partielles, donc la barre de temps continue de marcher. */ ?>
+            <source src="<?= e(url('/telechargement.php') . '?p=' . (int)$item['id'] . '&f=video/' . rawurlencode($lecture['nom'])) ?>" type="video/mp4">
           </video>
           <p class="cat-video-lgd"><?= e($lecture['libelle']) ?></p>
         </div>

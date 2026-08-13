@@ -54,7 +54,24 @@ class Catalog
     /** Le chemin absolu du dossier d'un spectacle, sans vérifier qu'il existe. */
     public static function dossier(string $slug): string
     {
-        return LV_ROOT . '/' . self::RACINE . '/' . self::slugSur($slug);
+        /* [13.08.2026] La porte de medias/ se ferme ici même.
+
+           Les captations étaient servies par un `<video src="/medias/...">`,
+           une adresse statique qu'Apache sert sans jamais passer par PHP : le
+           mot de passe du Catalogue protégeait la page et pas les fichiers. Les
+           noms de fichiers sont fixes et documentés, les slugs sont dans le
+           sitemap — la captation intégrale s'ouvrait à qui les assemblait.
+
+           La règle est déposée par le code et non livrée dans un paquet, parce
+           que medias/ n'est pas dans le dépôt, et à la première lecture d'une
+           fiche, donc avant que le premier fichier n'y arrive. */
+        $racine = LV_ROOT . '/' . self::RACINE;
+        if (!is_dir($racine)) @mkdir($racine, 0775, true);
+        $ht = $racine . '/.htaccess';
+        if (!is_file($ht)) {
+            @file_put_contents($ht, "Require all denied\n<IfModule !mod_authz_core.c>\nOrder allow,deny\nDeny from all\n</IfModule>\n");
+        }
+        return $racine . '/' . self::slugSur($slug);
     }
 
     /**
