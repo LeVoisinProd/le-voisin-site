@@ -550,15 +550,18 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
         <button type="button" class="btn small" id="lv-copier"><?= e(ta('ce_link_copy')) ?></button>
         <span class="muted" id="lv-copie" hidden><?= e(ta('ce_link_copied')) ?></span>
       </p>
-      <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="lien_envoyer">
+      <form method="post" style="display:inline-block;margin:0 6px 8px 0"><?= $csrf ?><input type="hidden" name="action" value="lien_envoyer">
         <button class="btn small" type="submit"><?= e(ta('ce_link_send')) ?></button></form>
-      <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="lien">
+      <form method="post" style="display:inline-block;margin:0 6px 8px 0"><?= $csrf ?><input type="hidden" name="action" value="lien">
         <button class="btn small ghost" type="submit"><?= e(ta('ce_link_remake')) ?></button></form>
-      <form method="post" style="display:inline"><?= $csrf ?><input type="hidden" name="action" value="lien_annuler">
+      <form method="post" style="display:inline-block;margin:0 0 8px 0"><?= $csrf ?><input type="hidden" name="action" value="lien_annuler">
         <button class="btn small ghost" type="submit"><?= e(ta('ce_link_cancel')) ?></button></form>
       <?php else: ?>
       <p class="hint"><?= e(ta('ce_link_none')) ?></p>
-      <form method="post"><?= $csrf ?><input type="hidden" name="action" value="lien_envoyer">
+      <?php /* [13.08.2026] Les deux boutons se touchaient : deux formulaires
+               empilés, chacun un bouton pleine largeur, et aucune marge entre
+               eux. Collés, ils se lisent comme un seul bouton coupé en deux. */ ?>
+      <form method="post" style="margin:0 0 10px"><?= $csrf ?><input type="hidden" name="action" value="lien_envoyer">
         <button class="btn wide" type="submit"><?= e(ta('ce_link_send')) ?></button></form>
       <?php /* Le second bouton fabrique le lien SANS l'envoyer : pour le coller
                dans un message écrit à la main, ou pour le donner de vive voix. */ ?>
