@@ -428,6 +428,15 @@ admin_top(ta('nav_collab'), 'collab');
            mène d'abord à la liste des destinataires. */ ?>
   <form method="post" id="lv-envoi">
     <?= Auth::csrfField() ?>
+    <?php /* [13.08.2026] Un filet, et voici contre quoi. L'action vient du nom
+             du bouton, pour que deux gestes partent de la même sélection. Mais
+             un formulaire peut partir SANS bouton — la touche Entrée, une
+             extension, un navigateur pressé — et l'action arriverait vide : la
+             page tomberait alors dans la branche qui CRÉE un collaborateur, à
+             deux pas de celle qui en supprime douze. Ce champ donne une valeur
+             par défaut inoffensive, et les boutons la remplacent parce qu'ils
+             viennent après : à nom égal, PHP garde le dernier. */ ?>
+    <input type="hidden" name="lv_action" value="confirmer">
   <table class="tbl">
     <thead><tr>
       <th style="width:1%"><input type="checkbox" id="lv-tout" title="<?= e(ta('inv_pick_all')) ?>"></th>
