@@ -1,0 +1,29 @@
+/* CARIMBO DE VERSÃO                                    [14.08.2026]
+
+   PAQUET : INSTALAR-2026-08-14-convite
+   DATE   : 2026-08-14
+
+   Ce fichier n'a qu'un rôle : dire, depuis l'extérieur et sans mot de passe,
+   quel paquet est réellement installé.
+
+       curl -s https://le-voisin.com/assets/css/version.css | head -5
+
+   Le 13.08.2026, quatre installations ont été données pour faites sans l'être,
+   faites avec la mauvaise archive, ou défaites une heure plus tard par le paquet
+   d'une autre session. Chaque fois il a fallu deviner, et deviner a coûté plus
+   cher que le correctif lui-même.
+
+   POURQUOI UN .css ET PAS UN .txt : le serveur répond 403 sur un .txt posé dans
+   assets/, et 200 sur un .css. Essayé, mesuré, et c'est la seule raison.
+
+   À METTRE À JOUR DANS CHAQUE PAQUET, en même temps que le reste. Un carimbo
+   qui ment est pire que pas de carimbo : il donne une certitude fausse.
+
+   Contenu de ce paquet :
+     app/lib/Invitations.php    le texte neuf, et l'invitation sans clé
+     app/lib/MemberAuth.php     porteUrl()
+     app/i18n/admin.fr.php      les libellés qui parlaient encore de clé
+     app/i18n/admin.en.php      les mêmes
+     admin/documents.php        supprimer en un geste
+     assets/css/version.css     ce fichier
+*/
