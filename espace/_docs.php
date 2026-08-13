@@ -212,7 +212,13 @@ function espace_docs_depot(array $m, string $retour): void
         espace_flash('err', t('member_depot_montant_err'));
         redirect($retour);
     }
-    $montant = rtrim(rtrim(number_format((float)$montant, 2, '.', ''), '0'), '.');
+    /* [13.08.2026, corrigé le soir même] « 44.50 » devenait « 44.5 ».
+       Le rtrim mangeait tous les zéros de fin, y compris celui qui compte : un
+       montant en francs s'écrit avec ses deux décimales ou avec aucune, jamais
+       avec une. La règle juste : les centimes restent quand il y en a, et ne
+       disparaissent que lorsqu'ils sont nuls, pour ne pas nommer « 2100.00 ». */
+    $montant = number_format((float)$montant, 2, '.', '');
+    if (str_ends_with($montant, '.00')) $montant = substr($montant, 0, -3);
     $devise  = in_array((string)($_POST['devise'] ?? ''), ['CHF', 'EUR'], true)
              ? (string)$_POST['devise'] : 'CHF';
 

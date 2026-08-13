@@ -49,7 +49,14 @@ class NomFichier
            cinquante nommés quatre mille quatre cent cinquante, dans un dossier
            de comptabilité. La virgule devient un point, parce qu'un nom de
            fichier ne se trie correctement qu'avec un séparateur décimal fixe. */
-        if (preg_match('/^[0-9]+([.,][0-9]+)?$/', $s)) return str_replace(',', '.', $s);
+        if (preg_match('/^[0-9]+([.,][0-9]+)?$/', $s)) {
+            /* Deux décimales ou aucune, jamais une seule : « 44.5 » se lit mal
+               dans un dossier de comptabilité, et « 2100.00 » alourdit pour rien.
+               Normalisé ICI plutôt qu'à chaque porte, sinon le formulaire public
+               écrit ce que la personne a tapé et l'espace autre chose. */
+            $n = number_format((float)str_replace(',', '.', $s), 2, '.', '');
+            return str_ends_with($n, '.00') ? substr($n, 0, -3) : $n;
+        }
 
         $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT', $s);
         if (is_string($ascii) && $ascii !== '') $s = $ascii;
