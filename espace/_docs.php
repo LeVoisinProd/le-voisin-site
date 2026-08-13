@@ -226,7 +226,12 @@ function espace_docs_depot(array $m, string $retour): void
     /* L'avis part après coup, et son échec ne défait rien : la facture est
        déposée, elle est visible des deux côtés, et c'est le courriel qui
        manque — pas le document. */
-    try { MemberNotify::factureDeposee($m, $doc); } catch (Throwable $e) { /* rien à dire ici */ }
+    /* [13.08.2026] Le montant et la devise voyagent en argument : ils ne sont
+       dans aucune colonne de member_documents, seulement dans le nom du
+       fichier, et l'objet du courriel doit les dire comme le fait déjà celui
+       du formulaire public. */
+    try { MemberNotify::factureDeposee($m, $doc, $montant, $devise); }
+    catch (Throwable $e) { /* rien à dire ici */ }
 
     /* [13.08.2026] Et l'accusé de réception à la personne, qui ne recevait
        rien. Deux envois séparés et non une copie : le bureau a besoin de

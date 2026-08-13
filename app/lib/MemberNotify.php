@@ -109,26 +109,111 @@ class MemberNotify
      * Le message est en français : il va au bureau, dont la langue de travail
      * est celle de l'administration.
      */
-    public static function factureDeposee(array $c, array $doc): bool
+    public static function factureDeposee(array $c, array $doc,
+                                          string $montant = '', string $devise = ''): bool
     {
-        $to = self::adresseBureau((string)($doc['assoc'] ?? ''));
-        if ($to === '') return false;
-
-        $lang = I18n::ADMIN_DEFAULT;
-        $nom  = trim((string)($c['name'] ?? '')) ?: (string)($c['email'] ?? '');
-        $sujet = self::m('mn_dep_s', $lang, $nom);
-
-        $corps  = self::p(self::m('mn_dep_1', $lang, $nom));
-        $corps .= self::p(self::m('mn_dep_2', $lang, self::nomDoc($doc)));
-        $assoc = trim((string)($doc['assoc'] ?? ''));
-        if ($assoc !== '') $corps .= self::p(self::m('mn_dep_3', $lang, $assoc));
+        $lang   = I18n::ADMIN_DEFAULT;
+        $assoc  = trim((string)($doc['assoc'] ?? ''));
+        $nom    = trim((string)($c['name'] ?? '')) ?: (string)($c['email'] ?? '');
         $projet = self::titreProjet($doc, $lang);
-        if ($projet !== '') $corps .= self::p(self::m('mn_dep_4', $lang, $projet));
+
+        /* ---- L'objet, mot pour mot celui du formulaire public ----
+           Le bureau reçoit les deux dans la même boîte. Deux objets différents
+           pour le même événement obligent à connaître par quelle porte la
+           personne est passée avant de pouvoir trier, ce qui est précisément
+           l'information dont on se moque. */
+        $sujet = '[' . ($assoc !== '' ? $assoc : setting('site_name', 'Le Voisin')) . '] '
+               . 'Facture / note de frais';
+        if ($nom !== '')     $sujet .= ' — ' . $nom;
+        if ($montant !== '') $sujet .= ' — ' . $montant . ' ' . $devise;
+
+        /* ---- Le corps, dans l'ordre du formulaire public ---- */
+        $fichier = trim((string)($doc['filename'] ?? ''));
+        $taille  = (int)($doc['size'] ?? 0);
+        $lignes  = [
+            ['__sec', 'Dépense'],
+            ['De quoi s’agit-il ?', MemberDocs::catLabel((string)($doc['category'] ?? ''), 'fr')],
+            ['Association',   $assoc],
+            ['Projet + lieu', $projet],
+            ['Montant',       $montant !== '' ? $montant . ' ' . $devise : ''],
+            ['Justificatif',  $fichier . ($taille > 0 ? ' (' . Docs::human($taille) . ')' : '')],
+            ['__sec', 'Contact'],
+            ['Nom Prénom', $nom],
+            ['E-mail',     trim((string)($c['email'] ?? ''))],
+            ['__sec', 'Envoi'],
+            ['Date et heure', date('d.m.Y \à H\hi')],
+            /* Cette ligne-là n'existe pas dans le formulaire public, et c'est
+               justement pourquoi elle est utile : elle dit par quelle porte la
+               pièce est entrée. Une personne qui a un compte n'a pas eu à
+               retaper son IBAN — il est dans sa fiche, chiffré, et c'est là
+               qu'on va le chercher. */
+            ['Déposé depuis', 'l’espace collaborateur'],
+        ];
+
+        $corps = '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
+        foreach ($lignes as [$label, $valeur]) {
+            if ($label === '__sec') {
+                $corps .= '<tr><td colspan="2" style="padding:14px 8px 4px;font-weight:bold;'
+                        . 'text-transform:uppercase;font-size:12px;letter-spacing:.08em;'
+                        . 'border-bottom:1px solid #ddd;">' . e($valeur) . '</td></tr>';
+                continue;
+            }
+            $cellule = trim((string)$valeur) === ''
+                ? '<td style="padding:6px 8px;color:#999;font-style:italic;">non renseigné</td>'
+                : '<td style="padding:6px 8px;font-weight:600;">' . e($valeur) . '</td>';
+            $corps .= '<tr><td style="padding:6px 8px;color:#555;vertical-align:top;width:45%;">'
+                    . e($label) . '</td>' . $cellule . '</tr>';
+        }
+        $corps .= '</table>';
         $corps .= self::lien(url('/admin/collaborator-edit.php?id=' . (int)($c['id'] ?? 0)),
                              self::m('mn_dep_go', $lang));
 
-        return Mailer::send([$to], $sujet, Mailer::wrap($sujet, $corps), [],
-                            filter_var((string)($c['email'] ?? ''), FILTER_VALIDATE_EMAIL) ? (string)$c['email'] : null);
+        /* ---- LA PIÈCE VOYAGE AVEC L'AVIS ----
+           Elle ne le faisait pas, et c'est ce qui vidait toute la chaîne : la
+           boîte de dépôt de Bexio se nourrit du PDF joint au message. Un avis
+           qui ne portait qu'un lien vers le CMS lui donnait un courriel et zéro
+           document, et la comptabilité ne voyait jamais rien arriver. */
+        $pj = [];
+        $chemin = MemberDocs::dir((int)($doc['id'] ?? 0)) . '/' . $fichier;
+        if ($fichier !== '' && is_file($chemin)) {
+            $pj[] = ['path' => $chemin, 'name' => $fichier];
+        } else {
+            self::journal("Dépôt {$doc['id']} : fichier introuvable, avis envoyé sans pièce jointe");
+        }
+
+        $replyTo = filter_var((string)($c['email'] ?? ''), FILTER_VALIDATE_EMAIL)
+                 ? (string)$c['email'] : null;
+
+        /* ---- DEUX DESTINATAIRES, comme le formulaire public ----
+           Avant, l'avis partait à la seule adresse de l'association, qui est la
+           boîte de dépôt de Bexio : personne ne le lisait. Le bureau n'était
+           donc jamais prévenu qu'une facture venait d'arriver, et l'apprenait
+           en ouvrant le CMS par hasard. */
+        $bureau = Settings::emails('form_expenses_to');
+        if (!$bureau) {
+            $g = trim((string)setting('contact_email', ''));
+            if (filter_var($g, FILTER_VALIDATE_EMAIL)) $bureau = [$g];
+        }
+
+        $ok = false;
+        if ($bureau) $ok = Mailer::send($bureau, $sujet, Mailer::wrap($sujet, $corps), $pj, $replyTo);
+
+        [$compta, $note] = Forms::adresseComptable($assoc);
+        if ($note !== '') self::journal("Dépôt depuis l'espace : $note");
+        if ($compta && $compta !== $bureau) {
+            Mailer::send($compta, $sujet, Mailer::wrap($sujet, $corps), $pj, $replyTo);
+        }
+
+        return $ok;
+    }
+
+    /** Le même journal que celui des formulaires, pour ne pas en avoir deux. */
+    private static function journal(string $ligne): void
+    {
+        $dir = LV_APP . '/logs';
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        @file_put_contents($dir . '/mail.log',
+            '[' . date('Y-m-d H:i:s') . '] ' . $ligne . "\n", FILE_APPEND);
     }
 
     /** Le titre du projet d'un document, ou '' s'il n'en a pas. */

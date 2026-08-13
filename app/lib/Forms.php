@@ -276,12 +276,34 @@ class Forms
      */
     private static function accounting(array $def, array $values): array
     {
-        $secours = Settings::emails($def['bexio_key']);
+        return self::adresseComptable(
+            trim((string)($values[$def['assoc_key'] ?? 'association'] ?? '')),
+            (string)$def['bexio_key']);
+    }
+
+    /**
+     * La boîte de dépôt comptable d'une association.        [13.08.2026]
+     *
+     * Publique et sortie de accounting(), parce que l'espace collaborateur en a
+     * besoin lui aussi : une facture déposée là doit atterrir dans la même
+     * boîte qu'une facture envoyée par le formulaire public, sans quoi la
+     * comptabilité en trouve la moitié à un endroit et la moitié à l'autre
+     * selon la porte qu'a prise la personne, ce qui ne se devine pas.
+     *
+     * Rend [adresses, note]. La note n'est jamais vide quand quelque chose
+     * cloche, et elle nomme le réglage à corriger : une copie comptable qui ne
+     * part pas ne se voit nulle part, et se découvre au bouclement.
+     *
+     * @return array{0: array<int, string>, 1: string}
+     */
+    public static function adresseComptable(string $nom, string $bexioKey = 'form_expenses_bexio'): array
+    {
+        $secours = Settings::emails($bexioKey);
         $repli   = $secours
             ? 'copie envoyée à l\'adresse comptable de secours.'
             : 'aucune copie comptable n\'a pu être envoyée.';
 
-        $nom = trim((string)($values[$def['assoc_key'] ?? 'association'] ?? ''));
+        $nom = trim($nom);
         if ($nom === '') return [$secours, ''];
 
         $liste = Settings::pairs('form_assoc_options');
@@ -560,13 +582,37 @@ class Forms
             }
             $key = $field['key'];
             $val = $values[$key] ?? '';
-            if ($val === '') continue;
-            if ($field['type'] === 'yesno') $val = $val === 'yes' ? 'Oui' : 'Non';
+
+            /* [13.08.2026] UN CHAMP VIDE S'ÉCRIT QUAND MÊME. Avant, il
+               disparaissait, et le courriel ne se lisait plus comme le
+               formulaire : il fallait connaître la liste des questions par cœur
+               pour voir laquelle manquait. Surtout, une ligne absente ne
+               distingue pas « cette personne n'a pas de BIC » de « cette
+               personne a oublié le BIC » — et c'est le bureau qui paie la
+               différence, en relançant, ou pire en ne relançant pas.
+
+               Un champ masqué par show_if, lui, n'a pas été posé : l'écrire
+               vide serait faux. Il continue de sauter. */
+            if ($val === '' && !self::condMet($field, $values)) continue;
+
+            if ($field['type'] === 'yesno' && $val !== '') $val = $val === 'yes' ? 'Oui' : 'Non';
             // [V16-DATES] Le courriel se lit comme la fiche : le jour d'abord.
-            if ($field['type'] === 'date') $val = Dates::afficher($val) ?: $val;
-            $rows .= '<tr><td style="padding:6px 8px;color:#555;vertical-align:top;width:45%;">' . e(self::label($field['label'], 'fr'))
-                   . '</td><td style="padding:6px 8px;font-weight:600;">' . nl2br(e($val)) . '</td></tr>';
+            if ($field['type'] === 'date' && $val !== '') $val = Dates::afficher($val) ?: $val;
+
+            $cellule = $val === ''
+                ? '<td style="padding:6px 8px;color:#999;font-style:italic;">non renseigné</td>'
+                : '<td style="padding:6px 8px;font-weight:600;">' . nl2br(e($val)) . '</td>';
+            $rows .= '<tr><td style="padding:6px 8px;color:#555;vertical-align:top;width:45%;">'
+                   . e(self::label($field['label'], 'fr')) . '</td>' . $cellule . '</tr>';
         }
+
+        /* Le pied du tableau : ce que le formulaire ne demande pas mais qu'on
+           veut savoir en le relisant dans six mois. L'heure surtout, parce que
+           deux envois de la même personne le même jour ne se distinguent
+           autrement que par la taille du fichier joint. */
+        $rows .= '<tr><td colspan="2" style="padding:14px 8px 4px;font-weight:bold;text-transform:uppercase;font-size:12px;letter-spacing:.08em;border-bottom:1px solid #ddd;">Envoi</td></tr>';
+        $rows .= '<tr><td style="padding:6px 8px;color:#555;">Date et heure</td><td style="padding:6px 8px;font-weight:600;">'
+               . e(date('d.m.Y \à H\hi')) . '</td></tr>';
         $rows .= '<tr><td style="padding:6px 8px;color:#555;">Langue du site</td><td style="padding:6px 8px;">' . e(mb_strtoupper(I18n::$lang)) . '</td></tr>';
 
         $title = self::label($def['name'], 'fr');
