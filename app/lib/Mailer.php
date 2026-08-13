@@ -41,7 +41,29 @@ class Mailer
         $headers[] = 'X-Mailer: LeVoisinCMS';
         $headers[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
 
-        $text = trim(html_entity_decode(strip_tags(preg_replace('/<(br|\/p|\/tr|\/h\d)>/i', "\n", $html)), ENT_QUOTES, 'UTF-8'));
+        /* [13.08.2026] La version texte porte enfin les adresses des liens.
+
+           strip_tags() gardait le libellé du lien et jetait son adresse. Sur un
+           message dont la raison d'être EST un lien, cela donnait « Entrer dans
+           mon espace » sans rien à ouvrir : illisible pour qui lit en texte
+           simple, et douteux pour les filtres, qui comparent les deux versions
+           et se méfient d'une version texte vide de tout ce que l'autre promet.
+
+           On écrit donc l'adresse à la suite du libellé, sauf quand les deux
+           sont déjà identiques — c'est le cas de {lien}, qui affiche l'adresse
+           en toutes lettres et deviendrait sinon « url url ». */
+        $avecLiens = preg_replace_callback(
+            '/<a\b[^>]*href=(["\'])(.*?)\1[^>]*>(.*?)<\/a>/is',
+            static function (array $m): string {
+                $url = html_entity_decode($m[2], ENT_QUOTES, 'UTF-8');
+                $lib = trim(html_entity_decode(strip_tags($m[3]), ENT_QUOTES, 'UTF-8'));
+                if ($lib === '' || $lib === $url) return $url;
+                return $lib . ' : ' . $url;
+            },
+            $html
+        ) ?? $html;
+
+        $text = trim(html_entity_decode(strip_tags(preg_replace('/<(br|\/p|\/tr|\/h\d)>/i', "\n", $avecLiens)), ENT_QUOTES, 'UTF-8'));
 
         $body  = "--$boundary\r\n";
         $body .= "Content-Type: multipart/alternative; boundary=\"$altBoundary\"\r\n\r\n";

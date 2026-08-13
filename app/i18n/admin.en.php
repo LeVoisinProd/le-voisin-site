@@ -751,6 +751,7 @@ return [
     'inv_err_link'       => 'the link could not be created — run “Update the database”',
     'inv_err_send'       => 'the mail server refused the message',
     'inv_err_nosmtp'     => 'no mail server is configured: fill in Settings > Sending emails before sending access links.',
+    'inv_err_smtpko'     => 'the sending server refuses the connection: %s. Nothing was sent and no link was touched. Check Settings > Sending emails, then try again.',
     'inv_demo_name'      => 'First Last',
     'inv_test_prefix'    => '[Example]',
 

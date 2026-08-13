@@ -60,7 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($obstacle !== '') {
             flash($obstacle, 'err');
         } else {
-            $r = Invitations::envoyer($row);
+            /* [13.08.2026] $c, et non $row, qui n'existe nulle part dans ce
+               fichier. La ligne est là depuis le chantier des invitations et
+               n'a donc JAMAIS fonctionné : passer une variable indéfinie à un
+               paramètre typé array est une erreur fatale en PHP 8, page
+               blanche, aucun message, aucun envoi. Personne ne l'avait vu
+               parce que le seul symptôme est une page qui ne répond pas. */
+            $r = Invitations::envoyer($c);
             if ($r['ok']) flash(ta('ce_link_sent') . ' ' . $r['email']);
             else          flash(($r['raison'] ?: ta('inv_err_send')) , 'err');
         }

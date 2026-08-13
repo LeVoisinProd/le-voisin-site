@@ -759,6 +759,7 @@ return [
     'inv_err_link'       => 'le lien n’a pas pu être créé — lancez « Mettre à jour la base »',
     'inv_err_send'       => 'le serveur d’envoi a refusé le message',
     'inv_err_nosmtp'     => 'aucun serveur d’envoi n’est configuré : renseignez Réglages > Envoi des emails avant d’envoyer les accès.',
+    'inv_err_smtpko'     => 'le serveur d’envoi refuse la connexion : %s. Rien n’a été envoyé et aucun lien n’a été touché. Vérifiez Réglages > Envoi des emails, puis réessayez.',
     'inv_demo_name'      => 'Prénom Nom',
     'inv_test_prefix'    => '[Exemple]',
 

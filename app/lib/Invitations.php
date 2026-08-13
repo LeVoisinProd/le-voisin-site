@@ -338,8 +338,24 @@ TXT;
      */
     public static function obstacle(): string
     {
-        if (trim((string)setting('smtp_host', '')) === '' && !function_exists('mail')) {
+        $hote = trim((string)setting('smtp_host', ''));
+        if ($hote === '' && !function_exists('mail')) {
             return ta('inv_err_nosmtp');
+        }
+        /* [13.08.2026] On se connecte vraiment, et on s'authentifie.
+
+           Ce contrôle ne vérifiait que la PRÉSENCE du réglage. Un mot de passe
+           faux le passait sans bruit, et l'envoi partait quand même : soixante-
+           dix-sept clés refaites, soixante-dix-sept messages refusés, et autant
+           de personnes dont le lien précédent venait d'être annulé. Smtp::verifie()
+           existait déjà, utilisé par la page des Réglages, et n'était pas appelé
+           ici. Il ouvre une connexion, fait STARTTLS et AUTH, n'envoie rien.
+
+           La condition sur $hote garde intacte la voie mail() : ce contrôle ne
+           peut donc bloquer qu'un envoi qui serait passé par SMTP. */
+        if ($hote !== '' && !Smtp::verifie()) {
+            $d = trim(Smtp::$erreur);
+            return ta('inv_err_smtpko', $d !== '' ? $d : ta('inv_err_send'));
         }
         return '';
     }
