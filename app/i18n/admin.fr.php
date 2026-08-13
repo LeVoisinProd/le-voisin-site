@@ -847,4 +847,38 @@ return [
     'al_action_visite'  => 'Visite (bureau)',
     'al_actor_member'   => 'La personne elle-même',
     'al_actor_admin'    => 'Le bureau — %s',
+
+    /* ---- Tous les documents, en un seul écran ----      [V44-DOCS] [13.08.2026]
+       Les apostrophes sont typographiques et non droites : c’est la forme juste
+       en français, et c’est aussi la seule qui n’a rien à échapper dans une
+       chaîne PHP. Un paquet a été refusé ce matin pour une apostrophe échappée
+       deux fois. */
+    'nav_documents'    => 'Documents',
+    'doc_title'        => 'Tous les documents',
+    'doc_intro'        => 'Les pièces de toutes les personnes, dans un seul écran. L’index CSV donne une ligne par document, avec la personne, l’association, le projet, la rubrique, le montant et la date : c’est ce fichier qui permet de retrouver et de classer sans ouvrir les PDF un par un. L’archive reprend la sélection affichée, rangée en dossiers Association, Année, Rubrique, et emporte l’index avec elle.',
+    'doc_csv'          => 'Index CSV',
+    'doc_zip'          => 'Archive de la sélection',
+    'doc_no_zip'       => 'Ce serveur ne sait pas fabriquer d’archive ZIP. L’index CSV, lui, reste disponible.',
+    'doc_none_selected'=> 'Aucun document n’était coché.',
+    'doc_deleted'      => '%d document(s) supprimé(s).',
+    'doc_del_confirm'  => 'Supprimer ces %d document(s) ?',
+    'doc_del_warn'     => 'Le fichier part du disque en même temps que la ligne, et rien ne le rattrape. Relisez la liste : un filtre trop large ne se voit pas dans un total.',
+    'doc_del_go'       => 'Oui, supprimer',
+    'doc_del_sel'      => 'Supprimer la sélection',
+    'doc_cancel'       => 'Annuler',
+    'doc_f_year'       => 'Année',
+    'doc_f_cat'        => 'Rubrique',
+    'doc_f_assoc'      => 'Association',
+    'doc_f_who'        => 'Personne',
+    'doc_f_text'       => 'Recherche',
+    'doc_f_text_ph'    => 'nom de fichier, titre, personne',
+    'doc_f_all'        => 'Toutes',
+    'doc_f_double'     => 'Seulement les doublons possibles (%d)',
+    'doc_f_go'         => 'Filtrer',
+    'doc_f_reset'      => 'Tout afficher',
+    'doc_count'        => 'document(s)',
+    'doc_all'          => 'Tout cocher',
+    'doc_empty'        => 'Aucun document ne correspond à ces filtres.',
+    'doc_dup'          => 'doublon ?',
+    'doc_fiche'        => 'La fiche',
 ];

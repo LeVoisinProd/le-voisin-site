@@ -109,8 +109,8 @@ class MemberNotify
      * Le message est en français : il va au bureau, dont la langue de travail
      * est celle de l'administration.
      */
-    public static function factureDeposee(array $c, array $doc,
-                                          string $montant = '', string $devise = ''): bool
+    public static function factureDeposee(array $c, array $doc, string $montant = '',
+                                          string $devise = '', string $periode = ''): bool
     {
         $lang   = I18n::ADMIN_DEFAULT;
         $assoc  = trim((string)($doc['assoc'] ?? ''));
@@ -129,44 +129,9 @@ class MemberNotify
 
         /* ---- Le corps, dans l'ordre du formulaire public ---- */
         $fichier = trim((string)($doc['filename'] ?? ''));
-        $taille  = (int)($doc['size'] ?? 0);
-        $lignes  = [
-            ['__sec', 'Dépense'],
-            ['De quoi s’agit-il ?', MemberDocs::catLabel((string)($doc['category'] ?? ''), 'fr')],
-            ['Association',   $assoc],
-            ['Projet + lieu', $projet],
-            ['Montant',       $montant !== '' ? $montant . ' ' . $devise : ''],
-            ['Justificatif',  $fichier . ($taille > 0 ? ' (' . Docs::human($taille) . ')' : '')],
-            ['__sec', 'Contact'],
-            ['Nom Prénom', $nom],
-            ['E-mail',     trim((string)($c['email'] ?? ''))],
-            ['__sec', 'Envoi'],
-            ['Date et heure', date('d.m.Y \à H\hi')],
-            /* Cette ligne-là n'existe pas dans le formulaire public, et c'est
-               justement pourquoi elle est utile : elle dit par quelle porte la
-               pièce est entrée. Une personne qui a un compte n'a pas eu à
-               retaper son IBAN — il est dans sa fiche, chiffré, et c'est là
-               qu'on va le chercher. */
-            ['Déposé depuis', 'l’espace collaborateur'],
-        ];
-
-        $corps = '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
-        foreach ($lignes as [$label, $valeur]) {
-            if ($label === '__sec') {
-                $corps .= '<tr><td colspan="2" style="padding:14px 8px 4px;font-weight:bold;'
-                        . 'text-transform:uppercase;font-size:12px;letter-spacing:.08em;'
-                        . 'border-bottom:1px solid #ddd;">' . e($valeur) . '</td></tr>';
-                continue;
-            }
-            $cellule = trim((string)$valeur) === ''
-                ? '<td style="padding:6px 8px;color:#999;font-style:italic;">non renseigné</td>'
-                : '<td style="padding:6px 8px;font-weight:600;">' . e($valeur) . '</td>';
-            $corps .= '<tr><td style="padding:6px 8px;color:#555;vertical-align:top;width:45%;">'
-                    . e($label) . '</td>' . $cellule . '</tr>';
-        }
-        $corps .= '</table>';
-        $corps .= self::lien(url('/admin/collaborator-edit.php?id=' . (int)($c['id'] ?? 0)),
-                             self::m('mn_dep_go', $lang));
+        $corps = self::tableauFacture($c, $doc, $montant, $devise, $assoc, $projet, $nom, $periode, 'fr')
+               . self::lien(url('/admin/collaborator-edit.php?id=' . (int)($c['id'] ?? 0)),
+                            self::m('mn_dep_go', $lang));
 
         /* ---- LA PIÈCE VOYAGE AVEC L'AVIS ----
            Elle ne le faisait pas, et c'est ce qui vidait toute la chaîne : la
@@ -204,7 +169,88 @@ class MemberNotify
             Mailer::send($compta, $sujet, Mailer::wrap($sujet, $corps), $pj, $replyTo);
         }
 
+        /* ---- ET LA PERSONNE REÇOIT LE MÊME MESSAGE ----          [13.08.2026]
+           Elle recevait avant un accusé de trois lignes, sans pièce jointe et
+           sans le détail. Or c'est elle qui, dans six mois, devra prouver ce
+           qu'elle a envoyé et quand : un accusé qui ne contient pas la pièce
+           ne prouve rien, et l'oblige à revenir sur le site pour vérifier ce
+           qu'elle a écrit. Le tableau est le même, dans SA langue — le sujet,
+           lui, ne bouge pas, pour que les trois exemplaires du message se
+           retrouvent d'un seul coup dans n'importe quelle boîte. */
+        $sien = trim((string)($c['email'] ?? ''));
+        if (filter_var($sien, FILTER_VALIDATE_EMAIL)) {
+            $sl = Invitations::langue((string)($c['lang'] ?? ''));
+            $sonCorps = self::tableauFacture($c, $doc, $montant, $devise, $assoc,
+                                             self::titreProjet($doc, $sl), $nom, $periode, $sl)
+                      . self::lien(url('/espace/' . self::ancreDocs([$doc])), self::m('mn_go', $sl));
+            Mailer::send([$sien], $sujet, Mailer::wrap($sujet, $sonCorps), $pj);
+        }
+
         return $ok;
+    }
+
+    /**
+     * Le tableau d'une facture déposée, dans une langue ou dans l'autre.
+     *
+     * Écrit une fois pour trois destinataires — le bureau, la comptabilité et
+     * la personne — parce que trois versions d'un même tableau divergent au
+     * premier ajout de ligne, et que c'est toujours celle qu'on ne relit pas
+     * qui garde l'ancienne.
+     *
+     * Les libellés reprennent MOT POUR MOT ceux du formulaire public : le
+     * bureau reçoit les deux dans la même boîte, et deux vocabulaires pour les
+     * mêmes champs obligent à traduire de tête à chaque tri.
+     */
+    private static function tableauFacture(array $c, array $doc, string $montant, string $devise,
+                                           string $assoc, string $projet, string $nom,
+                                           string $periode, string $lang): string
+    {
+        $fr = $lang !== 'en';
+        $fichier = trim((string)($doc['filename'] ?? ''));
+        $taille  = (int)($doc['size'] ?? 0);
+        $vide    = $fr ? 'non renseigné' : 'not provided';
+
+        $lignes = [
+            ['__sec', $fr ? 'Dépense' : 'Expense'],
+            [$fr ? 'De quoi s’agit-il ?' : 'What is it?',
+                   MemberDocs::catLabel((string)($doc['category'] ?? ''), $fr ? 'fr' : 'en')],
+            [$fr ? 'Association'   : 'Association',   $assoc],
+            [$fr ? 'Projet + lieu' : 'Project + place', $projet],
+            [$fr ? 'Montant'       : 'Amount',        $montant !== '' ? $montant . ' ' . $devise : ''],
+            /* La période, et pas la date du dépôt : une facture de juillet
+               déposée en août se range en juillet. */
+            [$fr ? 'Période'       : 'Period',        $periode],
+            [$fr ? 'Justificatif'  : 'Receipt',
+                   $fichier . ($taille > 0 ? ' (' . Docs::human($taille) . ')' : '')],
+            ['__sec', $fr ? 'Contact' : 'Contact'],
+            [$fr ? 'Nom Prénom' : 'Full name', $nom],
+            [$fr ? 'E-mail'     : 'E-mail',    trim((string)($c['email'] ?? ''))],
+            ['__sec', $fr ? 'Envoi' : 'Submission'],
+            [$fr ? 'Date et heure' : 'Date and time', date($fr ? 'd.m.Y \à H\hi' : 'd.m.Y, H:i')],
+            /* Cette ligne n'existe pas dans le formulaire public, et c'est
+               justement pourquoi elle est utile : elle dit par quelle porte la
+               pièce est entrée. Une personne qui a un compte n'a pas eu à
+               retaper son IBAN — il est dans sa fiche, chiffré, et c'est là
+               qu'on va le chercher plutôt que dans un courriel. */
+            [$fr ? 'Déposé depuis' : 'Sent from',
+             $fr ? 'l’espace collaborateur' : 'the collaborator area'],
+        ];
+
+        $out = '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
+        foreach ($lignes as [$label, $valeur]) {
+            if ($label === '__sec') {
+                $out .= '<tr><td colspan="2" style="padding:14px 8px 4px;font-weight:bold;'
+                      . 'text-transform:uppercase;font-size:12px;letter-spacing:.08em;'
+                      . 'border-bottom:1px solid #ddd;">' . e($valeur) . '</td></tr>';
+                continue;
+            }
+            $cellule = trim((string)$valeur) === ''
+                ? '<td style="padding:6px 8px;color:#999;font-style:italic;">' . e($vide) . '</td>'
+                : '<td style="padding:6px 8px;font-weight:600;">' . e($valeur) . '</td>';
+            $out .= '<tr><td style="padding:6px 8px;color:#555;vertical-align:top;width:45%;">'
+                  . e($label) . '</td>' . $cellule . '</tr>';
+        }
+        return $out . '</table>';
     }
 
     /** Le même journal que celui des formulaires, pour ne pas en avoir deux. */

@@ -122,6 +122,10 @@ function admin_top(string $title, string $active = ''): void
     <?php endforeach; ?>
     <p class="side-sep"><?= e(ta('nav_espace')) ?></p>
     <a href="<?= e(admin_url('collaborators.php')) ?>"<?= $active === 'collab' ? ' class="on"' : '' ?>><?= e(ta('nav_collab')) ?></a>
+    <?php /* [13.08.2026] Les documents entre les personnes et le journal : on y
+             va en pensant « une pièce », et non « quelqu’un ». Jusqu’ici il
+             fallait passer par une fiche, donc savoir de qui elle était. */ ?>
+    <a href="<?= e(admin_url('documents.php')) ?>"<?= $active === 'documents' ? ' class="on"' : '' ?>><?= e(ta('nav_documents')) ?></a>
     <a href="<?= e(admin_url('access-log.php')) ?>"<?= $active === 'access_log' ? ' class="on"' : '' ?>><?= e(ta('nav_access_log')) ?></a>
     <p class="side-sep"><?= e(ta('nav_config')) ?></p>
     <a href="<?= e(admin_url('settings.php')) ?>"<?= $active === 'settings' ? ' class="on"' : '' ?>><?= e(ta('nav_settings')) ?></a>

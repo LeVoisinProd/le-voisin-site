@@ -467,3 +467,23 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--ink); outli
    deux emplacements l'ont remplacée : on ne coche plus rien, on dépose au bon
    endroit. Le style est retiré avec elle, pour qu'un sélecteur orphelin ne
    laisse pas croire qu'il reste quelque chose à cocher. */
+
+/* ---------- Tous les documents ----------              [V44-DOCS] [13.08.2026]
+
+   Presque rien de neuf : la rangée est celle de « .rowitem », déjà employée
+   par les autres listes. S'ajoutent la grille des filtres, la case de chaque
+   ligne, et le fond de celles qu'on soupçonne d'être un doublon. */
+.doc-f-grille {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 18px; margin-bottom: 14px;
+}
+.doc-f-grille .f { margin: 0; }
+.doc-f-bas { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0; }
+.doc-f-case { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; }
+.doc-f-case input { margin: 0; }
+.doc-case { flex: none; margin: 0; }
+.doc-compte { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 14px; }
+/* Un fond et non une bordure : la ligne garde sa hauteur, et une liste de deux
+   cents documents dont vingt sont douteux reste une liste régulière. */
+.doc-double { background: #fdf6e3; }
+.doc-danger { border-color: #b3261e; }

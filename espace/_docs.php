@@ -178,7 +178,12 @@ function espace_docs_depot(array $m, string $retour): void
     $periodes = espace_periodes();
     $periode  = (string)($_POST['periode'] ?? '');
     if (!isset($periodes[$periode])) $periode = (string)array_key_first($periodes);
-    [$annee, $mois] = array_map('intval', explode('-', $periode));
+    /* [13.08.2026] La période ne se lit plus dans le nom du fichier, que la
+       nouvelle nomenclature ouvre par le montant. Elle n'est pas perdue pour
+       autant : elle part dans le courriel, parce qu'une facture de juillet
+       déposée en août ne se distingue pas de sa voisine par sa date de dépôt,
+       et que c'est cette distinction-là qui compte au bouclement. */
+    $periodeLabel = (string)($periodes[$periode] ?? '');
 
     /* Le projet, facultatif : une facture peut n'en concerner aucun. */
     $projet  = (int)($_POST['projet'] ?? 0);
@@ -230,14 +235,21 @@ function espace_docs_depot(array $m, string $retour): void
        dans aucune colonne de member_documents, seulement dans le nom du
        fichier, et l'objet du courriel doit les dire comme le fait déjà celui
        du formulaire public. */
-    try { MemberNotify::factureDeposee($m, $doc, $montant, $devise); }
+    try { MemberNotify::factureDeposee($m, $doc, $montant, $devise, $periodeLabel); }
     catch (Throwable $e) { /* rien à dire ici */ }
 
     /* [13.08.2026] Et l'accusé de réception à la personne, qui ne recevait
        rien. Deux envois séparés et non une copie : le bureau a besoin de
        « quelqu'un a déposé, allez voir », la personne a besoin de « c'est
        arrivé chez nous, le voici ». Le même texte ne fait pas les deux. */
-    try { MemberNotify::depotConfirme($m, [$doc]); } catch (Throwable $e) { /* idem */ }
+    /* [13.08.2026] L'accusé de trois lignes a disparu d'ici : factureDeposee()
+       envoie désormais à la personne LE MÊME message qu'au bureau, tableau
+       complet et pièce jointe comprise. Deux courriels pour un dépôt, dont un
+       moins complet que l'autre, se lisaient comme un doublon.
+
+       depotConfirme() reste vivant et sert toujours _infos.php, où la personne
+       dépose des pièces d'identité : là, il n'y a ni montant ni association, et
+       un accusé court est exactement ce qu'il faut. */
 
     espace_flash('ok', tu('doc_f_ok', (string)($doc['filename'] ?? '')));
     redirect($retour);
