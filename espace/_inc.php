@@ -218,7 +218,12 @@ function espace_doc_statut(array $d): string
           . '<input type="hidden" name="doc" value="statut">'
           . '<input type="hidden" name="id" value="' . (int)$d['id'] . '">'
           . '<input type="hidden" name="vers" value="' . e($vers) . '">'
-          . '<button class="btn small" type="submit"' . ($visite ? ' disabled' : '') . '>'
+          /* Noir, et c'est le seul bouton noir de la ligne. [13.08.2026]
+             Avant, « J'ai bien reçu » et « Signer » étaient tous deux jaunes et
+             « Télécharger » était le seul plein de noir : la rangée désignait
+             comme geste principal le seul des trois qui ne change rien. Or
+             celui-ci est le seul qui écrit en base, et c'est lui qu'on attend. */
+          . '<button class="btn small ink" type="submit"' . ($visite ? ' disabled' : '') . '>'
           . e(tu(MemberDocs::boutonClef($d, $vers))) . '</button></form>';
 
     return $out;
@@ -341,7 +346,14 @@ function espace_liste_docs_brut(array $docs, bool $avecRubrique = true): string
           <span class="sig-badge tosign"><?= e(t('member_to_sign')) ?></span>
           <?php endif; ?>
         <?php endif; ?>
-        <a class="btn small ghost" href="<?= e(espace_url('download.php?doc=' . (int)$d['id'])) ?>"><?= e(t('member_download')) ?></a>
+        <?php /* [13.08.2026] Télécharger n'est plus un bouton, parce qu'il n'est
+                 pas une action : c'est la sortie de la ligne, le geste qu'on
+                 fait sans y penser et qu'on refait dix fois. Il avait la classe
+                 « ghost », qui dans cette feuille de style ne veut pas dire
+                 « contour » mais « noir plein » — d'où la rangée à l'envers.
+                 La flèche descend, elle ne part pas en diagonale : ce lien ne
+                 mène nulle part ailleurs, il rapporte un fichier. */ ?>
+        <a class="mdoc-dl" href="<?= e(espace_url('download.php?doc=' . (int)$d['id'])) ?>"><span><?= e(t('member_download')) ?></span> <?= Ico::bas() ?></a>
       </div>
     </li>
     <?php endforeach; ?>

@@ -51,6 +51,19 @@ class Ico
             '<path d="M2.7 9.3 9.3 2.7M4.7 2.7h4.6v4.6"/>');
     }
 
+    /**
+     * La flèche des téléchargements : vers le bas, et un sol sous elle.
+     *
+     * Elle ne se confond pas avec ext(), et c'est tout son intérêt. La flèche
+     * diagonale dit « ceci ouvre un autre site » ; posée sur « Télécharger »
+     * elle mentirait, et l'on n'y regarde pas à deux fois avant de cliquer.
+     */
+    public static function bas(): string
+    {
+        return self::svg('ico-bas', '0 0 12 12',
+            '<path d="M6 1.7v6.1M3.4 5.5 6 8.1l2.6-2.6M2.4 10.3h7.2"/>');
+    }
+
     /** Les ciseaux du bouton « recadrer » — l'ancien « ✂ ». */
     public static function ciseaux(): string
     {

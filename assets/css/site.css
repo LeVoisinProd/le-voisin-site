@@ -944,6 +944,23 @@ div.espace-fiche-envoi > p:last-child { margin: 0; }
    est déjà un élément de la rangée souple, il lui suffit de ne rien ajouter
    autour de son bouton. */
 .mdoc-do { margin: 0; display: flex; }
+/* ---- Télécharger ----                                        [13.08.2026]
+   Il quitte la forme du bouton pour celle d'un lien, et « margin-left:auto »
+   le pousse au bout de la rangée. C'est ce décalage qui fait le « toujours » :
+   qu'il y ait deux boutons à sa gauche, un seul, ou aucun, il tombe dans la
+   même colonne d'une ligne à l'autre, et l'œil cesse de le chercher.
+   Le soulignement est à 3 px du texte pour ne pas couper les jambages du
+   « g » et du « ç », qui sont deux dans « Télécharger ». */
+.mdoc-dl {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 700; font-size: 13px; color: var(--ink); text-decoration: none;
+}
+/* Le trait est porté par le mot et pas par le lien : posé sur le lien, il
+   passerait aussi sous la flèche, et une flèche soulignée ressemble à un
+   caractère de plus. */
+.mdoc-dl span { text-decoration: underline; text-underline-offset: 3px; transition: .18s; }
+.mdoc-dl:hover span, .mdoc-dl:focus-visible span { text-decoration-thickness: 2px; }
+.mdoc-dl .ico-bas { width: .95em; height: .95em; }
 @media (max-width: 640px) {
   .mdoc { flex-direction: column; align-items: flex-start; }
   .mdoc-actions { width: 100%; justify-content: flex-start; }
@@ -1420,7 +1437,15 @@ input:focus, select:focus, textarea:focus { outline: var(--trait-fort) solid var
 .btn:hover, .btn:focus-visible, .btn:active { filter: brightness(.92); }
 .btn.on, .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn.ink, .btn.ghost { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.btn.ink:hover, .btn.ghost:hover, .btn.ink:focus-visible, .btn.ghost:focus-visible { filter: brightness(1.3); }
+/* [13.08.2026] Un bouton noir n'avait aucune réaction à la souris, et personne
+   ne l'avait remarqué parce qu'aucun bouton noir n'était encore le geste
+   principal d'un écran. « brightness(1.3) » multiplie chaque canal par 1,3 :
+   sur du noir pur, 0 × 1,3 fait 0, et le texte blanc était déjà au maximum. Le
+   bouton restait donc rigoureusement identique. L'inversion en jaune se voit,
+   et reprend la couleur que la charte donne déjà à ce qui attend un geste. */
+.btn.ink:hover, .btn.ghost:hover, .btn.ink:focus-visible, .btn.ghost:focus-visible {
+  background: var(--yellow); color: var(--ink); border-color: var(--yellow); filter: none;
+}
 .btn.big { padding: 13px 44px; font-size: 14px; }
 .btn.small { padding: 7px 18px; font-size: 12px; }
 
