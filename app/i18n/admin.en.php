@@ -603,7 +603,7 @@ return [
     'st_d_pass_new'        => ' It is the one you have just typed.',
     'st_d_pass_old'        => ' No new password was typed this time: the one saved on %s is what was just tried.',
     'st_d_pass_old_nodate' => ' No new password was typed this time: the one already saved is what was just tried.',
-    'st_d_shape'           => ' Its shape is surprising: %s. An Infomaniak device password normally contains none of that — look at the paste before looking anywhere else.',
+    'st_d_shape'           => ' Its shape is surprising: %s. Not necessarily a mistake: a Google app password comes in four groups separated by spaces and works exactly as shown. An Infomaniak one contains none — in that case, look at the paste.',
     'st_d_shape_space'     => 'it contains a space',
     'st_d_shape_odd'       => 'it contains an accented or invisible character',
     'st_d_shape_html'      => 'it contains a sequence like “&amp;”, a sign of a copy-paste from a web page',

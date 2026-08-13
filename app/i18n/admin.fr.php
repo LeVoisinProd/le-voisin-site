@@ -611,7 +611,7 @@ return [
     'st_d_pass_new'        => ' C’est celui que vous venez de saisir.',
     'st_d_pass_old'        => ' Aucun nouveau mot de passe n’a été saisi cette fois : c’est celui enregistré le %s qui vient d’être essayé.',
     'st_d_pass_old_nodate' => ' Aucun nouveau mot de passe n’a été saisi cette fois : c’est celui déjà enregistré qui vient d’être essayé.',
-    'st_d_shape'           => ' Sa forme surprend : %s. Un mot de passe d’appareil Infomaniak n’en contient normalement pas — regardez du côté du collage avant de chercher ailleurs.',
+    'st_d_shape'           => ' Sa forme surprend : %s. Ce n’est pas forcément une erreur : une clé d’application Google se présente en quatre groupes séparés par des espaces, et fonctionne telle quelle. Une clé Infomaniak, elle, n’en contient pas — dans ce cas, regardez du côté du collage.',
     'st_d_shape_space'     => 'il contient un espace',
     'st_d_shape_odd'       => 'il contient un caractère accentué ou invisible',
     'st_d_shape_html'      => 'il contient une suite du genre « &amp; », signe d’un copier-coller depuis une page web',

@@ -115,8 +115,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''
         Invitations::journal('DÉBUT | ' . count($gens) . ' personne(s)');
         foreach ($gens as $g) {
             if (time() - $depart > $BUDGET) { $restants[] = (int)$g['id']; continue; }
+            /* [13.08.2026] Une seconde entre deux messages.
+
+               Chaque envoi ouvre sa propre connexion à Gmail, avec TLS et
+               authentification. Soixante-dix-sept connexions en deux minutes
+               depuis la même adresse IP, c'est la forme exacte de ce qu'un
+               fournisseur ralentit ou refuse : Gmail répond alors « 421 try
+               again later » et la fin de la liste ne part pas. Une seconde
+               d'attente allonge la course de soixante-dix-sept secondes, ce que
+               le budget de temps absorbe, et retire la raison de nous refuser.
+
+               La pause est APRÈS l'envoi et pas avant, pour ne pas la payer
+               quand on n'envoie qu'à une personne. */
             $r = Invitations::envoyer($g);
             $res[] = $r;
+            if (count($gens) > 1) usleep(1000000);
             Invitations::journal(sprintf('#%d | %s | %s | %s',
                 (int)$g['id'], $r['nom'] ?: '?', $r['email'] ?: '?',
                 $r['ok'] ? 'OK' : 'ÉCHEC : ' . ($r['raison'] ?: '?')));
