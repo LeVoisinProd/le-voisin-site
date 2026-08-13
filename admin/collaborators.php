@@ -182,6 +182,7 @@ admin_top(ta('nav_collab'), 'collab');
   <summary style="cursor:pointer;font-weight:600;"><?= e(ta('st_p_invite')) ?></summary>
   <p class="hint" style="margin-top:14px;"><?= ta('st_invite_h') ?></p>
   <p class="hint"><?= ta('st_invite_marks') ?></p>
+  <p class="hint"><?= ta('st_invite_mise') ?></p>
   <form method="post" action="/admin/collaborators.php">
     <?= Auth::csrfField() ?>
     <input type="hidden" name="lv_action" value="texte">

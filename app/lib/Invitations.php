@@ -39,8 +39,8 @@ class Invitations
         // le nom saisi dans les réglages.
         $site = setting('site_name', 'Le Voisin');
         return self::langue($lang) === 'en'
-            ? $site . ' — your access to the private area'
-            : $site . ' — votre accès à l’espace personnel';
+            ? 'What\'s new at ' . $site . ': your personal space, and the site\'s new look'
+            : 'Nouveautés de ' . $site . ' : ton espace personnel, et le nouveau visage du site';
     }
 
     /**
@@ -58,45 +58,114 @@ class Invitations
      */
     public static function texteDefaut(string $lang): string
     {
-        $j = MemberAuth::LIEN_JOURS;
         if (self::langue($lang) === 'en') {
-            return "Hello {nom},\n\n"
-                 . "Your personal space on our website is ready. You will find there everything "
-                 . "that concerns you, and you can send us your invoices from it.\n\n"
-                 . "Open the link below and choose your own password:\n\n"
-                 . "{lien}\n\n"
-                 . "The link works only once and stays valid for $j days. After that, just ask us "
-                 . "for a new one.\n\n"
-                 . "WHAT YOU WILL FIND THERE\n\n"
-                 . "1. Your details — to fill in once, so we can draw up your contracts and pay you.\n"
-                 . "2. Contracts and payslips — we file them there, you download them whenever you need.\n"
-                 . "3. Payments and reimbursements — you upload your invoices and receipts, and you follow "
-                 . "where they stand: sent, then paid by us, then you confirm you received the money.\n"
-                 . "4. Your projects — tour sheets, travel and accommodation, filed by production.\n\n"
-                 . "The third one asks something of you: once we mark an invoice as paid, please come back "
-                 . "and confirm. Without that we cannot tell what has actually reached your account.\n\n"
-                 . "See you soon";
+            return <<<'TXT'
+Hello {nom},
+
+We are pleased to introduce the new look of the Le Voisin website. It comes with a simple intention: to work better with performing arts professionals, and to make our administrative exchanges clearer and more efficient.
+
+The first new feature concerns you directly. You now have a personal space, where you will find everything that connects you to the associations we manage, and from which you send us your invoices and receive your contractual documents.
+
+{bouton}
+
+~ No password to choose or remember.
+~ This button is your first key, and it works only once.
+
+Next time you come back to your personal space, you just enter your email address on the space's page and you receive a new key. Between visits, your browser keeps you recognised for a month.
+
+WHAT YOU WILL FIND THERE
+
+The Collaborator Space has four tabs.
+
+1. My details
+Available at any time. This is where you keep your contact details, your short biography and your profile photo up to date: these are what we reuse in subsidy applications, and an up to date biography makes a better dossier. If you move, you change your address right there, without writing to us. We then receive a message telling us what you changed.
+
+2. Contracts
+Contracts, payslips and AGI forms. We file them there, you download them whenever you need, and you confirm you have them with the button "I have received it".
+
+3. Payments & reimbursements
+You upload your invoices and expense receipts, and you follow where they stand. Every time you upload a document you receive a confirmation email: it is your proof, with the what and the when.
+
+4. Projects
+Tour sheets, travel, accommodation and logistics, filed by production. Every accessible document about the tours sits in one place.
+
+THE MOST IMPORTANT PART
+
+An invoice goes through three states, and each step is confirmed by the person who alone can see it.
+
+> You upload your invoice: it is sent.
+> We settle it: we mark it as paid.
+> The money reaches your account: you click "I have received the payment".
+
+That last step is the only one we cannot take for you. A transfer sent is not a transfer arrived, and without your confirmation we cannot tell what has actually reached you. We sometimes chase amounts already paid, or believe settled what is not. Our accounting software sometimes misleads us.
+
+/ Please note: payments go out in the last week of each month. A transfer to an account outside Switzerland takes about two extra working days to be credited.
+
+WHY THIS CHANGE
+
+The feedback we have been getting for months all says much the same thing, and I wanted to answer it properly: a clear administrative framework, one that lets artistic work move without friction. Invoices followed, contracts within reach and payments traced means time given back to your work.
+
+We are a very small team, and by making our tools better we defend our associated artists' projects as best we can, with partners and funders.
+
+Together we can improve our practices. We have tried to make this new experience as smooth as possible. But if despite our efforts you have a question, or any trouble connecting, just reply to this message. Thank you in advance for your collaboration.
+
+See you soon,
+Anna
+TXT;
         }
-        return "Bonjour {nom},\n\n"
-             . "Votre espace personnel sur notre site est prêt. Vous y trouverez tout ce qui vous "
-             . "concerne, et vous pourrez nous envoyer vos factures depuis là.\n\n"
-             . "Ouvrez le lien ci-dessous et choisissez vous-même votre mot de passe :\n\n"
-             . "{lien}\n\n"
-             . "Le lien ne sert qu'une fois et reste valable $j jours. Passé ce délai, demandez-nous-en "
-             . "simplement un autre.\n\n"
-             . "CE QUE VOUS Y TROUVEREZ\n\n"
-             . "1. Vos informations — à remplir une fois, pour que nous puissions établir vos contrats "
-             . "et vous payer.\n"
-             . "2. Contrats et fiches de salaire — nous les y déposons, vous les téléchargez quand vous "
-             . "en avez besoin.\n"
-             . "3. Paiements et remboursements — vous y déposez vos factures et justificatifs, et vous "
-             . "suivez où ils en sont : envoyé, puis payé par nous, puis vous confirmez avoir bien reçu "
-             . "l'argent.\n"
-             . "4. Vos projets — feuilles de route, voyages et hébergements, classés par production.\n\n"
-             . "Le troisième point vous demande quelque chose : une fois que nous avons marqué une facture "
-             . "comme payée, revenez confirmer. Sans cela nous ne savons pas ce qui vous est réellement "
-             . "parvenu.\n\n"
-             . "À bientôt";
+        return <<<'TXT'
+Bonjour {nom},
+
+Nous sommes heureuses de te présenter le nouveau visage du site de Le Voisin. Il accompagne une intention simple : mieux travailler avec les professionnel·les du spectacle, et rendre nos échanges administratifs plus clairs et plus efficaces.
+
+La première nouveauté te concerne directement. Tu as désormais un espace personnel, où tu trouveras tout ce qui te lie aux associations que nous gérons, et depuis lequel tu nous envoies tes factures et reçois tes documents contractuels.
+
+{bouton}
+
+~ Aucun mot de passe à choisir ni à retenir.
+~ Ce bouton est ta première clé d'entrée, et elle ne sert qu'une fois.
+
+La prochaine fois que tu reviendras sur ton espace personnel, il te suffira d'indiquer ton adresse mail sur la page de l'espace et tu recevras une nouvelle clé d'entrée. Entre deux visites, ton navigateur te garde reconnu·e pendant un mois.
+
+CE QUE TU Y TROUVERAS
+
+L'Espace collaborateur tient en quatre onglets.
+
+1. Mes informations
+Accessible à tout moment. Tu y tiens à jour tes coordonnées, ta courte biographie et ta photo de profil : ce sont elles que nous reprenons dans les dossiers de subvention, et une biographie à jour fait un meilleur dossier. Si tu déménages, tu changes ton adresse ici même, sans nous écrire. Nous recevons alors un message qui nous dit ce que tu as modifié.
+
+2. Contractualisation
+Contrats, fiches de salaire et AGIs. Nous les y déposons, tu les télécharges quand tu en as besoin, et tu confirmes leur bonne réception avec le bouton « J'ai bien reçu ».
+
+3. Paiements & remboursements
+Tu y déposes tes factures et tes justificatifs de frais, et tu suis où ils en sont. À chaque document déposé, tu reçois un courriel de confirmation : il te sert de preuve, avec le quoi et le quand.
+
+4. Projets
+Feuilles de route, voyages, hébergements et logistique, classés par production. Tout document accessible concernant les tournées se trouve au même endroit.
+
+LE POINT LE PLUS IMPORTANT
+
+Une facture passe par trois états, et chaque étape est confirmée par la personne qui est seule à pouvoir la constater.
+
+> Tu déposes ta facture : elle est envoyée.
+> Nous la réglons : nous la marquons payée.
+> L'argent arrive sur ton compte : tu cliques sur « J'ai reçu le paiement ».
+
+Ce dernier geste est le seul que nous ne pouvons pas faire à ta place. Un virement parti n'est pas un virement arrivé, et sans ta confirmation nous ne savons pas ce qui t'est réellement parvenu. Il nous arrive ainsi de relancer pour des sommes déjà versées, ou de croire réglé ce qui ne l'est pas. Nos logiciels comptables nous trompent parfois.
+
+/ À noter : les paiements partent la dernière semaine de chaque mois. Un virement vers un compte hors de Suisse met environ deux jours ouvrables de plus à être crédité.
+
+POURQUOI CE CHANGEMENT
+
+Les retours que nous recevons depuis des mois disent tous un peu la même chose, et j'ai voulu y répondre sérieusement : un cadre administratif clair, qui laisse le travail artistique avancer sans friction. Des factures suivies, des contrats accessibles et des paiements tracés, c'est du temps rendu à ton travail.
+
+Nous sommes une toute petite équipe, et en faisant évoluer nos outils nous défendons du mieux que nous pouvons les projets de nos artistes associé·es, auprès des partenaires et des financeurs.
+
+Ensemble nous pouvons améliorer nos pratiques. Nous avons essayé de rendre cette nouvelle expérience la plus fluide possible. Mais si malgré nos efforts tu as une question, ou une difficulté pour te connecter, réponds simplement à ce message. Nous te remercions dès maintenant pour ta collaboration.
+
+À bientôt,
+Anna
+TXT;
     }
 
     /** Le sujet enregistré, ou celui d'origine si le champ est resté vide. */
@@ -142,14 +211,122 @@ class Invitations
      * message est aussi lu en texte brut par certains logiciels, et l'adresse
      * doit rester copiable à la main.
      */
+    /* ==================================================================
+       LA MISE EN PAGE DU MESSAGE            [13.08.2026]
+
+       Le texte reste du texte simple, écrit et relu dans le CMS par quelqu'un
+       qui n'écrit pas de HTML. Mais un texte simple passé à nl2br() donne un
+       mur de lignes, et ce message-ci a des titres, quatre rubriques numérotées
+       et un encadré : il devenait illisible au moment précis où il part à
+       soixante-dix-sept personnes.
+
+       D'où une marque minuscule, six règles, qu'on retient en une fois :
+
+         UNE LIGNE TOUT EN MAJUSCULES  ....  titre de section, souligné de jaune
+         1. Quelque chose               ....  rubrique numérotée, pastille jaune
+         > ligne                        ....  encadré (lignes consécutives groupées)
+         / ligne                        ....  paragraphe en italique
+         ~ ligne                        ....  petit texte gris, centré
+         {bouton} ou {bouton:Libellé}   ....  le bouton jaune
+
+       Tout le reste est un paragraphe. Rien n'est obligatoire : un texte écrit
+       sans aucune de ces marques sort exactement comme avant, en paragraphes.
+       C'était la condition pour ne pas casser un texte déjà enregistré.
+       ================================================================== */
+
+    /** Un titre de section : petites capitales et un trait jaune dessous. */
+    private static function titre(string $t): string
+    {
+        return '<p style="margin:26px 0 4px;font-size:12px;font-weight:700;letter-spacing:.14em;'
+             . 'text-transform:uppercase;color:#111;">' . e($t) . '</p>'
+             . '<div style="width:42px;height:3px;background:#f0c63f;margin:0 0 18px;"></div>';
+    }
+
+    /**
+     * Une rubrique numérotée : pastille jaune à gauche, texte à droite.
+     *
+     * En tableau et non en flexbox : la moitié des logiciels de messagerie ne
+     * connaissent pas flexbox, et la pastille se retrouverait au-dessus du
+     * texte. La couleur est écrite dans chaque cellule, parce que plusieurs
+     * clients remettent la leur à l'intérieur d'un tableau — ce qui donne un
+     * texte jaune pâle sur blanc, illisible, constaté le 13.08.
+     */
+    private static function rubrique(string $n, string $titre, string $corps): string
+    {
+        $cel = 'vertical-align:top;color:#111;font-size:15px;line-height:1.7;padding:0 0 18px;';
+        return '<table role="presentation" cellpadding="0" cellspacing="0"'
+             . ' style="width:100%;border-collapse:collapse;color:#111;"><tr>'
+             . '<td style="width:34px;' . $cel . '">'
+             . '<span style="display:inline-block;width:24px;height:24px;line-height:24px;'
+             . 'text-align:center;background:#f0c63f;color:#111;border-radius:99px;'
+             . 'font-weight:700;font-size:13px;">' . e($n) . '</span></td>'
+             . '<td style="' . $cel . '"><b>' . e($titre) . '</b><br>' . $corps . '</td>'
+             . '</tr></table>';
+    }
+
     public static function rendreHtml(string $modele, string $nom, string $lien): string
     {
         $ancre = '<a href="' . e($lien) . '" style="color:#111;word-break:break-all;">' . e($lien) . '</a>';
-        $corps = strtr(nl2br(e($modele)), [
-            '{nom}' => e($nom), '{name}' => e($nom),
-            '{lien}' => $ancre, '{link}' => $ancre,
-        ]);
-        return '<div style="font-size:15px;line-height:1.65;">' . $corps . '</div>';
+
+        /* Les marqueurs se remplacent AVANT l'échappement pour {lien}, qui
+           produit du HTML, et APRÈS pour {nom}, qui n'en produit pas. D'où le
+           passage par un jeton improbable : sans lui, e() échapperait l'ancre. */
+        $modele = strtr($modele, ['{name}' => '{nom}', '{link}' => '{lien}']);
+
+        $out = '';
+        foreach (preg_split("/\n[ \t]*\n/", str_replace("\r\n", "\n", trim($modele))) as $bloc) {
+            $bloc  = trim($bloc, "\n");
+            if (trim($bloc) === '') continue;
+            $lignes = explode("\n", $bloc);
+            $prem   = trim($lignes[0]);
+
+            /* Le bouton, seul dans son bloc. */
+            if (preg_match('/^\{bouton(?::(.+))?\}$/u', $prem, $m)) {
+                $out .= Mailer::bouton($lien, trim($m[1] ?? '') !== '' ? trim($m[1]) : ta('inv_bouton'));
+                continue;
+            }
+            /* Un titre : une seule ligne, sans une seule minuscule, et courte. */
+            if (count($lignes) === 1 && mb_strlen($prem) <= 60 && $prem !== ''
+                && !preg_match('/\p{Ll}/u', $prem) && preg_match('/\p{Lu}/u', $prem)) {
+                $out .= self::titre($prem);
+                continue;
+            }
+            /* Un encadré : toutes les lignes commencent par « > ». */
+            if (!array_filter($lignes, fn($l) => !preg_match('/^\s*>/', $l))) {
+                $in = '';
+                foreach ($lignes as $i => $l) {
+                    $in .= '<p style="margin:0 0 ' . ($i === count($lignes) - 1 ? '0' : '8px') . ';color:#111;">'
+                         . self::inline(preg_replace('/^\s*>\s?/', '', $l), $nom, $ancre) . '</p>';
+                }
+                $out .= '<div style="border:1px solid #e5e5e0;border-left:3px solid #f0c63f;'
+                      . 'padding:16px 20px;margin:0 0 18px;color:#111;">' . $in . '</div>';
+                continue;
+            }
+            /* Italique, et petit texte gris centré. */
+            if (preg_match('/^\s*\//', $prem) || preg_match('/^\s*~/', $prem)) {
+                $petit = preg_match('/^\s*~/', $prem);
+                $txt   = self::inline(preg_replace("/^\s*[\/~]\s?/m", '', $bloc), $nom, $ancre);
+                $out  .= $petit
+                    ? '<p style="margin:0 0 26px;text-align:center;font-size:13px;line-height:1.6;color:#777;">' . nl2br($txt) . '</p>'
+                    : '<p style="margin:0 0 26px;font-style:italic;color:#111;">' . nl2br($txt) . '</p>';
+                continue;
+            }
+            /* Une rubrique numérotée : « 1. Titre » puis le texte dessous. */
+            if (preg_match('/^(\d+)\.\s+(.+)$/u', $prem, $m)) {
+                $reste = self::inline(implode("\n", array_slice($lignes, 1)), $nom, $ancre);
+                $out  .= self::rubrique($m[1], $m[2], nl2br($reste));
+                continue;
+            }
+            $out .= '<p style="margin:0 0 16px;color:#111;">'
+                  . nl2br(self::inline($bloc, $nom, $ancre)) . '</p>';
+        }
+        return '<div style="font-size:15px;line-height:1.7;color:#111;">' . $out . '</div>';
+    }
+
+    /** Échappe un morceau de texte et y replace {nom} et {lien}. */
+    private static function inline(string $t, string $nom, string $ancre): string
+    {
+        return strtr(e($t), ['{nom}' => e($nom), '{lien}' => $ancre]);
     }
 
     /**

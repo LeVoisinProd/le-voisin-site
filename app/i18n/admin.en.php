@@ -715,7 +715,9 @@ return [
     // Sending access links in bulk (app/lib/Invitations.php).   [V28-INVIT]
     'st_p_invite'        => 'Access message for collaborators',
     'st_invite_h'        => 'The message a person receives with their link to the private area. Everyone gets it in their own language, the one set on their record.',
-    'st_invite_marks'    => 'Two markers are replaced when sending: {nom} by the person’s name, {lien} by their own link. Put them wherever you like; {name} and {link} do the same. Clearing a field brings back the original text.',
+    'st_invite_marks'    => '{nom} becomes the person’s name and {bouton} becomes the yellow button that takes them in; {lien} writes the address out in full if you prefer it that way. Clearing a field brings back the original text.',
+    'st_invite_mise'     => 'Layout, six rules: A LINE ALL IN CAPITALS becomes a section title · a line starting with “1.” becomes a numbered item, its text goes underneath · lines starting with “>” become a box · a line starting with “/” goes italic · a line starting with “~” becomes small centred grey text · everything else is a paragraph. None of it is required.',
+    'inv_bouton'         => 'Enter my space',
     'st_f_inv_sub_fr'    => 'Subject — French',
     'st_f_inv_sub_en'    => 'Subject — English',
     'st_f_inv_txt_fr'    => 'Message — French',

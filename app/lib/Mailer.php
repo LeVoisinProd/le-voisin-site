@@ -185,10 +185,42 @@ class Mailer
     }
 
     /** Petit gabarit HTML commun aux emails. */
+    /**
+     * Le bouton jaune, celui des courriels qui demandent un geste. [13.08.2026]
+     *
+     * Jaune du logo et forme de gélule, comme les boutons du site : quelqu'un
+     * qui reçoit ce message et arrive ensuite sur le site doit reconnaître la
+     * même main. Écrit ici plutôt que dans chaque message, pour qu'une
+     * correction de couleur se fasse en un seul endroit.
+     *
+     * Tout est en attribut `style` : la moitié des logiciels de messagerie
+     * jettent les feuilles de style, et un bouton qui perd sa couleur devient
+     * un lien perdu au milieu d'un paragraphe.
+     */
+    public static function bouton(string $url, string $libelle): string
+    {
+        return '<div style="text-align:center;margin:30px 0 14px;">'
+             . '<a href="' . e($url) . '" style="display:inline-block;background:#f0c63f;'
+             . 'color:#111;border:2px solid #f0c63f;border-radius:99px;padding:16px 40px;'
+             . 'font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;'
+             . 'text-decoration:none;">' . e($libelle) . '</a></div>';
+    }
+
     public static function wrap(string $title, string $inner): string
     {
         $site = e(setting('site_name', 'Le Voisin'));
-        return '<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f4f4f2;font-family:Helvetica,Arial,sans-serif;color:#111">'
+        /* [13.08.2026] La police du site, chargée depuis le site.
+
+           Il faut savoir ce que cela vaut : Gmail et Outlook jettent les
+           polices distantes, et la plupart des destinataires liront donc en
+           Helvetica. Apple Mail, lui, l'affichera. On la déclare quand même,
+           parce que la pile de repli est correcte et que rien ne casse : le
+           dessin ne dépend pas de la police, il s'améliore avec elle. */
+        $police = '<style>@font-face{font-family:\'Space Grotesk\';font-style:normal;'
+                . 'font-weight:300 700;font-display:swap;'
+                . 'src:url(\'' . e(url('/assets/fonts/space-grotesk-latin-wght-normal.woff2')) . '\') format(\'woff2\');}</style>';
+        return '<!DOCTYPE html><html><head><meta charset="utf-8">' . $police . '</head>'
+            . '<body style="margin:0;padding:24px;background:#f4f4f2;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;color:#111">'
             . '<div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e5e5e0;">'
             . '<div style="padding:18px 28px;border-bottom:2px solid #111;font-weight:bold;letter-spacing:.12em;">' . $site . '</div>'
             . '<div style="padding:28px;"><h2 style="margin:0 0 16px;font-size:18px;">' . e($title) . '</h2>' . $inner . '</div>'

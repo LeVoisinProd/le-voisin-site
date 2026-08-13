@@ -723,7 +723,9 @@ return [
     // Envoi groupé des accès (app/lib/Invitations.php).   [V28-INVIT]
     'st_p_invite'        => 'Message d’accès des collaborateurs',
     'st_invite_h'        => 'Le message qu’une personne reçoit avec son lien d’accès à l’espace personnel. Chacun le reçoit dans sa langue, celle indiquée sur sa fiche.',
-    'st_invite_marks'    => 'Deux marqueurs sont remplacés à l’envoi : {nom} par le nom de la personne, {lien} par son lien à elle. Placez-les où vous voulez ; {name} et {link} font la même chose. Un champ effacé revient au texte d’origine.',
+    'st_invite_marks'    => '{nom} devient le nom de la personne et {bouton} devient le bouton jaune qui la fait entrer ; {lien} écrit l’adresse en toutes lettres si vous la préférez ainsi. Un champ effacé revient au texte d’origine.',
+    'st_invite_mise'     => 'Mise en page, six règles : UNE LIGNE TOUT EN MAJUSCULES devient un titre de section · une ligne qui commence par « 1. » devient une rubrique numérotée, son texte se met dessous · des lignes qui commencent par « > » deviennent un encadré · une ligne qui commence par « / » se met en italique · une ligne qui commence par « ~ » devient un petit texte gris centré · tout le reste est un paragraphe. Rien n’est obligatoire.',
+    'inv_bouton'         => 'Entrer dans mon espace',
     'st_f_inv_sub_fr'    => 'Objet — français',
     'st_f_inv_sub_en'    => 'Objet — anglais',
     'st_f_inv_txt_fr'    => 'Message — français',

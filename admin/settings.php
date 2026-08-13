@@ -447,6 +447,7 @@ admin_top(ta('st_title'), 'settings');
     <h2><?= ta('st_p_invite') ?></h2>
     <p class="hint"><?= ta('st_invite_h') ?></p>
     <p class="hint"><?= ta('st_invite_marks') ?></p>
+    <p class="hint"><?= ta('st_invite_mise') ?></p>
     <?php if (!empty($rapportInvit)): ?>
     <div class="flash <?= $rapportInvit['ok'] ? 'ok' : 'err' ?>"><?= e($rapportInvit['ok']
         ? ta('st_inv_test_ok', $rapportInvit['email'])
