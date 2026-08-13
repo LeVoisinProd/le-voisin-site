@@ -45,6 +45,24 @@ class MemberNotify
         return filter_var($g, FILTER_VALIDATE_EMAIL) ? $g : '';
     }
 
+    /**
+     * Vers quel onglet renvoyer, pour un lot de documents.
+     *
+     * Les liens de ce fichier pointaient tous vers `#partie-contrats`, écrit à
+     * la main. C'était juste quand l'espace n'avait qu'une liste ; depuis la
+     * séparation en quatre onglets, une facture payée renvoyait la personne
+     * vers l'onglet des contrats, où elle ne la trouve pas.
+     *
+     * Un lot mélangé n'a pas d'onglet commun : on renvoie alors vers l'espace,
+     * sans ancre, plutôt que vers un onglet qui n'en contient qu'une partie.
+     */
+    private static function ancreDocs(array $docs): string
+    {
+        $volets = [];
+        foreach ($docs as $d) $volets[MemberDocs::volet((string)($d['category'] ?? ''))] = true;
+        return count($volets) === 1 ? MemberDocs::ancre((string)array_key_first($volets)) : '';
+    }
+
     /** Un libellé traduit dans la langue voulue, sans toucher à celle de la page. */
     private static function m(string $cle, string $lang, ...$args): string
     {
@@ -135,7 +153,7 @@ class MemberNotify
         $corps  = self::p(self::m('mn_paid_1', $lang, self::nomPersonne($c)));
         $corps .= self::p(self::m('mn_paid_2', $lang, self::nomDoc($doc)));
         $corps .= self::p(self::m('mn_paid_3', $lang));
-        $corps .= self::lien(url('/espace/#partie-contrats'), self::m('mn_go', $lang));
+        $corps .= self::lien(url('/espace/' . self::ancreDocs([$doc])), self::m('mn_go', $lang));
 
         return Mailer::send([$to], $sujet, Mailer::wrap($sujet, $corps));
     }
@@ -161,6 +179,50 @@ class MemberNotify
         $corps .= self::p(self::m('mn_dep_2', $lang, self::nomDoc($doc)));
         $corps .= self::lien(url('/admin/collaborator-edit.php?id=' . (int)($c['id'] ?? 0)),
                              self::m('mn_dep_go', $lang));
+
+        return Mailer::send([$to], $sujet, Mailer::wrap($sujet, $corps));
+    }
+
+    /**
+     * La personne vient de déposer. → elle, en accusé de réception.
+     *
+     * [13.08.2026] C'était le seul des quatre sens qui manquait. Un dépôt
+     * prévenait l'association et laissait la personne sans rien : elle avait
+     * cliqué, un message vert s'affichait, et il n'en restait aucune trace hors
+     * de l'écran qu'elle venait de quitter.
+     *
+     * Ce que ce message apporte n'est pas la politesse, c'est la preuve. Sans
+     * elle, qui doute d'avoir bien envoyé renvoie le même document, et le
+     * bureau reçoit des doublons qu'il doit distinguer à la main. Le message
+     * porte donc ce qui sert de preuve : quoi, et quand.
+     *
+     * Un seul courriel pour tout le lot, comme pour les dépôts du bureau.
+     *
+     * @param array<int, array<string, mixed>> $docs
+     */
+    public static function depotConfirme(array $c, array $docs): bool
+    {
+        $to = trim((string)($c['email'] ?? ''));
+        if (!$docs || !filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+
+        $lang  = Invitations::langue((string)($c['lang'] ?? ''));
+        $n     = count($docs);
+        $quand = date('d.m.Y, H:i');
+        $sujet = $n === 1 ? self::m('mn_conf_s1', $lang) : self::m('mn_conf_sn', $lang, $n);
+
+        $corps  = self::p(self::m('mn_conf_1', $lang, self::nomPersonne($c)));
+        $corps .= self::p($n === 1 ? self::m('mn_conf_2a', $lang, $quand)
+                                   : self::m('mn_conf_2b', $lang, $n, $quand));
+        $corps .= '<ul style="font-size:15px;line-height:1.65;margin:0 0 14px;padding-left:20px;">';
+        foreach ($docs as $d) {
+            $corps .= '<li>' . e(self::nomDoc($d))
+                    . ' <span style="color:#666;">('
+                    . e(MemberDocs::catLabel((string)($d['category'] ?? ''), $lang))
+                    . ')</span></li>';
+        }
+        $corps .= '</ul>';
+        $corps .= self::p(self::m('mn_conf_3', $lang));
+        $corps .= self::lien(url('/espace/' . self::ancreDocs($docs)), self::m('mn_go', $lang));
 
         return Mailer::send([$to], $sujet, Mailer::wrap($sujet, $corps));
     }
@@ -195,7 +257,7 @@ class MemberNotify
         }
         $corps .= '</ul>';
         $corps .= self::p(self::m('mn_new_3', $lang));
-        $corps .= self::lien(url('/espace/#partie-contrats'), self::m('mn_go', $lang));
+        $corps .= self::lien(url('/espace/' . self::ancreDocs($docs)), self::m('mn_go', $lang));
 
         return Mailer::send([$to], $sujet, Mailer::wrap($sujet, $corps));
     }

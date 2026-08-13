@@ -201,6 +201,12 @@ function espace_docs_depot(array $m, string $retour): void
        manque — pas le document. */
     try { MemberNotify::factureDeposee($m, $doc); } catch (Throwable $e) { /* rien à dire ici */ }
 
+    /* [13.08.2026] Et l'accusé de réception à la personne, qui ne recevait
+       rien. Deux envois séparés et non une copie : le bureau a besoin de
+       « quelqu'un a déposé, allez voir », la personne a besoin de « c'est
+       arrivé chez nous, le voici ». Le même texte ne fait pas les deux. */
+    try { MemberNotify::depotConfirme($m, [$doc]); } catch (Throwable $e) { /* idem */ }
+
     espace_flash('ok', tu('doc_f_ok', (string)($doc['filename'] ?? '')));
     redirect($retour);
 }

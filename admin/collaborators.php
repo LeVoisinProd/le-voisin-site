@@ -40,6 +40,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''
     }
 }
 
+/* [13.08.2026] Le texte de l'invitation s'écrit ici, et plus seulement dans
+ * Réglages. La raison est d'usage : l'écran d'envoi est ici, avec la liste, la
+ * confirmation et le bouton ; le texte qui va partir était le seul morceau
+ * rangé ailleurs. On relit ce qu'on envoie au moment où on l'envoie.
+ *
+ * Ce sont les MÊMES quatre réglages qu'en Réglages, pas une copie : les deux
+ * écrans écrivent aux mêmes clefs, donc ils ne peuvent pas diverger. L'ancien
+ * bloc reste en place tant que celui-ci n'a pas fait ses preuves. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['lv_action'] ?? '') === 'texte') {
+    Auth::requireCsrf();
+    foreach (Invitations::CLES as $k) {
+        if (array_key_exists($k, $_POST)) Settings::set($k, trim((string)$_POST[$k]));
+    }
+    redirect('/admin/collaborators.php?texte=1');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['lv_action'])) {
     Auth::requireCsrf();
     $name = trim((string)($_POST['name'] ?? ''));
@@ -154,6 +170,34 @@ admin_top(ta('nav_collab'), 'collab');
 <div class="page-head"><h1><?= e(ta('nav_collab')) ?></h1></div>
 
 <?php if ($errors): ?><div class="flash err"><?php foreach ($errors as $er) echo e($er) . '<br>'; ?></div><?php endif; ?>
+
+<?php if (!empty($_GET['texte'])): ?><div class="flash ok"><?= e(ta('st_saved')) ?></div><?php endif; ?>
+
+<?php /* ---- Le message d'invitation, replié ----
+         Replié, parce qu'on l'ouvre une fois par saison et qu'un bloc de
+         quatre champs déroulé pousserait la liste hors de l'écran. Les champs
+         ne sont jamais vides : ils s'ouvrent sur le texte en vigueur, qu'on
+         relit et qu'on retouche, plutôt que sur un carré blanc. */ ?>
+<details class="panel" id="texte-invitation">
+  <summary style="cursor:pointer;font-weight:600;"><?= e(ta('st_p_invite')) ?></summary>
+  <p class="hint" style="margin-top:14px;"><?= ta('st_invite_h') ?></p>
+  <p class="hint"><?= ta('st_invite_marks') ?></p>
+  <form method="post" action="/admin/collaborators.php">
+    <?= Auth::csrfField() ?>
+    <input type="hidden" name="lv_action" value="texte">
+    <div class="grid2">
+      <?= field_wrap(ta('st_f_inv_sub_fr'),
+          '<input type="text" name="invite_subject_fr" value="' . e(trim((string)setting('invite_subject_fr', '')) ?: Invitations::sujetDefaut('fr')) . '">') ?>
+      <?= field_wrap(ta('st_f_inv_sub_en'),
+          '<input type="text" name="invite_subject_en" value="' . e(trim((string)setting('invite_subject_en', '')) ?: Invitations::sujetDefaut('en')) . '">') ?>
+      <?= field_wrap(ta('st_f_inv_txt_fr'),
+          '<textarea name="invite_body_fr" rows="13">' . e(trim((string)setting('invite_body_fr', '')) ?: Invitations::texteDefaut('fr')) . '</textarea>') ?>
+      <?= field_wrap(ta('st_f_inv_txt_en'),
+          '<textarea name="invite_body_en" rows="13">' . e(trim((string)setting('invite_body_en', '')) ?: Invitations::texteDefaut('en')) . '</textarea>') ?>
+    </div>
+    <p><button class="btn" type="submit"><?= e(ta('st_save')) ?></button></p>
+  </form>
+</details>
 
 <?php /* ---- Compte rendu du dernier envoi groupé ----   [V28-INVIT]
          Ligne par ligne, avec la raison exacte des échecs : un envoi qui

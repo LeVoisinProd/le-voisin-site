@@ -512,6 +512,13 @@ return [
     'mn_new_2b'         => '%s documents viennent d’être déposés dans votre espace personnel :',
     'mn_new_3'          => 'Merci de confirmer leur bonne réception depuis votre espace, d’un clic sur « J’ai bien reçu ».',
 
+    'mn_conf_s1'        => 'Nous avons bien reçu votre document',
+    'mn_conf_sn'        => 'Nous avons bien reçu vos %s documents',
+    'mn_conf_1'         => 'Bonjour %s,',
+    'mn_conf_2a'        => 'Votre document nous est bien parvenu le %s :',
+    'mn_conf_2b'        => 'Vos %s documents nous sont bien parvenus le %s :',
+    'mn_conf_3'         => 'Conservez ce message : il vous sert de preuve de dépôt. Vous retrouvez à tout moment vos envois et leur état dans votre espace personnel.',
+
     // ------------------------------------------------------------------
     // Messages techniques (téléversements, sécurité, signature).
     // Affichés par tu() : dans l'administration ils suivent la langue du CMS,

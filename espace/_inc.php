@@ -63,7 +63,7 @@ I18n::setLang($__ml !== '' ? $__ml : 'fr');
  */
 function espace_ancre(string $volet): string
 {
-    return '#partie-' . ($volet === 'contrat' ? 'contrats' : ($volet === 'projet' ? 'projets' : $volet));
+    return MemberDocs::ancre($volet);
 }
 
 function espace_url(string $path = ''): string

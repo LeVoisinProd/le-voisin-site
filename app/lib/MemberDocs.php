@@ -86,6 +86,28 @@ class MemberDocs
     }
 
     /** Les catégories d'un volet, dans l'ordre d'affichage. */
+    /**
+     * L'ancre de l'onglet qui montre ce volet.
+     *
+     * [13.08.2026] Écrite ici et plus dans `espace_ancre()`, parce que les
+     * courriels de MemberNotify en ont besoin eux aussi et n'ont pas accès aux
+     * fonctions de l'espace. Deux tables de correspondance auraient divergé.
+     *
+     * Elle corrige au passage une faute qui datait de la séparation en quatre
+     * onglets : `paiement` produisait `#partie-paiement`, au singulier, alors
+     * que la section s'appelle `partie-paiements`. Déposer une facture
+     * renvoyait donc vers une ancre inexistante, et l'onglet ne s'ouvrait pas.
+     */
+    public static function ancre(string $volet): string
+    {
+        return '#partie-' . match ($volet) {
+            'contrat'  => 'contrats',
+            'paiement' => 'paiements',
+            'projet'   => 'projets',
+            default    => 'infos',
+        };
+    }
+
     public static function catsDuVolet(string $volet): array
     {
         return self::VOLETS[$volet] ?? [];

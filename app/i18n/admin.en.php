@@ -504,6 +504,13 @@ return [
     'mn_new_2b'         => '%s documents have just been deposited in your personal area:',
     'mn_new_3'          => 'Please confirm you have received them from your area, with a click on "I have received it".',
 
+    'mn_conf_s1'        => 'We have received your document',
+    'mn_conf_sn'        => 'We have received your %s documents',
+    'mn_conf_1'         => 'Hello %s,',
+    'mn_conf_2a'        => 'Your document reached us on %s:',
+    'mn_conf_2b'        => 'Your %s documents reached us on %s:',
+    'mn_conf_3'         => 'Keep this message: it is your proof of deposit. You can find all your uploads and where they stand in your personal space at any time.',
+
     // ------------------------------------------------------------------
     // Technical messages (uploads, security, signing).
     // Shown by tu(): in the CMS they follow the admin language, in the team

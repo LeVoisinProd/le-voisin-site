@@ -89,11 +89,19 @@ function espace_infos_traiter(int $cid): array
             $photoId = (int)$img['id'];
         } catch (Throwable $e) { $errors[] = 'Photo : ' . $e->getMessage(); }
     }
+    /* [13.08.2026] Les pièces d'identité comptent comme un dépôt : la personne
+       en reçoit l'accusé au même titre qu'une facture. Un seul courriel pour
+       les deux pièces, et l'envoi n'a lieu que si quelque chose est passé. */
+    $deposes = [];
     foreach (['passport', 'residence_permit'] as $fk) {
         if (!empty($_FILES[$fk]['tmp_name']) && is_uploaded_file($_FILES[$fk]['tmp_name']) && (int)($_FILES[$fk]['error'] ?? 1) === 0) {
-            try { MemberDocs::upload($_FILES[$fk], $cid, 'identity', null, false); }
+            try { $deposes[] = MemberDocs::upload($_FILES[$fk], $cid, 'identity', null, false); }
             catch (Throwable $e) { $errors[] = $e->getMessage(); }
         }
+    }
+    if ($deposes) {
+        try { MemberNotify::depotConfirme(MemberAuth::member(), $deposes); }
+        catch (Throwable $e) { /* l'avis manque, le dépôt reste */ }
     }
     /* [V16-DATES] Ce qui a été tapé reste affiché même si une seule ligne
        coince : sur une fiche de vingt-cinq questions, tout retaper à cause
