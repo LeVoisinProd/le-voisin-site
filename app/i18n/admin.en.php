@@ -384,6 +384,13 @@ return [
     'ce_pass_why'        => 'There is no password any more. The person enters their address on the space page, receives a key by email, and one click takes them in. They can give themselves a new one whenever they like, without going through you: that is why the troubleshooting no longer lands on your desk.',
 
     // --- Link for choosing one’s own password ---
+    'ce_del_head'        => 'Delete this record',
+    'ce_del_help'       => 'This person has no documents attached, so their record can be deleted. For someone who is leaving, this is not the right gesture: untick “Active” above, access closes at once and the documents stay.',
+    'ce_del_impossible' => 'Deletion not possible: %d document(s) are attached to this person, and the law requires contracts and payslips to be kept for ten years. To withdraw access, untick “Active” above.',
+    'ce_del_refus'      => 'Nothing was deleted: %d document(s) are attached to this person. Untick “Active” to withdraw their access.',
+    'ce_del_confirm'    => 'Permanently delete the record of %s? Their personal details and photo will be erased. This cannot be undone.',
+    'ce_del_go'         => 'Delete permanently',
+    'ce_del_ok'         => 'Record of %s deleted.',
     'ce_link_head'       => 'Entry key',
     'ce_link_help'       => 'This key takes the person straight in. It works only once and does not expire: it can wait for a return from holiday. The button sends it with the invitation message; “Create a key” only makes it, and you pass it on however you like.',
     'ce_link_make'       => 'Create a key',

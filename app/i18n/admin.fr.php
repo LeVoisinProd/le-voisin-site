@@ -391,6 +391,13 @@ return [
     'ce_pass_why'        => 'Il n’y a plus de mot de passe. La personne indique son adresse sur la page de l’espace, reçoit une clé par courriel, et un clic la fait entrer. Elle peut s’en redonner une toute seule, autant de fois qu’elle veut, sans passer par vous : c’est pour cela que le dépannage ne vous revient plus.',
 
     // --- Lien pour choisir soi-même son mot de passe ---
+    'ce_del_head'        => 'Supprimer cette fiche',
+    'ce_del_help'       => 'Cette personne ne porte aucun document : sa fiche peut être supprimée. Pour quelqu’un qui part, ce n’est pas le bon geste : décochez « Actif » plus haut, l’accès se ferme à l’instant et les documents restent.',
+    'ce_del_impossible' => 'Suppression impossible : %d document(s) sont attachés à cette personne, et la loi oblige à conserver contrats et fiches de salaire dix ans. Pour lui retirer l’accès, décochez « Actif » plus haut.',
+    'ce_del_refus'      => 'Rien n’a été supprimé : %d document(s) sont attachés à cette personne. Décochez « Actif » pour lui retirer l’accès.',
+    'ce_del_confirm'    => 'Supprimer définitivement la fiche de %s ? Sa fiche personnelle et sa photo seront effacées. Ceci ne peut pas être annulé.',
+    'ce_del_go'         => 'Supprimer définitivement',
+    'ce_del_ok'         => 'Fiche de %s supprimée.',
     'ce_link_head'       => 'Clé d’entrée',
     'ce_link_help'       => 'Cette clé fait entrer la personne directement. Elle ne sert qu’une fois et n’expire pas : elle peut attendre un retour de vacances. Le bouton l’envoie avec le message d’invitation ; « Créer un lien » se contente de la fabriquer, à vous de la transmettre comme vous voulez.',
     'ce_link_make'       => 'Créer une clé',

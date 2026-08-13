@@ -752,6 +752,12 @@ a.ecard-btn:hover { background: #fff; color: var(--ink); }
 .espace-autre { margin-top: 26px; border-top: var(--trait) solid var(--line); padding-top: 18px; }
 .espace-autre > summary { cursor: pointer; color: var(--grey); font-size: 14px; }
 .espace-autre .form { margin-top: 14px; }
+
+/* [13.08.2026] La zone de suppression d'une fiche. Séparée du reste par un
+   trait et rangée tout en bas : on ne tombe pas dessus, on va la chercher. */
+.ce-danger { margin-top: 30px; padding-top: 18px; border-top: var(--trait) solid var(--line); }
+.ce-danger .btn.ce-del { border-color: var(--error); color: var(--error); }
+.ce-danger .btn.ce-del:hover { background: var(--error); color: var(--paper); }
 .espace-intro h1 { margin: 0 0 6px; }
 /* [V16-ESPACE-BILINGUE] Le bloc de droite tient le choix de langue et, une
    fois connecté, le nom et la déconnexion. */

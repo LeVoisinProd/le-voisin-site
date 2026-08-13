@@ -71,6 +71,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             else          flash(($r['raison'] ?: ta('inv_err_send')) , 'err');
         }
         redirect('/admin/collaborator-edit.php?id=' . $id);
+    } elseif ($action === 'supprimer') {
+        /* [13.08.2026] Supprimer une personne, et pourquoi c'est étroit.
+        
+           Anna a cherché ce bouton : il n'existait pas, et ce n'était pas un
+           oubli. Une personne porte ses contrats, ses fiches de salaire et ses
+           factures, que la loi oblige à conserver dix ans. Un bouton qui
+           efface tout cela d'un clic est un piège, pas une fonction.
+        
+           Donc : la suppression n'est possible QUE si la personne ne porte
+           aucun document. C'est le cas d'un doublon, d'un essai, d'une fiche
+           créée par erreur — les seuls cas où l'on veut vraiment supprimer.
+           Dès qu'il y a un document, on refuse et l'on rappelle le bon geste,
+           qui est de décocher « Actif » : l'accès se ferme à l'instant et les
+           documents restent là où la comptabilité les cherchera. */
+        $nDocs = (int)DB::val('SELECT COUNT(*) FROM member_documents WHERE collaborator_id = ?', [$id]);
+        if ($nDocs > 0) {
+            flash(ta('ce_del_refus', $nDocs), 'err');
+            redirect('/admin/collaborator-edit.php?id=' . $id);
+        }
+        $nom = trim((string)($c['name'] ?? '')) ?: (string)($c['email'] ?? '');
+        /* La photo d'abord : Img::delete() retire aussi les fichiers du disque,
+           qu'une suppression en base laisserait derrière elle. */
+        foreach (DB::all('SELECT id FROM images WHERE owner_type = ? AND owner_id = ?', ['collaborator', $id]) as $im) {
+            try { Img::delete((int)$im['id']); } catch (Throwable $e) { /* le fichier manquait déjà */ }
+        }
+        DB::delete('member_profiles', 'collaborator_id = ?', [$id]);
+        DB::delete('access_log', 'collaborator_id = ?', [$id]);
+        DB::delete('collaborators', 'id = ?', [$id]);
+        flash(ta('ce_del_ok', $nom));
+        redirect('/admin/collaborators.php');
+
     } elseif ($action === 'lien_annuler') {
         MemberAuth::lienAnnuler($id);
         flash(ta('ce_link_cancelled'));
@@ -586,6 +617,28 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
         }
       })();
       </script>
+
+      <?php /* [13.08.2026] Supprimer, tout en bas, et volontairement discret.
+
+               Le geste courant pour quelqu'un qui part n'est pas celui-ci,
+               c'est de décocher « Actif » plus haut : l'accès se ferme à
+               l'instant et les documents restent là où la comptabilité les
+               cherchera pendant dix ans. Ce bouton-ci ne sert qu'aux fiches qui
+               n'auraient jamais dû exister, un doublon, un essai. Il refuse de
+               lui-même dès qu'un document est attaché, et le dit. */ ?>
+      <?php $nDocsSup = (int)DB::val('SELECT COUNT(*) FROM member_documents WHERE collaborator_id = ?', [$id]); ?>
+      <div class="ce-danger">
+        <h3 class="mdoc-cat"><?= e(ta('ce_del_head')) ?></h3>
+        <?php if ($nDocsSup > 0): ?>
+        <p class="hint"><?= e(ta('ce_del_impossible', $nDocsSup)) ?></p>
+        <?php else: ?>
+        <p class="hint"><?= e(ta('ce_del_help')) ?></p>
+        <form method="post" onsubmit="return confirm(<?= e(json_encode(ta('ce_del_confirm', trim((string)($c['name'] ?? '')) ?: (string)$c['email']), JSON_UNESCAPED_UNICODE)) ?>);">
+          <?= $csrf ?><input type="hidden" name="action" value="supprimer">
+          <button class="btn small ghost ce-del" type="submit"><?= e(ta('ce_del_go')) ?></button>
+        </form>
+        <?php endif; ?>
+      </div>
     </div>
   </div>
 </div>
