@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''
  * Ce sont les MÊMES quatre réglages qu'en Réglages, pas une copie : les deux
  * écrans écrivent aux mêmes clefs, donc ils ne peuvent pas diverger. L'ancien
  * bloc reste en place tant que celui-ci n'a pas fait ses preuves. */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['lv_action'] ?? '') === 'texte') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''), ['texte', 'texte_essai'], true)) {
     Auth::requireCsrf();
     foreach (Invitations::CLES as $k) {
         if (array_key_exists($k, $_POST)) Settings::set($k, trim((string)$_POST[$k]));
@@ -139,7 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['lv_action'] ?? '') === 'te
        On relit ce qu'on vient d'écrire, dans sa propre boîte, sans qu'aucun
        collaborateur ni aucun vrai lien soit touché. Séparer le lieu où l'on
        écrit du lieu où l'on essaie, c'est écrire sans jamais relire. */
-    if (trim((string)($_POST['lv_essai_to'] ?? '')) !== '') {
+    /* [13.08.2026] L'envoi a son propre bouton. Il était accroché à
+       « Enregistrer les réglages », ce que personne ne devine : on remplissait
+       l'adresse et l'on cherchait un bouton d'envoi qui n'existait pas.
+       Celui-ci enregistre PUIS envoie, dans cet ordre, sinon on relirait autre
+       chose que ce qui vient d'être écrit. */
+    if (($_POST['lv_action'] ?? '') === 'texte_essai' && trim((string)($_POST['lv_essai_to'] ?? '')) !== '') {
         $_SESSION['lv_essai_rapport'] = Invitations::essai(
             trim((string)$_POST['lv_essai_to']), (string)($_POST['lv_essai_lang'] ?? 'fr'));
     }
@@ -410,13 +415,16 @@ admin_top(ta('nav_collab'), 'collab');
         : ta('st_inv_test_ko', $essai['raison'])) ?></div>
     <?php endif; ?>
     <div class="grid2">
+      <?php /* L'adresse est PRÉ-REMPLIE et non suggérée en gris : un texte gris
+               se lit comme une valeur, on appuie sur envoyer, et rien ne part. */ ?>
       <?= field_wrap(ta('st_f_inv_testto'),
-          '<input type="email" name="lv_essai_to" value="" placeholder="'
+          '<input type="email" name="lv_essai_to" value="'
           . e((string)(Auth::user()['email'] ?? setting('contact_email', ''))) . '">') ?>
       <div class="f"><label class="f-label"><?= e(ta('st_f_inv_testlang')) ?></label>
         <select name="lv_essai_lang"><option value="fr">Français</option><option value="en">English</option></select>
       </div>
     </div>
+    <p><button class="btn" type="submit" name="lv_action" value="texte_essai"><?= e(ta('inv_essai_btn')) ?></button></p>
     <p class="hint"><?= e(ta('inv_essai_h')) ?></p>
   </form>
 
