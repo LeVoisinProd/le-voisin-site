@@ -813,6 +813,8 @@ return [
 
     // Client SMTP (app/lib/Smtp.php) — journal et diagnostic.
     'sys_smtp_nohost'   => 'aucun serveur SMTP configuré',
+    'sys_smtp_ssl587'    => 'Le mode « SSL/TLS direct » va avec le port 465. Pour le port 587, choisissez « STARTTLS ».',
+    'sys_smtp_tls465'    => 'Le mode « STARTTLS » va avec le port 587. Pour le port 465, choisissez « SSL/TLS direct ».',
     'sys_smtp_conn'     => 'connexion impossible à %s',
     'sys_smtp_starttls' => 'le passage en connexion chiffrée (STARTTLS) a échoué',
     'sys_smtp_from'     => 'expéditeur refusé (%s) : %s',

@@ -805,6 +805,8 @@ return [
 
     // SMTP client (app/lib/Smtp.php) — log and diagnostics.
     'sys_smtp_nohost'   => 'no SMTP server configured',
+    'sys_smtp_ssl587'    => 'The “direct SSL/TLS” mode goes with port 465. For port 587, choose “STARTTLS”.',
+    'sys_smtp_tls465'    => 'The “STARTTLS” mode goes with port 587. For port 465, choose “direct SSL/TLS”.',
     'sys_smtp_conn'     => 'cannot connect to %s',
     'sys_smtp_starttls' => 'the switch to an encrypted connection (STARTTLS) failed',
     'sys_smtp_from'     => 'sender refused (%s): %s',

@@ -91,6 +91,17 @@ class Smtp
         if (!$sock) {
             self::$erreur = tu('sys_smtp_conn', $adresse)
                           . ($errstr !== '' ? ' — ' . $errstr : '') . ' (code ' . $errno . ')';
+            /* [13.08.2026] Dire ce qu'on sait déjà.
+
+               Le mode et le port sont là, tous les deux, et quand ils se
+               contredisent la connexion n'ouvre même pas : le message parle
+               alors de « ssl://…:587 (code 0) », ce qui est exact et n'aide que
+               ceux qui connaissent déjà la différence entre les deux ports.
+               Anna a perdu son dernier essai là-dessus, la veille d'un envoi à
+               soixante-dix-sept personnes. Une phrase de plus, et le prochain
+               qui reconfigure le courrier dans un an la lira. */
+            if ($secu === 'ssl' && $port === 587)      self::$erreur .= ' ' . tu('sys_smtp_ssl587');
+            elseif ($secu !== 'ssl' && $port === 465)  self::$erreur .= ' ' . tu('sys_smtp_tls465');
             self::$code = 'conn';
             return false;
         }
@@ -178,6 +189,12 @@ class Smtp
         if (!$sock) {
             self::$erreur = tu('sys_smtp_conn', $adresse)
                           . ($errstr !== '' ? ' — ' . $errstr : '');
+            /* [13.08.2026] La MÊME phrase qu'à l'ouverture de send(), et il faut
+               qu'elle soit aux deux : c'est ici, dans le bouton « tester
+               l'envoi », qu'on la lit en pratique — send() ne parle qu'au moment
+               où l'on envoie vraiment, quand il est déjà tard. */
+            if ($secu === 'ssl' && $port === 587)      self::$erreur .= ' ' . tu('sys_smtp_ssl587');
+            elseif ($secu !== 'ssl' && $port === 465)  self::$erreur .= ' ' . tu('sys_smtp_tls465');
             self::$code = 'conn';
             return false;
         }
