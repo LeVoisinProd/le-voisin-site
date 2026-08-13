@@ -14,6 +14,12 @@ class MemberDocs
         'contract'   => ['fr' => 'Contrats', 'en' => 'Contracts'],
         'payslip'    => ['fr' => 'Fiches de salaire', 'en' => 'Payslips'],
         'invoice'    => ['fr' => 'Factures', 'en' => 'Invoices'],        // [V36-FACTURES]
+        /* [13.08.2026] Une facture et un justificatif de dépense ne sont pas la
+           même chose, et tout arrivait sous « Factures ». Une facture, on la
+           doit à quelqu'un ; un justificatif, on le rembourse. La comptabilité
+           les traite différemment, et le bureau devait deviner en ouvrant le
+           PDF. La personne qui dépose, elle, sait laquelle c'est. */
+        'expense'    => ['fr' => 'Justificatifs de dépenses', 'en' => 'Expense receipts'],
         'identity'   => ['fr' => 'Pièces d\'identité', 'en' => 'Identity documents'],
         'other'      => ['fr' => 'Autres documents', 'en' => 'Other documents'],
         // Volet « projets »                                    [V33-ESPACE-3]
@@ -58,7 +64,7 @@ class MemberDocs
        une production, et c'est là qu'on le cherche. */
     public const VOLETS = [
         'contrat'  => ['contract', 'payslip', 'identity', 'other'],
-        'paiement' => ['invoice'],
+        'paiement' => ['invoice', 'expense'],
         'projet'   => ['roadmap', 'travel', 'hotel', 'perdiem', 'logistics', 'prod_other'],
     ];
 

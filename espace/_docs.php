@@ -189,7 +189,11 @@ function espace_docs_depot(array $m, string $retour): void
     $nom = MemberDocs::nomFacture(espace_nom_personne($m), $annee, $mois, $ext);
 
     try {
-        $doc = MemberDocs::upload($fichier, (int)$m['id'], 'invoice',
+        /* [13.08.2026] La personne dit ce qu'elle dépose. Le site écrivait
+           « facture » pour tout, y compris pour un justificatif de dépense, et
+           le bureau devait ouvrir le PDF pour savoir de quoi il s'agissait. */
+        $genre = ((string)($_POST['genre'] ?? '')) === 'expense' ? 'expense' : 'invoice';
+        $doc = MemberDocs::upload($fichier, (int)$m['id'], $genre,
                                   $projet ?: null, false, $assoc, 'member', $nom);
     } catch (Throwable $e) {
         espace_flash('err', $e->getMessage());
@@ -317,6 +321,17 @@ function espace_facture_form(array $m): string
           </select>
         </div>
         <?php endif; ?>
+        <?php /* [13.08.2026] Ce qu'on dépose, dit par qui le dépose. Deux
+                 réponses seulement, et la première est celle de la plupart des
+                 dépôts : on ne fait pas choisir entre huit rubriques quelqu'un
+                 qui vient envoyer une facture. */ ?>
+        <div class="field">
+          <label for="depot-genre"><?= e(t('member_depot_genre')) ?></label>
+          <select id="depot-genre" name="genre">
+            <option value="invoice"><?= e(t('member_depot_g_facture')) ?></option>
+            <option value="expense"><?= e(t('member_depot_g_frais')) ?></option>
+          </select>
+        </div>
         <div class="field field--wide">
           <label for="depot-fichier"><?= e(t('member_depot_fichier')) ?></label>
           <input type="file" id="depot-fichier" name="facture" accept="<?= e($exts) ?>" required>

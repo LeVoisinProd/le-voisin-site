@@ -115,6 +115,17 @@ return [
         'confirm'    => true,   // copie de confirmation à la personne
         'fields'     => [
             ['key' => 'sec_exp', 'type' => 'section', 'label' => ['en' => 'Expense', 'fr' => 'Dépense']],
+            /* [13.08.2026] Le formulaire s'appelait déjà « Factures /
+               justificatifs de dépenses » et ne demandait jamais lequel des
+               deux. Une facture se doit, un justificatif se rembourse : le
+               bureau devait ouvrir la pièce pour le savoir, alors que la
+               personne qui l'envoie, elle, le sait. */
+            ['key' => 'doc_genre', 'type' => 'select', 'required' => true,
+             'label' => ['en' => 'What is it?', 'fr' => 'De quoi s’agit-il ?'],
+             'options' => [
+                 ['en' => 'An invoice, which we owe you', 'fr' => 'Une facture, que nous vous devons'],
+                 ['en' => 'An expense receipt, to reimburse you', 'fr' => 'Un justificatif de dépense, à vous rembourser'],
+             ]],
             ['key' => 'association', 'type' => 'select', 'required' => true, 'source' => 'assoc',
              'label' => ['en' => 'Association', 'fr' => 'Association']],
             ['key' => 'project_place', 'type' => 'text', 'required' => true,

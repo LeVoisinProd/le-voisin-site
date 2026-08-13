@@ -216,6 +216,9 @@ return [
     'member_depot_projet' => 'Pour quel projet ?',
     'member_depot_sans_projet' => 'Aucun projet en particulier',
     'member_depot_fichier' => 'Votre facture',
+    'member_depot_genre'  => 'De quoi s’agit-il ?',
+    'member_depot_g_facture' => 'Une facture, que nous te devons',
+    'member_depot_g_frais'   => 'Un justificatif de dépense, à te rembourser',
     'member_depot_aide'  => 'PDF, JPG, PNG, DOC ou DOCX, 25 Mo au maximum. Le nom du fichier est mis en forme automatiquement, vous n’avez pas à vous en occuper.',
     'member_depot_go'    => 'Déposer la facture',
     /* Les trois onglets. Courts par nécessité : ils tiennent sur une seule

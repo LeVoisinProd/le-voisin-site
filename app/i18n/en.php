@@ -209,6 +209,9 @@ return [
     'member_depot_projet' => 'For which project?',
     'member_depot_sans_projet' => 'No particular project',
     'member_depot_fichier' => 'Your invoice',
+    'member_depot_genre'  => 'What is it?',
+    'member_depot_g_facture' => 'An invoice, which we owe you',
+    'member_depot_g_frais'   => 'An expense receipt, to reimburse you',
     'member_depot_aide'  => 'PDF, JPG, PNG, DOC or DOCX, 25 MB maximum. The filename is formatted automatically — you have nothing to do about it.',
     'member_depot_go'    => 'Send the invoice',
 
