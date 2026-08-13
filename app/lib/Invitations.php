@@ -329,6 +329,72 @@ TXT;
         return strtr(e($t), ['{nom}' => e($nom), '{lien}' => $ancre]);
     }
 
+    /* ==================================================================
+       LA CLÉ D'ENTRÉE, celle que la personne se donne à elle-même.
+                                                        [13.08.2026]
+       À ne pas confondre avec l'invitation, plus haut. L'invitation est
+       longue, éditable dans le CMS, envoyée par le bureau, et sa clé n'expire
+       pas. Celle-ci est courte, écrite dans le code, demandée par la personne
+       depuis la page de l'espace, et vaut trente minutes : elle est demandée
+       et utilisée dans la même minute, une durée courte ne gêne personne et
+       referme la fenêtre pour une boîte aux lettres lue par quelqu'un d'autre.
+
+       Elle n'est pas éditable dans les réglages, et c'est voulu : un message
+       de service que personne ne relit vaut mieux figé qu'à moitié réécrit.
+       ================================================================== */
+
+    public const CLE_MINUTES = 30;
+
+    /** Un libellé dans la langue de la personne, sans toucher à celle de la page. */
+    private static function m(string $cle, string $lang, ...$args): string
+    {
+        $s = I18n::ta($cle, self::langue($lang));
+        return $args ? vsprintf($s, $args) : $s;
+    }
+
+    /**
+     * Le message qui porte une clé d'entrée. Vrai si le courriel est parti.
+     *
+     * Rend faux sans rien dire de plus pour une adresse invalide ou un compte
+     * désactivé : c'est l'appelant qui décide quoi montrer, et il montre la
+     * même chose dans tous les cas, pour ne pas révéler qui a un compte.
+     */
+    public static function cleEnvoyer(array $c): bool
+    {
+        $email = trim((string)($c['email'] ?? ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || empty($c['active'])) return false;
+
+        try { $jeton = MemberAuth::lienNouveau((int)$c['id'], self::CLE_MINUTES); }
+        catch (Throwable $ex) { return false; }
+
+        $lang = self::langue((string)($c['lang'] ?? ''));
+        $lien = MemberAuth::lienUrl($jeton);
+        $nom  = trim((string)($c['name'] ?? ''));
+        $nom  = $nom !== '' ? explode(' ', $nom)[0] : '';
+
+        $sujet = self::m('cle_sujet', $lang);
+        $corps = '<div style="font-size:15px;line-height:1.7;color:#111;">'
+               . '<p style="margin:0 0 16px;">'
+               . e($nom !== '' ? self::m('cle_bonjour', $lang, $nom) : self::m('cle_bonjour_sans', $lang))
+               . '</p>'
+               . '<p style="margin:0 0 8px;">' . e(self::m('cle_1', $lang)) . '</p>'
+               . Mailer::bouton($lien, self::m('inv_bouton', $lang))
+               . '<p style="margin:0 0 26px;text-align:center;font-size:13px;line-height:1.6;color:#777;">'
+               . e(self::m('cle_2', $lang, self::CLE_MINUTES)) . '</p>'
+               . '<p style="margin:0;font-size:13px;color:#777;">' . e(self::m('cle_3', $lang)) . '</p>'
+               . '</div>';
+
+        return Mailer::send([$email], $sujet, Mailer::wrap($sujet, $corps));
+    }
+
+    /** La personne active qui porte cette adresse, ou null. */
+    public static function parAdresse(string $email): ?array
+    {
+        $email = trim(mb_strtolower($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return null;
+        return DB::one('SELECT * FROM collaborators WHERE email = ? AND active = 1', [$email]) ?: null;
+    }
+
     /**
      * Ce qui empêcherait tout envoi, dit avant d'y toucher.
      *

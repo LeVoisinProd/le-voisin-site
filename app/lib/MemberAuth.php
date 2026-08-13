@@ -90,13 +90,34 @@ class MemberAuth
         return substr($_SERVER['REMOTE_ADDR'] ?? 'cli', 0, 60);
     }
 
-    public static function throttled(): bool
+    /**
+     * Trop d'essais depuis cette adresse IP, sur ce guichet.
+     *
+     * [13.08.2026] Le préfixe devient un argument. Chaque guichet compte à part :
+     * « m: » l'ancien mot de passe, « e: » la demande de clé d'entrée. Sans cela,
+     * quelqu'un qui redemande sa clé six fois bloquerait aussi la connexion de
+     * l'administration, et le compteur d'un guichet servirait de bélier contre
+     * l'autre. Même découpage que le Catalogue, qui compte sous « c: ».
+     */
+    public static function throttled(string $prefixe = 'm:'): bool
     {
         $n = (int)DB::val(
             'SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND at > (NOW() - INTERVAL ' . self::WINDOW_MIN . ' MINUTE)',
-            ['m:' . self::ip()]
+            [$prefixe . self::ip()]
         );
         return $n >= self::MAX_ATTEMPTS;
+    }
+
+    /**
+     * Compte un essai. Appelé QUELLE QUE SOIT l'issue de la demande de clé.
+     *
+     * C'est la condition pour ne pas renseigner l'attaquant : si l'on ne
+     * comptait que les adresses inconnues, la vitesse de la réponse dirait
+     * lesquelles existent, et le travail de la réponse unique serait perdu.
+     */
+    public static function noter(string $prefixe, string $email = ''): void
+    {
+        DB::insert('login_attempts', ['ip' => $prefixe . self::ip(), 'email' => substr($email, 0, 180)]);
     }
 
     public static function login(string $email, string $pass): bool
@@ -279,7 +300,7 @@ class MemberAuth
     public static function requireMember(): void
     {
         if (self::check()) return;
-        redirect('/espace/login.php');
+        redirect('/espace/entrer.php');
     }
 
     // ---- Lien de choix du mot de passe --------------------------------------
@@ -324,9 +345,17 @@ class MemberAuth
     }
 
     /** L'adresse complète à communiquer à la personne. */
+    /**
+     * L'adresse complète d'une clé.
+     *
+     * [13.08.2026] Elle mène à entrer.php et non plus à mot-de-passe.php : la
+     * clé fait entrer, elle ne fait plus choisir un mot de passe. Les clés déjà
+     * dans une boîte aux lettres continuent de fonctionner, parce que
+     * mot-de-passe.php renvoie vers la nouvelle porte en gardant le jeton.
+     */
     public static function lienUrl(string $jeton): string
     {
-        return url('/espace/mot-de-passe.php?jeton=' . urlencode($jeton));
+        return url('/espace/entrer.php?jeton=' . urlencode($jeton));
     }
 
     /** Le collaborateur désigné par ce jeton, si le lien n'a pas expiré. */

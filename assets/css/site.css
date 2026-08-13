@@ -737,6 +737,21 @@ a.ecard-btn:hover { background: #fff; color: var(--ink); }
 .espace-main { padding: clamp(28px, 5vw, 56px) 0 80px; }
 .espace-login { max-width: 460px; margin: 5vh auto 0; background: var(--paper); border: var(--trait) solid var(--ink); border-radius: var(--radius); padding: 36px 40px; }
 .espace-login h1 { font-size: 28px; margin: 0 0 8px; }
+
+/* [V40-CLE] La porte, quand il n'y a plus de mot de passe.
+
+   Le message qui confirme l'envoi d'une clé est encadré de noir et non de
+   rouge : ce n'est pas une erreur, c'est la seule chose qui se passe sur cette
+   page, et elle doit se voir autant qu'un refus. */
+.form-ok { border: var(--trait) solid var(--ink); padding: 14px 20px; margin: 20px 0; font-weight: 700; }
+/* Le nom de la personne, quand le navigateur la reconnaît. Il porte tout
+   l'écran : c'est lui qui dit « c'est bien chez toi » avant le moindre clic. */
+.espace-connu { font-size: 21px; font-weight: 700; margin: 16px 0 18px; }
+/* « Ce n'est pas toi ? » se replie : le cas est rare, et déplié il mettrait
+   deux formulaires côte à côte sur la même page. */
+.espace-autre { margin-top: 26px; border-top: var(--trait) solid var(--line); padding-top: 18px; }
+.espace-autre > summary { cursor: pointer; color: var(--grey); font-size: 14px; }
+.espace-autre .form { margin-top: 14px; }
 .espace-intro h1 { margin: 0 0 6px; }
 /* [V16-ESPACE-BILINGUE] Le bloc de droite tient le choix de langue et, une
    fois connecté, le nom et la déconnexion. */
