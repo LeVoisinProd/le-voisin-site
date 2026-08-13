@@ -295,7 +295,7 @@ return [
     'col_acc_ready'      => 'Password set, never logged in',
     'col_acc_ok'         => 'Access confirmed — %s',
     'col_how_head'       => 'How access to the area works',
-    'col_how_1'         => 'A person enters their area without a password. They give their address on the area\\'s page, receive a key by email, and one click takes them in. Nothing to choose, nothing to remember, so nothing to lose or reset. The mailbox is what proves identity, exactly as the reset link already did.',
+    'col_how_1'         => 'A person enters their area without a password. They give their address on the area\'s page, receive a key by email, and one click takes them in. Nothing to choose, nothing to remember, so nothing to lose or reset. The mailbox is what proves identity, exactly as the reset link already did.',
     'col_how_2'         => 'To grant access, open the person\'s sheet and click “Send the link by email”: they receive the invitation message with their key. That first key does not expire, it waits for the return from holiday if need be, and it dies on being used. After that the person gives themselves a new key from the area\'s page, without going through you.',
     'col_how_3'         => 'To check that someone really has access, two signposts: the “Access” column below, which shows where they stand, and the “View their area” button on their sheet, which shows you their page exactly as they see it, without changing anything.',
     'col_to_sign_n'      => '%d to sign',
