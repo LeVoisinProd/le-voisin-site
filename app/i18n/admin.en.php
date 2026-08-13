@@ -290,6 +290,7 @@ return [
     // --- Where each person stands with access   [V27-ACCES] ---
     'col_th_access'      => 'Access',
     'col_del_btn'        => 'Delete',
+    'col_del_none'       => 'Nobody ticked: nothing was deleted.',
     'col_del_help'      => 'Deleting only applies to records with no documents attached: a duplicate, a typing error, a record never used. For someone who has worked with us, untick “Active” on their record: access closes and the documents stay.',
     'col_del_head'      => 'Delete records',
     'col_del_intro'     => '%d record(s) will be permanently deleted, along with their personal details and photo:',
@@ -735,7 +736,7 @@ return [
     'st_ph_skr_key'      => 'Skribble API key',
     'st_f_skr_key_h'     => 'Kept on your own server. To be recreated in Skribble if you lose it.',
     'st_f_skr_sig'       => 'Who signs for the office',
-    'st_f_skr_sig_h'     => 'A contract has two parties: this address receives the document to countersign after the person. Leave empty to use the email sender address.',
+    'st_f_skr_sig_h'     => 'A contract has two parties: this address signs FIRST, then the document goes to the person, who signs to accept. Leave empty to use the email sender address.',
     'st_f_skr_q'         => 'Signature level',
     'st_o_ses'           => 'Standard (SES)',
     'st_o_aes'           => 'Advanced (AES)',

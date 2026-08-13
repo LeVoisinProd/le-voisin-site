@@ -33,7 +33,14 @@ $infos = espace_infos_traiter((int)$m['id']);
 
    L'appel vient AVANT forMember() : sans cela, la page montrerait l'état
    d'avant le rafraîchissement qu'elle vient elle-même de déclencher. */
-try { Skribble::rafraichirSiBesoin((int)$m['id'], 'esp'); } catch (Throwable $e) { /* le journal l'a noté */ }
+/* [13.08.2026] PAS pendant une visite du bureau. Le dépôt de documents refuse
+   déjà d'écrire dans ce cas, et pour la même raison : le bandeau noir promet que
+   rien n'est modifié. Sans cette garde, ouvrir « Voir son espace » posait
+   « signé » et horodatait signed_at à l'heure où le bureau a REGARDÉ, pas à
+   celle où la personne a signé. */
+if (!MemberAuth::visite()) {
+    try { Skribble::rafraichirSiBesoin((int)$m['id'], 'esp'); } catch (Throwable $e) { /* le journal l'a noté */ }
+}
 
 $docs  = MemberDocs::forMember((int)$m['id']);
 

@@ -63,7 +63,15 @@ class Mailer
             $html
         ) ?? $html;
 
-        $text = trim(html_entity_decode(strip_tags(preg_replace('/<(br|\/p|\/tr|\/h\d)>/i', "\n", $avecLiens)), ENT_QUOTES, 'UTF-8'));
+        /* [13.08.2026] Les blocs <style> et <script> partent AVEC leur contenu.
+
+           strip_tags() retire les balises et garde ce qu'il y a dedans : depuis
+           que wrap() declare la police du site, la version texte de CHAQUE
+           message s'ouvrait sur « @font-face{font-family:'Space Grotesk'... } »
+           avant le « Bonjour ». Illisible pour qui lit en texte simple, et les
+           filtres comparent les deux versions l'une a l'autre. */
+        $sansStyle = preg_replace('#<(style|script)\b[^>]*>.*?</\1>#is', '', $avecLiens) ?? $avecLiens;
+        $text = trim(html_entity_decode(strip_tags(preg_replace('/<(br|\/p|\/tr|\/h\d)>/i', "\n", $sansStyle)), ENT_QUOTES, 'UTF-8'));
 
         $body  = "--$boundary\r\n";
         $body .= "Content-Type: multipart/alternative; boundary=\"$altBoundary\"\r\n\r\n";

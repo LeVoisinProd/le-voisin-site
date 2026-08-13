@@ -10,7 +10,10 @@
  *
  * Trois entrées possibles sur cette même page :
  *
- *   1. AVEC UNE CLÉ, en cliquant depuis le courriel. On entre, et la clé meurt.
+ *   1. AVEC UNE CLÉ, en cliquant depuis le courriel. La page reconnaît la
+ *      personne et lui demande de confirmer ; c'est ce clic-là qui entre et qui
+ *      tue la clé. Voir la note plus bas : le GET ne consomme rien, parce que
+ *      les antivirus de messagerie ouvrent les adresses avant leur destinataire.
  *   2. AVEC LE SOUVENIR du navigateur, quand on est déjà venu dans le mois.
  *      La page reconnaît la personne, l'appelle par son nom, et un bouton
  *      suffit. Aucun courriel n'est envoyé : c'est ce qui rend le geste
@@ -34,24 +37,55 @@ $etat = '';   // '' · envoye · expire · trop
 $prec = '';   // l'adresse déjà saisie, pour ne pas la faire retaper
 
 /* ---- 1. Une clé dans l'adresse -------------------------------------------
-   L'annulation vient AVANT l'ouverture de session : si quoi que ce soit
-   échouait ensuite, mieux vaut une clé morte qu'une clé qui traîne, valable,
-   dans une boîte aux lettres. En demander une autre ne coûte rien. */
+
+   LE GET NE CONSOMME RIEN, et c'est la règle la plus importante de ce fichier.
+
+   Outlook et Microsoft Defender, Proofpoint, Barracuda et plusieurs antivirus
+   de messagerie OUVRENT les adresses contenues dans un message, à la livraison,
+   pour les inspecter. Si la clé mourait au GET, elle serait morte avant que la
+   personne ait vu le message : elle cliquerait, lirait « cette clé n'est plus
+   valable », en redemanderait une depuis la même boîte surveillée, et
+   recommencerait sans fin. Sans mot de passe de repli, c'est une porte fermée
+   définitivement, et pour tout un domaine à la fois.
+
+   Le GET reconnaît donc la personne et lui montre un bouton. C'est le POST qui
+   entre et qui tue la clé : les robots ne font pas de POST. Le clic en plus est
+   exactement ce qui protège.
+
+   [13.08.2026] L'ancienne page ne souffrait pas de ce défaut — son GET
+   affichait un formulaire — et c'est en la remplaçant que je l'ai introduit. */
 $jeton = trim((string)($_GET['jeton'] ?? ''));
+$porteur = null;   // la personne que la clé désigne, avant tout engagement
 if ($jeton !== '') {
     $m = MemberAuth::parJeton($jeton);
     if ($m && (int)($m['active'] ?? 0) === 1) {
-        MemberAuth::lienAnnuler((int)$m['id']);
-        if (MemberAuth::entrer((int)$m['id'])) redirect('/espace/');
+        $porteur = $m;
+        /* La page parle la langue de la personne, et pas celle du dernier
+           visiteur : la phrase qu'elle a le plus besoin de comprendre est
+           justement celle qui lui annonce un ennui. */
+        if (!empty($m['lang'])) I18n::setLang((string)$m['lang']);
+    } else {
+        $etat = 'expire';
     }
-    $etat = 'expire';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     MemberAuth::requireCsrf();
 
-    /* ---- 2. Le souvenir, un clic ---------------------------------------- */
-    if ((string)($_POST['action'] ?? '') === 'reprendre') {
+    /* ---- 2a. La clé, confirmée par un clic ------------------------------ */
+    if ((string)($_POST['action'] ?? '') === 'cle') {
+        $m = MemberAuth::parJeton((string)($_POST['jeton'] ?? ''));
+        if ($m && (int)($m['active'] ?? 0) === 1) {
+            /* L'annulation vient avant l'ouverture de session : si quoi que ce
+               soit échouait ensuite, mieux vaut une clé morte qu'une clé
+               valable qui traîne dans une boîte aux lettres. */
+            MemberAuth::lienAnnuler((int)$m['id']);
+            if (MemberAuth::entrer((int)$m['id'])) redirect('/espace/');
+        }
+        $etat = 'expire';
+
+    /* ---- 2b. Le souvenir, un clic --------------------------------------- */
+    } elseif ((string)($_POST['action'] ?? '') === 'reprendre') {
         $id = MemberAuth::souvenirLire();
         if ($id !== null && MemberAuth::entrer($id)) redirect('/espace/');
         /* Le souvenir ne vaut plus rien : compte désactivé, ou signature qui
@@ -66,7 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (MemberAuth::throttled('e:')) {
             $etat = 'trop';
         } else {
-            MemberAuth::noter('e:', $prec);
+            /* L'adresse n'est PAS enregistrée : la fiche d'une personne lit
+               les lignes de login_attempts portant son adresse et les affiche
+               comme « essais manqués ». Demander une clé et entrer sans encombre
+               y ressemblait à un échec, sur l'écran même qui sert à diagnostiquer
+               qui n'arrive pas à entrer. Le freinage, lui, compte par adresse IP
+               et n'a pas besoin de savoir qui. */
+            MemberAuth::noter('e:');
             $c = Invitations::parAdresse($prec);
             if ($c) Invitations::cleEnvoyer($c);
             $etat = 'envoye';
@@ -90,7 +130,19 @@ espace_top(t('member_area'), false);
 <div class="espace-login">
   <h1><?= e(t('member_area')) ?></h1>
 
-<?php if ($etat === 'envoye'): ?>
+<?php if ($porteur): ?>
+  <?php /* Une clé valable, pas encore dépensée : un nom et un bouton. Rien
+           n'est écrit en base tant que ce bouton n'a pas été pressé. */ ?>
+  <p class="espace-connu"><?= e(t('esp_cle_bonjour', $porteur['name'] ?: $porteur['email'])) ?></p>
+  <form method="post" class="form">
+    <?= MemberAuth::csrfField() ?>
+    <input type="hidden" name="action" value="cle">
+    <input type="hidden" name="jeton" value="<?= e($jeton) ?>">
+    <p><button class="btn big" type="submit"><?= e(t('esp_cle_reprendre')) ?></button></p>
+  </form>
+  <p class="muted"><?= e(t('esp_cle_une_fois')) ?></p>
+
+<?php elseif ($etat === 'envoye'): ?>
   <div class="form-ok" role="status"><p><?= e(t('esp_cle_envoyee')) ?></p></div>
   <p class="muted"><?= e(t('esp_cle_spam')) ?></p>
 

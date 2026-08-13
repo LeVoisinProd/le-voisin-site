@@ -27,9 +27,15 @@ if (!empty($_SESSION['lv_suppr_rapport'])) {
     unset($_SESSION['lv_suppr_rapport']);
     flash(ta('col_del_done', (int)$sr['n']) . ((int)$sr['refus'] ? ' ' . ta('col_del_kept', (int)$sr['refus']) : ''));
 }
+/* [13.08.2026] La liste de qui reste se LIT sans se consommer.
+
+   Elle était lue et effacée du même geste : il suffisait de recharger la page,
+   ou d'annuler sur l'écran de confirmation, pour que le bouton « reprendre »
+   disparaisse à jamais. Le réflexe suivant est de tout cocher et de renvoyer,
+   ce qui refait soixante-dix-sept clés et tue celles de ceux qui les avaient
+   déjà reçues. Elle ne s'efface donc qu'au départ d'un nouvel envoi. */
 if (!empty($_SESSION['lv_invit_restants'])) {
     $restants = (array)$_SESSION['lv_invit_restants'];
-    unset($_SESSION['lv_invit_restants']);
 }
 
 /* [13.08.2026] Supprimer en lot, depuis les mêmes cases que l'envoi.
@@ -47,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''
                 . ' ORDER BY name, id', $ids)
         : [];
     if (!$gens) {
-        $errors[] = ta('inv_none_sel');
+        $errors[] = ta('col_del_none');   // « rien n'a été envoyé » n'a rien à faire ici
     } elseif ($_POST['lv_action'] === 'suppr_confirmer') {
         $aSupprimer = $gens;
     } else {
@@ -67,16 +73,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['lv_action'] ?? ''
         ? DB::all('SELECT * FROM collaborators WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')'
                 . ' ORDER BY name, id', $ids)
         : [];
-    // On vérifie qu'un envoi est possible AVANT de toucher aux liens : chaque
-    // lien neuf annule le précédent, il serait fâcheux de les annuler tous pour
-    // découvrir ensuite qu'aucun message ne peut partir.
-    $obstacle = Invitations::obstacle();
+    /* On vérifie qu'un envoi est possible AVANT de toucher aux liens : chaque
+       lien neuf annule le précédent, il serait fâcheux de les annuler tous pour
+       découvrir ensuite qu'aucun message ne peut partir.
 
-    if (!$gens)          $errors[] = ta('inv_none_sel');
+       [13.08.2026] Mais APRÈS avoir vérifié qu'il y a quelqu'un : obstacle()
+       ouvre désormais une vraie connexion SMTP avec authentification, et la
+       faire pour apprendre que personne n'était coché coûtait vingt secondes,
+       une connexion de plus au compteur du fournisseur, et cela juste avant une
+       boucle qui va en demander soixante-dix-sept. */
+    if (!$gens) {
+        $errors[] = ta('inv_none_sel');
+    }
+    $obstacle = $gens ? Invitations::obstacle() : '';
+
+    if (!$gens)          { /* déjà dit */ }
     elseif ($obstacle)   $errors[] = $obstacle;
     elseif ($_POST['lv_action'] === 'confirmer') {
         $aConfirmer = $gens;
     } else {
+        unset($_SESSION['lv_invit_restants']);   // un nouvel envoi remplace l'ancien reste
         /* [13.08.2026] La boucle, avec de quoi survivre à une coupure.
 
            Trois précautions, et chacune répare un cas vu ou évité :

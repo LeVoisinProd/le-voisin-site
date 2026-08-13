@@ -264,7 +264,7 @@ TXT;
              . '</tr></table>';
     }
 
-    public static function rendreHtml(string $modele, string $nom, string $lien): string
+    public static function rendreHtml(string $modele, string $nom, string $lien, string $lang = ''): string
     {
         $ancre = '<a href="' . e($lien) . '" style="color:#111;word-break:break-all;">' . e($lien) . '</a>';
 
@@ -282,7 +282,10 @@ TXT;
 
             /* Le bouton, seul dans son bloc. */
             if (preg_match('/^\{bouton(?::(.+))?\}$/u', $prem, $m)) {
-                $out .= Mailer::bouton($lien, trim($m[1] ?? '') !== '' ? trim($m[1]) : ta('inv_bouton'));
+                /* [13.08.2026] Le libellé dans la langue de QUI REÇOIT, et non
+                   dans celle du CMS. Une personne dont la fiche est en anglais
+                   recevait un texte anglais et un bouton en français. */
+                $out .= Mailer::bouton($lien, trim($m[1] ?? '') !== '' ? trim($m[1]) : self::m('inv_bouton', $lang));
                 continue;
             }
             /* Un titre : une seule ligne, sans une seule minuscule, et courte. */
@@ -489,7 +492,7 @@ TXT;
 
         $lien  = MemberAuth::lienUrl($jeton);
         $sujet = self::rendreTexte(self::sujet($lang), $nom, $lien);
-        $html  = Mailer::wrap($sujet, self::rendreHtml(self::texte($lang), $nom, $lien));
+        $html  = Mailer::wrap($sujet, self::rendreHtml(self::texte($lang), $nom, $lien, $lang));
 
         if (Mailer::send([$email], $sujet, $html)) { $r['ok'] = true; return $r; }
 
@@ -517,7 +520,7 @@ TXT;
         $nom   = ta('inv_demo_name');
         $lien  = MemberAuth::lienUrl(str_repeat('0', 64));
         $sujet = ta('inv_test_prefix') . ' ' . self::rendreTexte(self::sujet($lang), $nom, $lien);
-        $html  = Mailer::wrap($sujet, self::rendreHtml(self::texte($lang), $nom, $lien));
+        $html  = Mailer::wrap($sujet, self::rendreHtml(self::texte($lang), $nom, $lien, $lang));
 
         if (Mailer::send([$email], $sujet, $html)) { $r['ok'] = true; return $r; }
         $r['raison'] = trim(Smtp::$erreur) !== '' ? trim(Smtp::$erreur) : ta('inv_err_send');

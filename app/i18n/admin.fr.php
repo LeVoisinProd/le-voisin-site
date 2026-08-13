@@ -296,6 +296,7 @@ return [
     // regardant cette liste : est-ce que cette personne peut entrer ?
     'col_th_access'      => 'Accès',
     'col_del_btn'        => 'Supprimer',
+    'col_del_none'       => 'Aucune personne cochée : rien n’a été supprimé.',
     'col_del_help'      => 'Supprimer ne concerne que les fiches qui ne portent aucun document : un doublon, une erreur de saisie, une fiche jamais servie. Pour quelqu’un qui a travaillé, décochez « Actif » sur sa fiche : l’accès se ferme et les documents restent.',
     'col_del_head'      => 'Supprimer des fiches',
     'col_del_intro'     => '%d fiche(s) vont être supprimées définitivement, avec leur fiche personnelle et leur photo :',
@@ -743,7 +744,7 @@ return [
     'st_ph_skr_key'      => 'clé API Skribble',
     'st_f_skr_key_h'     => 'Conservée sur votre serveur. À recréer dans Skribble si vous la perdez.',
     'st_f_skr_sig'       => 'Qui signe pour le bureau',
-    'st_f_skr_sig_h'     => 'Un contrat a deux parties : cette adresse reçoit le document à contresigner après la personne. Laissez vide pour utiliser l’expéditeur des emails.',
+    'st_f_skr_sig_h'     => 'Un contrat a deux parties : cette adresse signe EN PREMIER, puis le document part à la personne, qui signe pour accepter. Laissez vide pour utiliser l’expéditeur des emails.',
     'st_f_skr_q'         => 'Niveau de signature',
     'st_o_ses'           => 'Standard (SES)',
     'st_o_aes'           => 'Avancée (AES)',

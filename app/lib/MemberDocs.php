@@ -80,7 +80,11 @@ class MemberDocs
        Le projet reste facultatif. Il est demandé « si la facture concerne un
        projet », et une facture qui n'en concerne aucun n'a rien à choisir.
        --------------------------------------------------------------------- */
-    public const AVEC_PROJET = ['invoice'];
+    /* [13.08.2026] « expense » y entre : quelqu'un en tournée choisit son projet
+       dans le formulaire de dépôt, et sans cette ligne ce choix était jeté en
+       chemin. C'est exactement ce que la note du dépôt cherchait à éviter pour
+       les factures. */
+    public const AVEC_PROJET = ['invoice', 'expense'];
 
     /** Le volet d'une catégorie. Une catégorie inconnue reste contractuelle. */
     public static function volet(string $cat): string
@@ -507,12 +511,21 @@ class MemberDocs
      * « IMG_4471.jpg » ou « facture (2).pdf ». Le bureau, lui, reçoit chaque
      * mois des pièces qu'il doit pouvoir ranger sans les ouvrir.
      */
-    public static function nomFacture(string $personne, int $annee, int $mois, string $ext): string
+    /**
+     * Le nom d'un dépôt de la personne.
+     *
+     * [13.08.2026] Le mot final suit la catégorie. Le fichier s'appelait
+     * « _Facture » même pour un justificatif de frais, ce qui obligeait le
+     * bureau à ouvrir le PDF pour savoir ce qu'il tenait : précisément le
+     * problème que la distinction facture / justificatif venait supprimer.
+     */
+    public static function nomFacture(string $personne, int $annee, int $mois, string $ext, string $categorie = 'invoice'): string
     {
         $nom = trim((string)@iconv('UTF-8', 'ASCII//TRANSLIT', $personne));
         $nom = trim((string)preg_replace('/[^A-Za-z0-9]+/', '-', $nom), '-');
-        if ($nom === '') $nom = 'Facture';
-        return sprintf('%04d_%02d_%s_Facture.%s', $annee, $mois, $nom, $ext);
+        $quoi = $categorie === 'expense' ? 'Frais' : 'Facture';
+        if ($nom === '') $nom = $quoi;
+        return sprintf('%04d_%02d_%s_%s.%s', $annee, $mois, $nom, $quoi, $ext);
     }
 
     /**
@@ -651,7 +664,12 @@ class MemberDocs
            part sans statut — un contrat n'attend rien tant qu'on ne lui a
            rien demandé. */
         if (self::colonneStatut()) {
-            $depart = ($par === 'member' && $category === 'invoice') ? 'sent' : '';
+            /* [13.08.2026] « expense » suit exactement le même circuit que « invoice » :
+           déposée par la personne, elle part en « envoyée », le bureau la marque
+           payée, la personne confirme. Sans cette ligne, un justificatif de frais
+           n'avait pas d'état du tout : aucun bouton d'un côté, aucun suivi de
+           l'autre, et il n'apparaissait sur aucune liste d'attente. */
+        $depart = ($par === 'member' && in_array($category, ['invoice', 'expense'], true)) ? 'sent' : '';
             $ligne['uploaded_by'] = $par === 'member' ? 'member' : 'admin';
             $ligne['status']      = $depart;
             $ligne['status_at']   = $depart !== '' ? date('Y-m-d H:i:s') : null;

@@ -143,6 +143,7 @@ return [
     'esp_cle_morte'      => 'Cette clé n’est plus valable : elle a déjà servi, ou son délai est passé. Demandes-en une autre, cela ne coûte rien et personne n’a besoin de le faire pour toi.',
     'esp_cle_bonjour'    => 'Bonjour %s',
     'esp_cle_reprendre'  => 'Entrer dans mon espace',
+    'esp_cle_une_fois'   => 'Cette clé ne sert qu’une fois : elle cesse de fonctionner dès que tu es entré·e.',
     'esp_cle_autre'      => 'Ce n’est pas toi ? Utiliser une autre adresse.',
     'member_password'    => 'Mot de passe',
     'member_bad_login'   => 'E-mail ou mot de passe incorrect.',

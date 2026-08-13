@@ -185,14 +185,16 @@ function espace_docs_depot(array $m, string $retour): void
     $projets = MemberDocs::projetChoix(I18n::$lang);
     $projet  = isset($projets[$projet]) ? $projet : 0;
 
+    /* [13.08.2026] La personne dit ce qu'elle dépose. Le site écrivait
+       « facture » pour tout, y compris pour un justificatif de dépense, et le
+       bureau devait ouvrir le PDF pour le savoir. Le genre se décide ICI, avant
+       le nom du fichier, parce qu'il en fait partie : un justificatif rangé sous
+       « _Facture » ramène exactement le problème qu'on venait de supprimer. */
+    $genre = ((string)($_POST['genre'] ?? '')) === 'expense' ? 'expense' : 'invoice';
     $ext = mb_strtolower(pathinfo((string)($fichier['name'] ?? ''), PATHINFO_EXTENSION));
-    $nom = MemberDocs::nomFacture(espace_nom_personne($m), $annee, $mois, $ext);
+    $nom = MemberDocs::nomFacture(espace_nom_personne($m), $annee, $mois, $ext, $genre);
 
     try {
-        /* [13.08.2026] La personne dit ce qu'elle dépose. Le site écrivait
-           « facture » pour tout, y compris pour un justificatif de dépense, et
-           le bureau devait ouvrir le PDF pour savoir de quoi il s'agissait. */
-        $genre = ((string)($_POST['genre'] ?? '')) === 'expense' ? 'expense' : 'invoice';
         $doc = MemberDocs::upload($fichier, (int)$m['id'], $genre,
                                   $projet ?: null, false, $assoc, 'member', $nom);
     } catch (Throwable $e) {

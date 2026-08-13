@@ -141,6 +141,7 @@ return [
     'esp_cle_morte'      => 'This key is no longer valid: it has already been used, or it has expired. Just ask for another one, it costs nothing and nobody needs to do it for you.',
     'esp_cle_bonjour'    => 'Hello %s',
     'esp_cle_reprendre'  => 'Enter my space',
+    'esp_cle_une_fois'   => 'This key works only once: it stops working as soon as you are in.',
     'esp_cle_autre'      => 'Not you? Use another address.',
     'member_password'    => 'Password',
     'member_bad_login'   => 'Incorrect e-mail or password.',
