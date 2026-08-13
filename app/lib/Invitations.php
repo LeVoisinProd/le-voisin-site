@@ -81,7 +81,7 @@ The Collaborator Space has four tabs.
 Available at any time. This is where you keep your contact details, your short biography and your profile photo up to date: these are what we reuse in subsidy applications, and an up to date biography makes a better dossier. If you move, you change your address right there, without writing to us. We then receive a message telling us what you changed.
 
 2. Contracts
-Contracts, payslips and AGI forms. We file them there, you download them whenever you need, and you confirm you have them with the button "I have received it".
+Contracts, payslips and AGI forms. We file them there, you download them whenever you need, and you confirm you have them with the button "I have received it". Contracts are signed straight from the space, with a click on "Sign": nothing left to print, scan or send back to us.
 
 3. Payments & reimbursements
 You upload your invoices and expense receipts, and you follow where they stand. Every time you upload a document you receive a confirmation email: it is your proof, with the what and the when.
@@ -135,7 +135,7 @@ L'Espace collaborateur tient en quatre onglets.
 Accessible à tout moment. Tu y tiens à jour tes coordonnées, ta courte biographie et ta photo de profil : ce sont elles que nous reprenons dans les dossiers de subvention, et une biographie à jour fait un meilleur dossier. Si tu déménages, tu changes ton adresse ici même, sans nous écrire. Nous recevons alors un message qui nous dit ce que tu as modifié.
 
 2. Contractualisation
-Contrats, fiches de salaire et AGIs. Nous les y déposons, tu les télécharges quand tu en as besoin, et tu confirmes leur bonne réception avec le bouton « J'ai bien reçu ».
+Contrats, fiches de salaire et AGIs. Nous les y déposons, tu les télécharges quand tu en as besoin, et tu confirmes leur bonne réception avec le bouton « J'ai bien reçu ». Les contrats se signent directement depuis l'espace, d'un clic sur « Signer » : plus rien à imprimer, ni à scanner, ni à nous renvoyer.
 
 3. Paiements & remboursements
 Tu y déposes tes factures et tes justificatifs de frais, et tu suis où ils en sont. À chaque document déposé, tu reçois un courriel de confirmation : il te sert de preuve, avec le quoi et le quand.
