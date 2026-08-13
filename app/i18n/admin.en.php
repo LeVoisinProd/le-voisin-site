@@ -392,6 +392,7 @@ return [
     'ce_link_remake'     => 'Create a new key',
     'ce_link_made'       => 'Key created. Copy it and pass it to the person.',
     'ce_link_active'     => 'Key in progress, valid until %s:',
+    'ce_link_sans_fin'   => 'Key in progress. It does not expire and stops working as soon as it has been used once.',
     'ce_link_copy'       => 'Copy the key',
     'ce_link_copied'     => 'Copied',
     'ce_link_cancel'     => 'Cancel this key',

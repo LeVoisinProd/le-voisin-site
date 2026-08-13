@@ -399,6 +399,7 @@ return [
     'ce_link_remake'     => 'Créer une nouvelle clé',
     'ce_link_made'       => 'Clé créée. Copiez-la et transmettez-la à la personne.',
     'ce_link_active'     => 'Clé en cours, valable jusqu’au %s :',
+    'ce_link_sans_fin'   => 'Clé en cours. Elle n’expire pas et cesse de servir dès qu’elle a servi une fois.',
     'ce_link_copy'       => 'Copier la clé',
     'ce_link_copied'     => 'Copié',
     'ce_link_cancel'     => 'Annuler cette clé',

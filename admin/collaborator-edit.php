@@ -270,7 +270,15 @@ $echecs = (int)DB::val(
 
 // Le lien en cours, s'il y en a un et qu'il n'a pas expiré.
 $lienFin  = !empty($c['reset_expires']) ? strtotime((string)$c['reset_expires']) : 0;
-$lienActif = !empty($c['reset_token']) && $lienFin > time();
+/* [13.08.2026] Une clé sans échéance est VIVANTE, et non morte.
+
+   Cette ligne exigeait une date de fin. Depuis que la clé d'invitation
+   n'expire plus, sa date est nulle, $lienFin vaut 0, et « 0 > maintenant » est
+   faux : la fiche annonçait « Clé créée » et n'affichait jamais la clé. Anna
+   l'a trouvé en une minute, en cliquant. Même faute que dans lv_acces() de la
+   liste, corrigée là et pas ici : une condition écrite à deux endroits ne se
+   corrige jamais qu'à un seul. */
+$lienActif = !empty($c['reset_token']) && ($lienFin === 0 || $lienFin > time());
 $lienUrl  = $lienActif ? MemberAuth::lienUrl((string)$c['reset_token']) : '';
 
 admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
@@ -534,9 +542,9 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
       <p class="hint"><?= e(ta('ce_visit_help')) ?></p>
 
       <h3 class="mdoc-cat"><?= e(ta('ce_link_head')) ?></h3>
-      <p class="hint"><?= e(ta('ce_link_help', (string)MemberAuth::LIEN_JOURS)) ?></p>
+      <p class="hint"><?= e(ta('ce_link_help')) ?></p>
       <?php if ($lienActif): ?>
-      <p class="hint"><?= e(ta('ce_link_active', date('d.m.Y', $lienFin))) ?></p>
+      <p class="hint"><?= e($lienFin === 0 ? ta('ce_link_sans_fin') : ta('ce_link_active', date('d.m.Y', $lienFin))) ?></p>
       <p><input type="text" id="lv-lien" value="<?= e($lienUrl) ?>" readonly spellcheck="false" onclick="this.select()"></p>
       <p>
         <button type="button" class="btn small" id="lv-copier"><?= e(ta('ce_link_copy')) ?></button>
