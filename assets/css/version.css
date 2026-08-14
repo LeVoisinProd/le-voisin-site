@@ -1,6 +1,6 @@
 /* CARIMBO DE VERSÃO                                    [14.08.2026]
 
-   PAQUET : URGENT-2026-08-14-envoi-noms-assos
+   PAQUET : 2026-08-14-envoi-noms-assos-inclusif
    DATE   : 2026-08-14, matin
 
    Ce fichier n'a qu'un rôle : dire, depuis l'extérieur et sans mot de passe,
@@ -26,6 +26,10 @@
      espace/_infos.php          le choix multiple dans la fiche
      app/views/form.php         le même, côté public
      app/lib/MemberDocs.php     la rubrique « Attestations d'indépendant·e »
+     app/lib/MemberNotify.php   écriture inclusive
+     app/lib/Pages.php          écriture inclusive
+     app/i18n/fr.php            écriture inclusive
+     app/i18n/admin.fr.php      écriture inclusive, 30 libellés
      assets/css/site.css        les cases à cocher
      assets/css/version.css     ce fichier
 */

@@ -233,7 +233,7 @@ class MemberNotify
                retaper son IBAN — il est dans sa fiche, chiffré, et c'est là
                qu'on va le chercher plutôt que dans un courriel. */
             [$fr ? 'Déposé depuis' : 'Sent from',
-             $fr ? 'l’espace collaborateur' : 'the collaborator area'],
+             $fr ? 'l’espace collaborateur·rice' : 'the collaborator area'],
         ];
 
         $out = '<table style="width:100%;border-collapse:collapse;font-size:14px;">';

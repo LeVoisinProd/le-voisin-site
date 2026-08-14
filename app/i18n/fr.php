@@ -12,7 +12,7 @@ return [
     'projects_former' => 'Anciens projets',
     'projects_back'   => 'Retour aux projets',
     'artists_former'  => 'Anciennes collaborations',
-    'artists_current' => 'Artistes actuels',
+    'artists_current' => 'Artistes actuel·les',
     'artists_back'    => 'Retour aux artistes',
     'artists'         => 'Artistes',
     'related_artists' => 'Artistes',
@@ -51,7 +51,7 @@ return [
     'forms_expenses_intro' => 'Envoyez-nous ici vos justificatifs de dépenses et vos factures :',
     // Le bouton porte le nom de la page qu'il ouvre : on sait où l'on arrive.
     'forms_expenses_btn'   => 'Factures & justificatifs',
-    'forms_member_lead'    => 'Collaborateurs :',
+    'forms_member_lead'    => 'Collaborateur·rices :',
     'forms_member_intro'   => 'connectez-vous ici pour nous transmettre vos informations personnelles et télécharger vos contrats, fiches de salaire et documents de projet.',
     // [V16-ESPACE] Le français suit l'anglais : les deux versions du site
     // doivent nommer la même chose de la même façon.
@@ -62,7 +62,7 @@ return [
     'pro_cms_desc'       => 'Modifier le site : pages, projets, artistes, tournée, équipe.',
     'pro_dashboard_desc' => 'Accéder au tableau de bord de gestion.',
     'pro_member_title'   => 'Mon espace personnel',   // [V16-ESPACE] même nom que le bouton
-    'pro_member_desc'    => 'Collaborateurs : connectez-vous pour télécharger vos contrats, fiches de salaire et documents de projet.',
+    'pro_member_desc'    => 'Collaborateur·rices : connectez-vous pour télécharger vos contrats, fiches de salaire et documents de projet.',
     'pro_login'          => 'Se connecter',
     'pro_soon'           => 'Lien à renseigner dans les réglages du CMS.',
     'pro_projects_title' => 'Espace projets',
@@ -90,7 +90,7 @@ return [
     'cat_contact'       => 'Une question, une date, un devis ?',
     'cat_ecrire'        => 'Nous écrire',
     'cat_ferme'         => 'Le Catalogue n\'est pas encore ouvert. Le mot de passe reste à définir dans les réglages du site.',
-    'cat_porte_intro'   => 'Cet espace est réservé aux professionnels. Saisissez le mot de passe qui vous a été communiqué.',
+    'cat_porte_intro'   => 'Cet espace est réservé aux professionnel·les. Saisissez le mot de passe qui vous a été communiqué.',
     'cat_mot_de_passe'  => 'Mot de passe',
     'cat_entrer'        => 'Entrer',
     'cat_porte_aide'    => 'Vous n\'avez pas de mot de passe ? Écrivez-nous, nous vous l\'envoyons.',
@@ -132,7 +132,7 @@ return [
     'footer_admin'    => 'Administration',
 
     // Espace collaborateur
-    'member_area'        => 'Espace collaborateur',
+    'member_area'        => 'Espace collaborateur·rice',
     'member_login'       => 'Se connecter',
     'member_login_intro' => 'Connectez-vous pour accéder à vos documents : contrats, fiches de salaire et documents de projet.',
     'member_email'       => 'E-mail',

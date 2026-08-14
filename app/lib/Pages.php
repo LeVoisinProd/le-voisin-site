@@ -21,7 +21,7 @@ class Pages
                             'en' => 'Personal details form'],
         'form_expenses' => ['fr' => 'Formulaire Factures / dépenses',
                             'en' => 'Invoices / expenses form'],
-        'forms_portal'  => ['fr' => 'Page Formulaires (accès dépenses / espace collaborateur)',
+        'forms_portal'  => ['fr' => 'Page Formulaires (accès dépenses / espace collaborateur·rice)',
                             'en' => 'Forms page (expenses / team area access)'],
         'pro'           => ['fr' => 'Page PRO (accès privé CMS / tableau de bord)',
                             'en' => 'PRO page (private access: CMS / dashboard)'],

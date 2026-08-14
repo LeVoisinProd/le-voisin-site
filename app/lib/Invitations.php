@@ -129,7 +129,7 @@ Le bouton t'amène sur la page d'entrée. Tu y indiques cette adresse, celle à 
 
 CE QUE TU Y TROUVERAS
 
-L'Espace collaborateur tient en quatre onglets.
+L'Espace collaborateur·rice tient en quatre onglets.
 
 1. Mes informations
 Accessible à tout moment. Tu y tiens à jour tes coordonnées, ta courte biographie et ta photo de profil : ce sont elles que nous reprenons dans les dossiers de subvention, et une biographie à jour fait un meilleur dossier. Si tu déménages ou changes de compte bancaire, tu peux actualiser tes infos directement dans ton profil. Il est modifiable à tout moment. Nous recevons directement un avertissement des changements.
