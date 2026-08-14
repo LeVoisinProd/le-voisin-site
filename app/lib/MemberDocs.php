@@ -25,6 +25,16 @@ class MemberDocs
            qu'on la demande, jamais sous le nom complet. */
         'agi'        => ['fr' => 'Attestations de gain intermédiaire (AGI)',
                          'en' => 'Intermediate earnings certificates (AGI)'],
+        /* [14.08.2026] L'attestation d'indépendant·e, sa ligne à elle, pour la
+           raison qui a donné la sienne à l'AGI la veille : c'est une pièce qu'on
+           vient chercher pour elle-même. Elle vaut une année civile, elle est
+           réclamée à chaque exercice, et le bureau doit pouvoir répondre à « qui
+           ne l'a pas encore envoyée » sans ouvrir soixante-dix-sept dossiers.
+
+           Elle diffère de l'AGI sur un point qui compte : celle-ci, c'est LA
+           PERSONNE qui la dépose, depuis sa fiche, en choisissant son statut. */
+        'attestation'=> ['fr' => 'Attestations d\'indépendant·e',
+                         'en' => 'Self-employed certificates'],
         'invoice'    => ['fr' => 'Factures', 'en' => 'Invoices'],        // [V36-FACTURES]
         /* [13.08.2026] Une facture et un justificatif de dépense ne sont pas la
            même chose, et tout arrivait sous « Factures ». Une facture, on la
@@ -75,7 +85,7 @@ class MemberDocs
        « perdiem » reste au volet projet : un reçu de per diem se rattache à
        une production, et c'est là qu'on le cherche. */
     public const VOLETS = [
-        'contrat'  => ['contract', 'payslip', 'agi', 'identity', 'other'],
+        'contrat'  => ['contract', 'payslip', 'agi', 'attestation', 'identity', 'other'],
         'paiement' => ['invoice', 'expense'],
         'projet'   => ['roadmap', 'travel', 'hotel', 'perdiem', 'logistics', 'prod_other'],
     ];

@@ -18,7 +18,29 @@ return [
         'confirm'   => true,   // copie de confirmation à la personne
         'fields'    => [
             ['key' => 'sec_id', 'type' => 'section', 'label' => ['en' => 'Identity & contact', 'fr' => 'Identité & contact']],
-            ['key' => 'full_name', 'type' => 'text', 'required' => true, 'label' => ['en' => 'Full name', 'fr' => 'Nom et prénom']],
+            ['key' => 'full_name', 'type' => 'text', 'required' => true,
+             'label' => ['en' => 'Full name', 'fr' => 'Nom et prénom'],
+             'help'  => ['en' => 'As written on your identity document. This is the one that goes on contracts and payslips.',
+                         'fr' => 'Tel qu\'il figure sur ta pièce d\'identité. C\'est celui-là qui va sur les contrats et les fiches de salaire.']],
+            /* [14.08.2026] LE NOM D'USAGE MANQUAIT, et beaucoup de personnes en
+               ont un très différent du nom légal. Sans cette case, le seul nom
+               connu du site était celui du contrat, et c'est sous celui-là qu'on
+               annonçait quelqu'un dans un programme ou un dossier.
+
+               Deux noms parce que deux usages, et l'un ne remplace pas l'autre :
+               la loi veut le nom de la pièce d'identité, le métier veut celui
+               sous lequel la personne travaille et sous lequel le public la
+               connaît.
+
+               Facultatif, parce que la plupart n'en ont qu'un : réclamer une
+               réponse à qui n'en a pas l'oblige à écrire deux fois la même
+               chose, et une case obligatoire remplie pour s'en débarrasser ne
+               vaut rien. */
+            ['key' => 'stage_name', 'type' => 'text',
+             'label' => ['en' => 'Stage name or preferred name',
+                         'fr' => 'Nom artistique ou nom d\'usage'],
+             'help'  => ['en' => 'Optional. The name you work under, and the one we announce you with: programmes, applications, website. Leave it empty if it is the same as above.',
+                         'fr' => 'Facultatif. Le nom sous lequel tu travailles, et sous lequel nous t\'annonçons : programmes, dossiers, site. À laisser vide s\'il est le même que ci-dessus.']],
             ['key' => 'pronoun', 'type' => 'text', 'required' => true, 'label' => ['en' => 'Pronoun', 'fr' => 'Pronom']],
             ['key' => 'email', 'type' => 'email', 'required' => true, 'label' => ['en' => 'E-mail', 'fr' => 'E-mail']],
             ['key' => 'phone', 'type' => 'tel', 'required' => true, 'label' => ['en' => 'Phone', 'fr' => 'Téléphone']],
@@ -221,8 +243,8 @@ return [
             // beaucoup de gens ne l'ont tout simplement pas sous la main : le
             // rendre obligatoire bloquait des envois pour une donnée inutile.
             ['key' => 'bic', 'type' => 'text', 'label' => ['en' => 'BIC', 'fr' => 'BIC'],
-             'help' => ['en' => 'Optional — only needed for a bank outside Europe.',
-                        'fr' => 'Facultatif — utile seulement pour une banque hors d\'Europe.']],
+             'help' => ['en' => 'Optional. Only needed for a bank outside Europe.',
+                        'fr' => 'Facultatif. Utile seulement pour une banque hors d\'Europe.']],
             ['key' => 'street', 'type' => 'text', 'required' => true, 'label' => ['en' => 'Street', 'fr' => 'Rue']],
             ['key' => 'city', 'type' => 'text', 'required' => true, 'label' => ['en' => 'City', 'fr' => 'Ville']],
             ['key' => 'zip', 'type' => 'text', 'required' => true, 'label' => ['en' => 'Postal code', 'fr' => 'Code postal']],
