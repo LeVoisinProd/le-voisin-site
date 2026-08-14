@@ -1,6 +1,6 @@
 /* CARIMBO DE VERSÃO                                    [14.08.2026]
 
-   PAQUET : 2026-08-14-envoi-noms-assos-inclusif
+   PAQUET : 2026-08-14-attestation
    DATE   : 2026-08-14, matin
 
    Ce fichier n'a qu'un rôle : dire, depuis l'extérieur et sans mot de passe,
@@ -20,16 +20,12 @@
    qui ment est pire que pas de carimbo : il donne une certitude fausse.
 
    Contenu de ce paquet :
-     app/lib/Invitations.php    obstacle() cesse de bloquer l'envoi
-     app/config/forms.php       nom d'usage, écriture inclusive, choix multiple
-     app/lib/Forms.php          le choix multiple, écrit une fois pour les deux portes
-     espace/_infos.php          le choix multiple dans la fiche
-     app/views/form.php         le même, côté public
-     app/lib/MemberDocs.php     la rubrique « Attestations d'indépendant·e »
-     app/lib/MemberNotify.php   écriture inclusive
-     app/lib/Pages.php          écriture inclusive
-     app/i18n/fr.php            écriture inclusive
-     app/i18n/admin.fr.php      écriture inclusive, 30 libellés
-     assets/css/site.css        les cases à cocher
-     assets/css/version.css     ce fichier
+     app/lib/MemberDocs.php        docDeLAnnee()
+     app/lib/MemberProfile.php     attestationDue(), la condition écrite une fois
+     app/config/forms.php          doc_cat sur les trois champs fichier
+     espace/_infos.php             le dépôt suit la configuration, l'avis, l'astérisque
+     admin/collaborator-edit.php   le même avis, côté bureau
+     app/i18n/ fr en admin.fr admin.en
+     assets/css/site.css           .form-warn et l'astérisque
+     assets/css/version.css        ce fichier
 */

@@ -315,6 +315,14 @@ $lienUrl  = $lienActif ? MemberAuth::lienUrl((string)$c['reset_token']) : '';
 
 admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
 ?>
+<?php /* [14.08.2026] L'attestation manquante se voit ICI, et pas seulement
+         dans l'espace de la personne : c'est le bureau qui la réclame, et il
+         doit pouvoir répondre à « qui la doit encore » sans ouvrir soixante
+         dossiers. La condition vit dans MemberProfile::attestationDue(), une
+         seule fois pour les deux écrans. */ ?>
+<?php if (MemberProfile::attestationDue($id, $profile['data'] ?? [])): ?>
+<div class="flash warn"><?= e(ta('ce_attest_due')) ?></div>
+<?php endif; ?>
 <div class="page-head">
   <h1><?= e(ta('ce_head')) ?> <span class="crumb">→ <?= e($c['name']) ?></span></h1>
   <div class="actions">

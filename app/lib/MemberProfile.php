@@ -145,6 +145,37 @@ class MemberProfile
         }
     }
 
+    /** Les deux libellés qui veulent dire « indépendant·e », dans les deux langues. */
+    public const STATUT_INDEP = ['Indépendant·e', 'Self-employed'];
+
+    /**
+     * La personne doit-elle encore son attestation d'indépendant·e ?
+     *                                                          [14.08.2026]
+     * Écrite ICI et pas dans les deux écrans qui l'affichent — l'espace et la
+     * fiche du bureau. C'est la leçon que ce projet a payée quatre fois en
+     * trois jours : une condition recopiée à deux endroits se corrige à un
+     * seul, et le défaut survit au correctif.
+     *
+     * Deux conditions, et la seconde porte sur l'ANNÉE : le statut dit
+     * « indépendant·e », et aucune attestation n'est arrivée cette année-ci.
+     * L'avis se rallume donc seul au 1er janvier, ce qui est le comportement
+     * voulu d'un document qui vaut un exercice.
+     *
+     * @param array<string, mixed>|null $data la fiche déjà lue, si on l'a
+     */
+    public static function attestationDue(int $collaboratorId, ?array $data = null): bool
+    {
+        /* get() rend ['data' => …, 'bio' => …] et non les réponses directement.
+           Sans le ['data'], ce repli cherchait le statut un cran trop haut, ne
+           le trouvait jamais, et l'avis n'aurait paru que là où l'appelant
+           passe la fiche lui-même — un défaut muet, du genre qu'on ne découvre
+           qu'en se demandant pourquoi l'avertissement manque à un seul écran. */
+        $data ??= self::get($collaboratorId)['data'] ?? [];
+        $statut = trim((string)($data['statut_pro'] ?? ''));
+        if (!in_array($statut, self::STATUT_INDEP, true)) return false;
+        return !MemberDocs::docDeLAnnee($collaboratorId, 'attestation');
+    }
+
     public static function get(int $collaboratorId): array
     {
         $r = DB::one('SELECT * FROM member_profiles WHERE collaborator_id = ?', [$collaboratorId]);

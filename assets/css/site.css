@@ -2342,3 +2342,19 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 /* Une association retirée des réglages mais toujours cochée sur une fiche :
    elle se voit, en gris, au lieu de disparaître au premier enregistrement. */
 .case-multi-vieille { color: var(--grey); }
+
+/* ---------- Ce qui manque, et qui n'est pas une erreur ----   [14.08.2026]
+   Une attestation qui n'est pas encore arrivée n'est pas une faute : la fiche
+   s'enregistre quand même. Le rouge de .form-errors dirait le contraire et
+   ferait chercher ce qu'on a mal rempli. Le jaune de la charte, celui qui sert
+   déjà à « ce qui attend quelqu'un », dit ce qu'il faut : il reste là, et il
+   n'accuse personne. */
+.form-warn {
+  border: var(--trait) solid var(--yellow); background: #fdf9ec;
+  padding: 14px 20px; margin: 20px 0; font-weight: 600;
+}
+.form-warn p { margin: 0; }
+/* L'astérisque des champs obligatoires, dans la fiche de l'espace comme dans
+   la vue publique : même couleur, et pas de soulignement d'abréviation. */
+.espace-fiche .field label abbr,
+.field label abbr.req { color: var(--error); text-decoration: none; font-weight: 700; }

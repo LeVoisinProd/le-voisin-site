@@ -325,4 +325,6 @@ return [
     // [V31-SITE-ARTISTE]
     'site_title'           => 'Website',
     'site_open'            => 'Open the website',
+    'member_attest_due' => 'Your certificate of self-employed status for the current year is missing. Upload it under “Professional information” below: without it, the association paying you cannot settle your invoices properly. You can save your details now and come back later.',
+    'member_fichier_ext' => 'this format is not accepted here. Expected: %s.',
 ];

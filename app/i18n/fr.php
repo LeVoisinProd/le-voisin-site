@@ -332,4 +332,6 @@ return [
     // [V31-SITE-ARTISTE]
     'site_title'           => 'Site internet',
     'site_open'            => 'Ouvrir le site',
+    'member_attest_due' => 'Il manque ton attestation d’indépendant·e de l’année en cours. Dépose-la dans « Informations professionnelles » ci-dessous : sans elle, l’association qui te paie ne peut pas régler tes factures en règle. Tu peux enregistrer ta fiche sans elle et revenir plus tard.',
+    'member_fichier_ext' => 'ce format n’est pas accepté ici. Formats attendus : %s.',
 ];

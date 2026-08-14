@@ -867,4 +867,5 @@ return [
     'doc_empty'        => 'No document matches these filters.',
     'doc_dup'          => 'duplicate?',
     'doc_fiche'        => 'The record',
+    'ce_attest_due' => 'This person declared themselves self-employed and their certificate for the current year is not on file. They are told so on their own page at every visit.',
 ];

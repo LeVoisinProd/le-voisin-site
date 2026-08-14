@@ -879,4 +879,5 @@ return [
     'doc_empty'        => 'Aucun document ne correspond à ces filtres.',
     'doc_dup'          => 'doublon ?',
     'doc_fiche'        => 'La fiche',
+    'ce_attest_due' => 'Cette personne s’est déclarée indépendante et son attestation de l’année en cours n’est pas au dossier. Elle en est avertie sur sa fiche à chaque visite.',
 ];

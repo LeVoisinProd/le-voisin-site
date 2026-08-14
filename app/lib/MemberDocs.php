@@ -628,6 +628,24 @@ class MemberDocs
         return $essai;
     }
 
+    /**
+     * Une pièce de cette rubrique a-t-elle été déposée dans l'année en cours ?
+     *                                                          [14.08.2026]
+     * L'ANNÉE CIVILE, et non « une fois dans la vie ». L'attestation
+     * d'indépendant·e vaut pour un exercice : celle de l'an dernier ne prouve
+     * rien cette année. La question se repose donc toute seule au 1er janvier,
+     * ce qui est exactement ce qu'on veut d'un rappel annuel — personne n'a à
+     * penser à le rallumer.
+     */
+    public static function docDeLAnnee(int $cid, string $categorie): bool
+    {
+        if ($cid <= 0 || !array_key_exists($categorie, self::CATEGORIES)) return false;
+        return (int)DB::val(
+            'SELECT COUNT(*) FROM member_documents
+              WHERE collaborator_id = ? AND category = ? AND YEAR(created_at) = ?',
+            [$cid, $categorie, (int)date('Y')]) > 0;
+    }
+
     /** Racine privée, protégée contre l'accès direct par le web. */
     private static function privateRoot(): string
     {

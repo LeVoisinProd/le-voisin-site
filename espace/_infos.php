@@ -103,12 +103,49 @@ function espace_infos_traiter(int $cid): array
     /* [13.08.2026] Les pièces d'identité comptent comme un dépôt : la personne
        en reçoit l'accusé au même titre qu'une facture. Un seul courriel pour
        les deux pièces, et l'envoi n'a lieu que si quelque chose est passé. */
+    /* [14.08.2026] LA LISTE ÉCRITE À LA MAIN A DISPARU, et c'était la cause.
+
+       Elle disait ['passport', 'residence_permit'] pendant que le formulaire,
+       lui, se construisait depuis la configuration. Ajouter un champ fichier
+       dans forms.php n'ajoutait donc RIEN au traitement : le navigateur
+       envoyait le PDF, PHP le posait dans son dossier temporaire, et personne
+       ne le lisait. L'attestation d'indépendant·e a vécu une journée entière
+       comme un bouton décoratif — aucun document, aucune erreur, aucune trace.
+
+       Le traitement suit désormais la même liste que l'affichage. Le prochain
+       champ fichier marchera sans qu'on touche à ce fichier. */
     $deposes = [];
-    foreach (['passport', 'residence_permit'] as $fk) {
-        if (!empty($_FILES[$fk]['tmp_name']) && is_uploaded_file($_FILES[$fk]['tmp_name']) && (int)($_FILES[$fk]['error'] ?? 1) === 0) {
-            try { $deposes[] = MemberDocs::upload($_FILES[$fk], $cid, 'identity', null, false); }
-            catch (Throwable $e) { $errors[] = $e->getMessage(); }
+    foreach ($fields as $fd) {
+        if (($fd['type'] ?? '') !== 'file') continue;
+        $fk = $fd['key'];
+        $f  = $_FILES[$fk] ?? null;
+        if (empty($f['tmp_name']) || !is_uploaded_file($f['tmp_name']) || (int)($f['error'] ?? 1) !== 0) continue;
+
+        /* Le « accept » du champ ne vaut que dans le navigateur : côté serveur
+           MemberDocs accepte aussi doc et docx, et une attestation en Word
+           serait passée. La règle du champ est donc appliquée ici. */
+        $ext = mb_strtolower(pathinfo((string)$f['name'], PATHINFO_EXTENSION));
+        $permis = array_filter(array_map(
+            fn($x) => ltrim(trim($x), '.'),
+            explode(',', (string)($fd['accept'] ?? ''))));
+        if ($permis && !in_array($ext, $permis, true)) {
+            $errors[] = Forms::label($fd['label']) . ' : '
+                      . t('member_fichier_ext', mb_strtoupper(implode(', ', $permis)));
+            continue;
         }
+
+        /* Un nom imposé, sinon la pièce entre sous « IMG_2453.pdf » et devient
+           introuvable dans une liste de soixante-dix personnes. */
+        $nom = '';
+        if (!empty($fd['rename']['suffix'])) {
+            $nom = NomFichier::construire(
+                [(string)($vals['full_name'] ?? $data['full_name'] ?? ''), (string)$fd['rename']['suffix']],
+                $ext, (string)$fd['rename']['suffix']);
+        }
+        try {
+            $deposes[] = MemberDocs::upload($f, $cid, (string)($fd['doc_cat'] ?? 'other'),
+                                            null, false, '', 'member', $nom);
+        } catch (Throwable $e) { $errors[] = $e->getMessage(); }
     }
     if ($deposes) {
         try { MemberNotify::depotConfirme(MemberAuth::member(), $deposes); }
@@ -197,9 +234,24 @@ function espace_infos_form(int $cid, array $etat): string
     $data    = $etat['data'];
     $photoId = $etat['photoId'];
     $photo   = $photoId ? Img::row((int)$photoId) : null;
-    $idDocs  = array_filter(MemberDocs::forMember($cid), fn($d) => $d['category'] === 'identity');
+    /* [14.08.2026] Par RUBRIQUE, et non plus « la personne a-t-elle une pièce
+       d'identité ». La ligne « déjà au dossier » s'affichait sous n'importe
+       quel champ fichier dès qu'un passeport existait : la case de
+       l'attestation annonçait donc qu'elle était déjà remise alors que ce qui
+       l'était, c'était le passeport. */
+    $dejaLa = [];
+    foreach (MemberDocs::forMember($cid) as $d) $dejaLa[(string)($d['category'] ?? '')] = true;
     ob_start();
     ?>
+  <?php /* [14.08.2026] Ce qui manque se dit en haut de la fiche, et reste tant
+           que ce n'est pas arrivé. La personne peut enregistrer sans le
+           fichier — lui interdire de corriger son adresse parce qu'un PDF n'est
+           pas sur son téléphone serait absurde — mais elle ne peut pas
+           l'oublier : l'avis revient à chaque visite jusqu'à l'attestation de
+           l'année en cours. */ ?>
+  <?php if (MemberProfile::attestationDue($cid, $data)): ?>
+  <div class="form-warn" role="status"><p><?= e(t('member_attest_due')) ?></p></div>
+  <?php endif; ?>
   <?php if ($etat['saved']): ?><div class="form-success" role="status"><p>✓ <?= e(t('member_saved')) ?></p></div><?php endif; ?>
   <?php if ($etat['errors']): ?><div class="form-errors" role="alert"><?php foreach ($etat['errors'] as $er) echo '<p>' . e($er) . '</p>'; ?></div><?php endif; ?>
 
@@ -253,7 +305,12 @@ function espace_infos_form(int $cid, array $etat): string
         $cond = !empty($fd['show_if']) ? ' data-show-if="' . e(json_encode([$fd['show_if'][0], array_values((array)$fd['show_if'][1])])) . '"' : '';
     ?>
     <div class="field<?= $wide ? ' field--wide' : '' ?>"<?= $cond ?>>
-      <label for="f_<?= e($key) ?>"><?= e($label) ?></label>
+      <?php /* [14.08.2026] L'astérisque manquait ici alors que la vue publique
+               l'affiche. Vingt-deux champs sont obligatoires et rien ne le
+               disait : il n'interdit rien, il annonce ce que le bureau attend,
+               et c'est la différence entre une fiche remplie et soixante-dix
+               fiches à moitié faites. */ ?>
+      <label for="f_<?= e($key) ?>"><?= e($label) ?><?php if (!empty($fd['required'])): ?> <abbr class="req" title="<?= e(t('form_required_mark')) ?>">*</abbr><?php endif; ?></label>
       <?php if (!empty($fd['help'])): ?><p class="field-help"><?= e(Forms::label($fd['help'])) ?></p><?php endif; ?>
       <?php switch ($fd['type']):
         case 'textarea': ?><textarea id="f_<?= e($key) ?>" name="<?= e($key) ?>" rows="4"><?= e($old) ?></textarea>
@@ -268,7 +325,7 @@ function espace_infos_form(int $cid, array $etat): string
           <label><input type="radio" name="<?= e($key) ?>" value="yes"<?= $old === 'yes' ? ' checked' : '' ?>> <?= e(t('form_yes')) ?></label>
           <label><input type="radio" name="<?= e($key) ?>" value="no"<?= $old === 'no' ? ' checked' : '' ?>> <?= e(t('form_no')) ?></label></span>
         <?php break; case 'file': ?><input type="file" id="f_<?= e($key) ?>" name="<?= e($key) ?>" accept="<?= e($fd['accept'] ?? '.pdf,.jpg,.jpeg,.png') ?>">
-          <?php if ($idDocs): ?><p class="field-help"><?= e(t('member_id_on_file')) ?></p><?php endif; ?>
+          <?php if (!empty($dejaLa[$fd['doc_cat'] ?? 'other'])): ?><p class="field-help"><?= e(t('member_id_on_file')) ?></p><?php endif; ?>
         <?php break; case 'number': ?><input type="text" inputmode="decimal" id="f_<?= e($key) ?>" name="<?= e($key) ?>" value="<?= e($old) ?>">
         <?php /* [V16-DATES] Jour d'abord, quelle que soit la langue du navigateur :
                  pour une date de naissance, 07/04 et 04/07 ne pardonnent pas. */ ?>
