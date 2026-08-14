@@ -2331,3 +2331,14 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 /* Les vidéos de la fiche du Catalogue : mêmes cartes que sur le site public,
    posées avant le texte parce qu'on vient d'abord pour voir. */
 .cat-videos { display: grid; gap: 16px; margin-bottom: 28px; }
+
+/* ---------- Choix multiple ----------                        [14.08.2026]
+   Des cases en colonne plutôt qu'un « select multiple » : ces fiches se
+   remplissent au téléphone, où la sélection multiple d'un menu demande un appui
+   long que personne ne devine, et où l'on ne voit pas ce qu'on a choisi. */
+.cases-multi { display: flex; flex-direction: column; gap: 8px; }
+.case-multi { display: flex; align-items: flex-start; gap: 9px; line-height: 1.45; cursor: pointer; }
+.case-multi input { margin: 3px 0 0; flex: none; }
+/* Une association retirée des réglages mais toujours cochée sur une fiche :
+   elle se voit, en gris, au lieu de disparaître au premier enregistrement. */
+.case-multi-vieille { color: var(--grey); }

@@ -58,6 +58,17 @@ function espace_infos_traiter(int $cid): array
     $vals = [];
     foreach ($fields as $fd) {
         if (in_array($fd['type'], ['section', 'file'], true)) continue;
+        /* [14.08.2026] Un choix multiple arrive en tableau et se range en un
+           seul texte, les réponses jointes par un point médian espacé. Tout ce
+           qui lit une fiche ensuite — la feuille imprimée, le CMS, le courriel —
+           reçoit donc une chaîne comme pour n'importe quel autre champ, et n'a
+           pas eu à changer d'une ligne. L'ancienne valeur est passée pour qu'une
+           association retirée des réglages depuis ne soit pas effacée. */
+        if ($fd['type'] === 'multi') {
+            $vals[$fd['key']] = Forms::multiRanger($fd, $_POST[$fd['key']] ?? [], null,
+                                                   (string)($data[$fd['key']] ?? ''));
+            continue;
+        }
         $v = trim((string)($_POST[$fd['key']] ?? ''));
         /* [V16-DATES] La date est écrite jour d'abord ; on la range à
            l'anglaise pour la base, qui est la seule à en avoir besoin. */
@@ -251,6 +262,8 @@ function espace_infos_form(int $cid, array $etat): string
                  remplie en anglais, et l'inverse. */ ?>
         <?php break; case 'select': ?><select id="f_<?= e($key) ?>" name="<?= e($key) ?>"><option value=""><?= e(t('form_choose')) ?></option>
           <?= Forms::optionsHtml($fd, $old) ?></select>
+        <?php break; case 'multi': ?><span class="cases-multi" id="f_<?= e($key) ?>">
+          <?= Forms::casesHtml($fd, $old, $key) ?></span>
         <?php break; case 'yesno': ?><span class="yesno" id="f_<?= e($key) ?>">
           <label><input type="radio" name="<?= e($key) ?>" value="yes"<?= $old === 'yes' ? ' checked' : '' ?>> <?= e(t('form_yes')) ?></label>
           <label><input type="radio" name="<?= e($key) ?>" value="no"<?= $old === 'no' ? ' checked' : '' ?>> <?= e(t('form_no')) ?></label></span>

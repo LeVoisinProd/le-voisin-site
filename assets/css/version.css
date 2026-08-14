@@ -1,6 +1,6 @@
 /* CARIMBO DE VERSÃO                                    [14.08.2026]
 
-   PAQUET : URGENT-2026-08-14-envoi-et-nom-usage
+   PAQUET : URGENT-2026-08-14-envoi-noms-assos
    DATE   : 2026-08-14, matin
 
    Ce fichier n'a qu'un rôle : dire, depuis l'extérieur et sans mot de passe,
@@ -21,7 +21,11 @@
 
    Contenu de ce paquet :
      app/lib/Invitations.php    obstacle() cesse de bloquer l'envoi
-     app/config/forms.php       le nom artistique ou nom d'usage
+     app/config/forms.php       nom d'usage, écriture inclusive, choix multiple
+     app/lib/Forms.php          le choix multiple, écrit une fois pour les deux portes
+     espace/_infos.php          le choix multiple dans la fiche
+     app/views/form.php         le même, côté public
      app/lib/MemberDocs.php     la rubrique « Attestations d'indépendant·e »
+     assets/css/site.css        les cases à cocher
      assets/css/version.css     ce fichier
 */

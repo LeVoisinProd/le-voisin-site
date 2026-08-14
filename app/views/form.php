@@ -74,6 +74,13 @@
           <option value=""><?= e(t('form_choose')) ?></option>
           <?= Forms::optionsHtml($fd, $old) ?>
         </select>
+        <?php /* [14.08.2026] Le choix multiple, dessiné par Forms::casesHtml() —
+                 la même fonction que la fiche de l'espace, pour que les deux
+                 portes ne divergent pas au premier ajustement. */ ?>
+        <?php break; case 'multi': ?>
+        <span class="cases-multi" id="f_<?= e($key) ?>">
+          <?= Forms::casesHtml($fd, $old, $key) ?>
+        </span>
         <?php break; case 'yesno': ?>
         <span class="yesno" id="f_<?= e($key) ?>">
           <label><input type="radio" name="<?= e($key) ?>" value="yes"<?= $old === 'yes' ? ' checked' : '' ?>> <?= e(t('form_yes')) ?></label>

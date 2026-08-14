@@ -260,6 +260,92 @@ class Forms
         return $html;
     }
 
+    /* ---------------------------------------------------------------------
+       Le choix MULTIPLE.                                       [14.08.2026]
+
+       Beaucoup de personnes travaillent avec plusieurs associations, et la
+       fiche n'offrait qu'un menu à choix unique : il fallait en désigner une
+       et taire les autres.
+
+       DES CASES À COCHER ET NON UN « select multiple », pour une raison qui
+       n'est pas de goût : ces fiches se remplissent au téléphone. Un menu à
+       sélection multiple y demande un appui long et une gymnastique que
+       personne ne devine, et l'on ne voit pas ce qu'on a choisi. Treize cases
+       en colonne se lisent et se touchent.
+
+       LA RÉPONSE EST RANGÉE EN UN SEUL TEXTE, les choix joints par un point
+       médian entouré d'espaces. C'est ce qui permet de ne toucher à rien
+       d'autre : la fiche imprimée, le CMS et le courriel reçoivent une chaîne
+       comme pour n'importe quel autre champ, et l'affichent tels quels. Le
+       séparateur ne peut pas se confondre avec le point médian de l'écriture
+       inclusive, qui lui n'a pas d'espaces autour.
+       --------------------------------------------------------------------- */
+
+    /** Le séparateur d'une réponse à choix multiple. */
+    public const SEP_MULTI = ' · ';
+
+    /** Les choix d'une réponse multiple, à partir du texte rangé. */
+    public static function multiListe(string $reponse): array
+    {
+        if (trim($reponse) === '') return [];
+        return array_values(array_filter(array_map('trim', explode(self::SEP_MULTI, $reponse)), 'strlen'));
+    }
+
+    /**
+     * Ce que le formulaire a envoyé, rangé en un texte.
+     *
+     * Chaque valeur reçue est confrontée à la liste des options : ce qui n'y
+     * figure pas est jeté. Sans ce filtre, n'importe quoi entrerait dans la
+     * fiche par une requête fabriquée à la main.
+     */
+    public static function multiRanger(array $field, $recu, ?string $lang = null, string $avant = ''): string
+    {
+        $connus = [];
+        foreach (self::options($field) as $opt) {
+            $l = self::label($opt, $lang ?? I18n::$lang);
+            if ($l !== '') $connus[$l] = true;
+        }
+        /* Ce qui était DÉJÀ enregistré reste recevable, même si l'option a
+           disparu des réglages depuis. Sans cette ligne, casesHtml() montrerait
+           une vieille association cochée et le premier enregistrement l'aurait
+           effacée : la case coche ce que la sauvegarde jette, ce qui est la
+           pire des deux erreurs possibles. */
+        foreach (self::multiListe($avant) as $v) $connus[$v] = true;
+
+        $garde = [];
+        foreach ((array)$recu as $v) {
+            $v = trim((string)$v);
+            if ($v !== '' && isset($connus[$v]) && !in_array($v, $garde, true)) $garde[] = $v;
+        }
+        return implode(self::SEP_MULTI, $garde);
+    }
+
+    /** Les cases à cocher, écrites ici et appelées des deux côtés. */
+    public static function casesHtml(array $field, string $reponse, string $nomChamp, ?string $lang = null): string
+    {
+        $lang ??= I18n::$lang;
+        $choisis = self::multiListe($reponse);
+        $html    = '';
+        foreach (self::options($field) as $opt) {
+            $libelle = self::label($opt, $lang);
+            if ($libelle === '') continue;
+            $coche = in_array($libelle, $choisis, true);
+            $html .= '<label class="case-multi"><input type="checkbox" name="' . e($nomChamp) . '[]"'
+                   . ' value="' . e($libelle) . '"' . ($coche ? ' checked' : '') . '> '
+                   . e($libelle) . "</label>\n";
+        }
+        /* Une valeur enregistrée qui ne figure plus dans les réglages ne
+           disparaît pas en silence : elle reste cochée, et elle se voit. Une
+           association retirée de la liste ne doit pas effacer le passé de
+           quelqu'un au premier enregistrement. */
+        foreach ($choisis as $c) {
+            if (str_contains($html, 'value="' . e($c) . '"')) continue;
+            $html .= '<label class="case-multi case-multi-vieille"><input type="checkbox" name="'
+                   . e($nomChamp) . '[]" value="' . e($c) . '" checked> ' . e($c) . "</label>\n";
+        }
+        return $html;
+    }
+
     /**
      * Où doit partir la copie comptable, et ce qu'il faut en dire au journal.
      *
@@ -539,6 +625,18 @@ class Forms
                 continue;
             }
 
+            /* [14.08.2026] Un choix multiple arrive en TABLEAU. Le lire comme
+               une chaîne donne « Array » et un avertissement PHP, puis échoue à
+               la validation du menu : il se range donc avant, en un seul texte,
+               et suit ensuite le chemin de n'importe quel autre champ. */
+            if ($type === 'multi') {
+                $v = self::multiRanger($field, $post[$key] ?? []);
+                $values[$key] = $v;
+                if (!empty($field['required']) && $v === '' && self::condMet($field, $post)) {
+                    $errors[$key] = t('form_required');
+                }
+                continue;
+            }
             $v = trim((string)($post[$key] ?? ''));
             if ($required && $v === '') { $errors[$key] = t('form_required'); continue; }
             if ($v === '') { $values[$key] = ''; continue; }

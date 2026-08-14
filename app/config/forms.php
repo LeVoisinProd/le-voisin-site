@@ -60,13 +60,26 @@ return [
              'label' => ['en' => 'Civil status', 'fr' => 'Situation civile'],
              'options' => [
                  ['en' => 'Single', 'fr' => 'Célibataire'],
-                 ['en' => 'Married', 'fr' => 'Marié(e)'],
+                 ['en' => 'Married', 'fr' => 'Marié·e'],
                  ['en' => 'Registered partnership', 'fr' => 'Partenariat enregistré'],
-                 ['en' => 'Divorced', 'fr' => 'Divorcé(e)'],
-                 ['en' => 'Widowed', 'fr' => 'Veuf(ve)'],
+                 ['en' => 'Divorced', 'fr' => 'Divorcé·e'],
+                 ['en' => 'Widowed', 'fr' => 'Veuf·ve'],
              ]],
+            /* [14.08.2026] LE LIBELLÉ EST AUSSI UNE VALEUR, et c'est le piège de
+               ce fichier. Les options n'ont pas de code interne : ce qui part
+               dans le formulaire, ce qui se compare ici, et ce qui s'enregistre
+               dans la fiche, c'est le libellé lui-même. Passer « Marié(e) » au
+               point médian sans toucher cette ligne aurait fait disparaître la
+               date de mariage sans une seule erreur : la condition ne serait
+               plus jamais remplie, et personne ne l'aurait vu avant le
+               bouclement.
+
+               Les DEUX écritures y figurent, l'ancienne et la nouvelle. Les
+               fiches déjà remplies portent « Marié(e) » en base ; les retirer
+               d'ici ferait disparaître leur date de mariage à la relecture. */
             ['key' => 'marriage_date', 'type' => 'date', 'required' => true,
-             'show_if' => ['civil_status', ['Married', 'Marié(e)', 'Registered partnership', 'Partenariat enregistré']],
+             'show_if' => ['civil_status', ['Married', 'Marié·e', 'Marié(e)',
+                                            'Registered partnership', 'Partenariat enregistré']],
              'label' => ['en' => 'Date of marriage / partnership', 'fr' => 'Date de mariage / partenariat']],
 
             ['key' => 'sec_docs', 'type' => 'section', 'label' => ['en' => 'Documents', 'fr' => 'Documents']],
@@ -114,7 +127,7 @@ return [
             ['key' => 'tax_at_source', 'type' => 'yesno', 'required' => true,
              'label' => ['en' => 'Taxed at source?', 'fr' => 'Impôt à la source ?']],
             ['key' => 'unemployed', 'type' => 'yesno', 'required' => true,
-             'label' => ['en' => 'Registered as unemployed?', 'fr' => 'Inscrit(e) au chômage ?']],
+             'label' => ['en' => 'Registered as unemployed?', 'fr' => 'Inscrit·e au chômage ?']],
 
             ['key' => 'sec_pay', 'type' => 'section', 'label' => ['en' => 'Payment', 'fr' => 'Paiement']],
             ['key' => 'iban', 'type' => 'text', 'required' => true, 'label' => ['en' => 'IBAN', 'fr' => 'IBAN']],
@@ -135,8 +148,15 @@ return [
                Le titre s'écrit en minuscules : la feuille de style met les
                titres de rubrique en capitales toute seule. */
             ['key' => 'sec_work', 'type' => 'section', 'label' => ['en' => 'Working with', 'fr' => 'Pour travailler avec']],
-            ['key' => 'artist', 'type' => 'select', 'required' => true, 'source' => 'assoc_artists',
-             'label' => ['en' => 'Association / associated artist', 'fr' => 'Association / Artiste associé']],
+            /* [14.08.2026] Plusieurs réponses, parce que c'est la réalité : la
+               plupart des gens d'ici travaillent avec deux ou trois associations,
+               et le menu à choix unique les obligeait à en désigner une et à
+               taire les autres. Le bureau lisait ensuite une fiche qui disait
+               moins que ce qu'il savait déjà. */
+            ['key' => 'artist', 'type' => 'multi', 'required' => true, 'source' => 'assoc_artists',
+             'label' => ['en' => 'Association / associated artist', 'fr' => 'Association / Artiste associé·e'],
+             'help'  => ['en' => 'Tick every one you work with. Several answers are possible.',
+                         'fr' => 'Coche toutes celles avec lesquelles tu travailles. Plusieurs réponses possibles.']],
 
             ['key' => 'sec_misc', 'type' => 'section', 'label' => ['en' => 'Other', 'fr' => 'Divers']],
             ['key' => 'comments', 'type' => 'textarea', 'label' => ['en' => 'Comments', 'fr' => 'Commentaires']],
