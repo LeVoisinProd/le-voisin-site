@@ -435,11 +435,13 @@ TXT;
     }
 
     /**
-     * Ce qui empêcherait tout envoi, dit avant d'y toucher.
+     * Ce qui empêcherait TOUT envoi, dit avant d'y toucher.
      *
-     * Sans ce contrôle, la page fabriquerait des liens neufs pour toute
-     * l'équipe — ce qui annule les précédents — avant de découvrir qu'aucun
-     * message ne peut partir. Renvoie '' quand la voie est libre.
+     * Il n'en reste qu'un : aucun serveur SMTP réglé et pas de mail() sur cet
+     * hébergement, auquel cas rien ne peut partir, quoi qu'on fasse. Tout le
+     * reste — mot de passe faux, serveur qui boude, adresse refusée — se
+     * découvre à l'envoi, se lit dans le compte rendu personne par personne, et
+     * se rattrape en renvoyant. Renvoie '' quand la voie est libre.
      */
     public static function obstacle(): string
     {
@@ -447,21 +449,30 @@ TXT;
         if ($hote === '' && !function_exists('mail')) {
             return ta('inv_err_nosmtp');
         }
-        /* [13.08.2026] On se connecte vraiment, et on s'authentifie.
+        /* [14.08.2026] LA VÉRIFICATION PRÉALABLE EST RETIRÉE, et il faut dire
+           pourquoi, parce qu'elle a été ajoutée hier avec de bonnes raisons.
 
-           Ce contrôle ne vérifiait que la PRÉSENCE du réglage. Un mot de passe
-           faux le passait sans bruit, et l'envoi partait quand même : soixante-
-           dix-sept clés refaites, soixante-dix-sept messages refusés, et autant
-           de personnes dont le lien précédent venait d'être annulé. Smtp::verifie()
-           existait déjà, utilisé par la page des Réglages, et n'était pas appelé
-           ici. Il ouvre une connexion, fait STARTTLS et AUTH, n'envoie rien.
+           Elle appelait Smtp::verifie(), qui ouvre une connexion, fait STARTTLS
+           et AUTH sans rien envoyer. Sa justification était entière : tant que
+           l'invitation portait une clé, un envoi qui échouait avait DÉJÀ refait
+           la clé de la personne, et l'ancienne était morte. Soixante-dix-sept
+           messages refusés, c'était soixante-dix-sept accès cassés.
 
-           La condition sur $hote garde intacte la voie mail() : ce contrôle ne
-           peut donc bloquer qu'un envoi qui serait passé par SMTP. */
-        if ($hote !== '' && !Smtp::verifie()) {
-            $d = trim(Smtp::$erreur);
-            return ta('inv_err_smtpko', $d !== '' ? $d : ta('inv_err_send'));
-        }
+           Cette justification est morte hier soir, quand l'invitation a cessé
+           de porter une clé. Un envoi qui échoue ne laisse plus rien derrière
+           lui : rien n'est écrit en base, et l'on réessaie.
+
+           CE QU'ELLE COÛTAIT, EN REVANCHE, EST BIEN RÉEL. Chaque envoi ouvrait
+           DEUX connexions à Gmail au lieu d'une, et Gmail compte les connexions.
+           Et surtout, quand elle se trompait, elle bloquait TOUT : le 14.08 au
+           matin, en plein envoi, elle a refusé un lot en annonçant « le serveur
+           refuse la connexion » alors que le serveur avait répondu 250, qui est
+           un code de succès, et que les envois précédents étaient partis.
+
+           Un contrôle qui ne protège plus rien et qui peut interdire ce qui
+           marche n'est pas un filet, c'est un obstacle. Le compte rendu par
+           personne, lui, reste : il donne la raison exacte de chaque échec, et
+           l'on renvoie autant de fois qu'il le faut. */
         return '';
     }
 

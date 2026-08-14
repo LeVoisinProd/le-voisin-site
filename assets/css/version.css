@@ -1,7 +1,7 @@
 /* CARIMBO DE VERSÃO                                    [14.08.2026]
 
-   PAQUET : INSTALAR-2026-08-14-convite
-   DATE   : 2026-08-14
+   PAQUET : URGENT-2026-08-14-envoi
+   DATE   : 2026-08-14, matin
 
    Ce fichier n'a qu'un rôle : dire, depuis l'extérieur et sans mot de passe,
    quel paquet est réellement installé.
@@ -20,10 +20,6 @@
    qui ment est pire que pas de carimbo : il donne une certitude fausse.
 
    Contenu de ce paquet :
-     app/lib/Invitations.php    le texte neuf, et l'invitation sans clé
-     app/lib/MemberAuth.php     porteUrl()
-     app/i18n/admin.fr.php      les libellés qui parlaient encore de clé
-     app/i18n/admin.en.php      les mêmes
-     admin/documents.php        supprimer en un geste
+     app/lib/Invitations.php    obstacle() cesse de bloquer l'envoi
      assets/css/version.css     ce fichier
 */
