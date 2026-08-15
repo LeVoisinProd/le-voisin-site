@@ -34,6 +34,26 @@ config.php*
 /uploads/
 
 # ---------------------------------------------------------------------------
+# Médias lourds du Catalogue
+# ---------------------------------------------------------------------------
+
+# Teasers, captations, photos HD, dossiers. Déposés par FTP et par lui seul :
+# c'est la raison d'être du compte FTP. Aucun paquet de l'installateur ne les
+# porte, et le dépôt ne doit jamais les voir.
+#
+# Cette ligne est écrite AVANT que le dossier n'existe, et c'est voulu. Le
+# 07.08.2026, `dados/*.pdf` ne couvrait pas les sous-dossiers et 2,3 Mo de PDF
+# sont restés à un `/syncar` d'arriver sur GitHub, `/syncar` faisant `git add -A`.
+# Le mécanisme serait le même ici et d'un autre ordre de grandeur : une captation
+# pèse plusieurs giga-octets et GitHub refuse au-delà de 100 Mo par fichier. Un
+# historique ne se répare pas après coup, un commit suivant n'efface pas.
+#
+# Le dossier est créé par Catalog::dossier() à la première lecture d'une fiche,
+# avec son .htaccess de refus. Les fichiers ne sont servis que par
+# telechargement.php, derrière le mot de passe du Catalogue.
+/medias/
+
+# ---------------------------------------------------------------------------
 # Artefacts, sauvegardes, journaux
 # ---------------------------------------------------------------------------
 
