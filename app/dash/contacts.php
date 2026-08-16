@@ -45,6 +45,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     dash_exige_ecriture('contacts');
     foreach ($CH_CONTACT as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
 
+    /* LA PHOTO. Convertie en data URI et rangée dans la fiche, comme le fait
+       le dashboard — c'est ce qui rend la reprise sans perte, et c'est aussi
+       discutable: une image dans une colonne de texte pèse sur chaque requête
+       qui fait SELECT *. On garde la forme existante plutôt que d'en inventer
+       une seconde, et 60 fiches sur 8432 en portent une.
+
+       400 Ko au maximum, et une liste de types fermée: un data URI n'est pas
+       servi par Apache mais il est rendu par le navigateur, et un SVG accepté
+       ici s'exécuterait dans la page. */
+    if (!empty($_POST['photo_retirer'])) {
+        $saisi['photo'] = '';
+    } elseif (($_FILES['photo_f']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+        $f = $_FILES['photo_f'];
+        $ok = ['image/jpeg' => 1, 'image/png' => 1, 'image/webp' => 1, 'image/gif' => 1];
+        $mime = function_exists('mime_content_type') && is_uploaded_file((string)$f['tmp_name'])
+              ? (string)@mime_content_type((string)$f['tmp_name']) : '';
+        if (!isset($ok[$mime])) {
+            $err['photo_f'] = 'JPEG, PNG, GIF ou WebP seulement.';
+        } elseif ((int)$f['size'] > 400 * 1024) {
+            $err['photo_f'] = 'La photo dépasse 400 Ko.';
+        } else {
+            $saisi['photo'] = 'data:' . $mime . ';base64,'
+                            . base64_encode((string)file_get_contents((string)$f['tmp_name']));
+        }
+    } else {
+        /* Aucun fichier envoyé: on ne touche pas à celle qui est enregistrée. */
+        unset($saisi['photo']);
+    }
+
     /* LES TROIS LISTES À COCHER. Elles arrivent en tableau et repartent en
        chaîne à virgules — le format du dashboard, pour que la reprise depuis
        lv-contacts reste sans perte et qu'un import relise ce que l'écran écrit.
@@ -82,9 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$err) {
-        $vals = array_map(fn($c) => $saisi[$c] === '' ? null : $saisi[$c], $CH_CONTACT);
+        /* Les champs absents du POST — la photo qu'on n'a pas retouchée —
+           sortent de l'écriture au lieu d'y entrer à NULL. */
+        $cols = array_values(array_filter($CH_CONTACT, fn($c) => array_key_exists($c, $saisi)));
+        $vals = array_map(fn($c) => $saisi[$c] === '' ? null : $saisi[$c], $cols);
         if ($cid > 0) {
-            $set = implode(',', array_map(fn($c) => "$c=?", $CH_CONTACT));
+            $set = implode(',', array_map(fn($c) => "$c=?", $cols));
             DB::pdo()->prepare("UPDATE contact SET $set WHERE id = ?")->execute([...$vals, $cid]);
             dash_flash('Contact enregistré.');
         } else {
@@ -92,9 +124,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                Une fiche créée ici s'en donne une qui ne peut pas entrer en
                collision avec les « c001 » à « c7841 » déjà repris. */
             $ref = 'n' . date('ymdHis') . random_int(10, 99);
-            $cols = array_merge(['ref'], $CH_CONTACT);
-            $q = implode(',', array_fill(0, count($cols), '?'));
-            DB::pdo()->prepare('INSERT INTO contact (' . implode(',', $cols) . ") VALUES ($q)")
+            /* $cols porte déjà les seules colonnes que le POST a apportées:
+               on lui ajoute `ref` devant, et surtout PAS $CH_CONTACT entier —
+               sinon l'INSERT réclamerait plus de valeurs que $vals n'en a. */
+            $colsIns = array_merge(['ref'], $cols);
+            $q = implode(',', array_fill(0, count($colsIns), '?'));
+            DB::pdo()->prepare('INSERT INTO contact (' . implode(',', $colsIns) . ") VALUES ($q)")
                      ->execute([$ref, ...$vals]);
             $cid = (int)DB::pdo()->lastInsertId();
             dash_flash('Contact créé.');
@@ -122,7 +157,7 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
                  . ' champ(s) à corriger. Ce que vous aviez saisi est conservé.</div>';
     ?>
     <div class="fil"><a href="/dashboard.php?e=contacts<?= $cid > 0 ? '&amp;c=' . $cid : '' ?>">← retour</a></div>
-    <form class="saisie" method="post"
+    <form class="saisie" method="post" enctype="multipart/form-data"
           action="/dashboard.php?e=contacts<?= $cid > 0 ? '&amp;c=' . $cid : '' ?>&amp;mod=1">
       <?= Auth::csrfField() ?>
       <div class="grille">
@@ -167,6 +202,19 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         ch('mots_cles', 'Mots-clefs', $v('mots_cles'), $err, ['large'=>true,
            'aide'=>'Ils entrent dans la recherche par index']);
         ch('description', 'Description', $v('description'), $err, ['large'=>true]);
+        ?>
+        <div class="ch large">
+          <label for="photo_f">Photo</label>
+          <?php if (trim((string)$v('photo')) !== ''): ?>
+            <div class="ph-apercu"><img src="<?= e((string)$v('photo')) ?>" alt="">
+              <label class="ph-sup"><input type="checkbox" name="photo_retirer" value="1"> retirer</label>
+            </div>
+          <?php endif; ?>
+          <input type="file" id="photo_f" name="photo_f" accept="image/*">
+          <p class="aide">JPEG, PNG ou WebP, 400 Ko au maximum. Elle est stockée dans la fiche
+             elle-même, comme le fait le dashboard: c'est ce qui permet la reprise sans perte.</p>
+        </div>
+        <?php
         ch('notes', 'Notes', $v('notes'), $err, ['type'=>'textarea','large'=>true,'rows'=>5,
            'aide'=>'Elles entrent aussi dans la recherche']);
         ?>
@@ -303,6 +351,20 @@ $args  = [];
 if ($cat !== '')  { $where[] = 'categorie = ?';   $args[] = $cat; }
 if ($pays !== '') { $where[] = 'pays_struct = ?'; $args[] = $pays; }
 
+/* Trois filtres de plus, et ce sont eux qui servent à la diffusion: on ne
+   cherche pas « un programmateur », on cherche « qui, dans cette région, a été
+   croisé à Chalon et pourrait prendre Bestiarium ».
+
+   `participations` et `directions` sont des chaînes à virgules: on y cherche
+   en LIKE. Un index n'y servirait à rien tant qu'elles ne sont pas normalisées,
+   et les normaliser demande d'abord de savoir si l'on s'en sert. */
+$reg  = trim((string)($_GET['reg'] ?? ''));
+$part = trim((string)($_GET['part'] ?? ''));
+$dir  = trim((string)($_GET['dir'] ?? ''));
+if ($reg  !== '') { $where[] = 'region = ?';           $args[] = $reg; }
+if ($part !== '') { $where[] = 'participations LIKE ?'; $args[] = '%' . $part . '%'; }
+if ($dir  !== '') { $where[] = 'directions LIKE ?';     $args[] = '%' . $dir . '%'; }
+
 /* DEUX CHEMINS DE RECHERCHE, ET C'EST VOULU.
  *
  * FULLTEXT utilise un index et rend en millisecondes sur 7 841 lignes. Mais il
@@ -325,10 +387,28 @@ if ($q !== '') {
     } else {
         $mode    = 'balayage';
         $like    = '%' . str_replace(['%', '_'], ['\%', '\_'], $q) . '%';
-        $where[] = '(nom LIKE ? OR structure LIKE ? OR ville_struct LIKE ? OR email1 LIKE ?)';
-        array_push($args, $like, $like, $like, $like);
+        $where[] = '(nom LIKE ? OR structure LIKE ? OR ville_struct LIKE ? OR email1 LIKE ?
+                     OR email_pro1 LIKE ? OR prenom LIKE ? OR nom_famille LIKE ?)';
+        array_push($args, $like, $like, $like, $like, $like, $like, $like);
     }
 }
+
+/* Les listes des trois filtres nouveaux. `participations` et `directions`
+   sont des chaînes à virgules: on les découpe ici pour proposer les valeurs
+   réellement présentes, plutôt qu'une liste écrite en dur qui vieillirait. */
+$regions = DB::all("SELECT region, COUNT(*) n FROM contact
+                    WHERE supprime_le IS NULL AND region IS NOT NULL AND region <> ''
+                    GROUP BY region HAVING n >= 3 ORDER BY n DESC LIMIT 40");
+$lesParts = $lesDirs = [];
+foreach (DB::all("SELECT participations FROM contact
+                  WHERE supprime_le IS NULL AND participations IS NOT NULL AND participations <> ''") as $r)
+    foreach (array_map('trim', explode(',', (string)$r['participations'])) as $x)
+        if ($x !== '') $lesParts[$x] = ($lesParts[$x] ?? 0) + 1;
+foreach (DB::all("SELECT directions FROM contact
+                  WHERE supprime_le IS NULL AND directions IS NOT NULL AND directions <> ''") as $r)
+    foreach (array_map('trim', explode(',', (string)$r['directions'])) as $x)
+        if ($x !== '') $lesDirs[$x] = ($lesDirs[$x] ?? 0) + 1;
+arsort($lesParts); arsort($lesDirs);
 
 $sqlWhere = implode(' AND ', $where);
 $t0 = microtime(true);
@@ -385,6 +465,29 @@ dash_haut('contacts', e($sst));
         e($c['categorie']) ?> (<?= $c['n'] ?>)</option>
     <?php endforeach; ?>
   </select>
+  <select name="reg">
+    <option value="">Toutes les régions</option>
+    <?php foreach ($regions as $r): ?>
+      <option value="<?= e((string)$r['region']) ?>"<?= $reg === $r['region'] ? ' selected' : '' ?>><?=
+        e((string)$r['region']) ?> (<?= (int)$r['n'] ?>)</option>
+    <?php endforeach; ?>
+  </select>
+  <select name="part">
+    <option value="">Toutes les participations</option>
+    <?php foreach ($lesParts as $x => $n): ?>
+      <option value="<?= e((string)$x) ?>"<?= $part === (string)$x ? ' selected' : '' ?>><?=
+        e((string)$x) ?> (<?= (int)$n ?>)</option>
+    <?php endforeach; ?>
+  </select>
+  <?php if ($lesDirs): ?>
+  <select name="dir">
+    <option value="">Toutes les directions</option>
+    <?php foreach ($lesDirs as $x => $n): ?>
+      <option value="<?= e((string)$x) ?>"<?= $dir === (string)$x ? ' selected' : '' ?>><?=
+        e((string)$x) ?> (<?= (int)$n ?>)</option>
+    <?php endforeach; ?>
+  </select>
+  <?php endif; ?>
   <select name="pays">
     <option value="">Tous les pays</option>
     <?php foreach ($payss as $p): ?>
