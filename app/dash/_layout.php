@@ -56,7 +56,10 @@ function dash_haut(string $ecranActif, string $sousTitre = ''): void
    de ces variables. Le site public, lui, garde son propre thème — ceci ne
    concerne que `/dashboard.php`. */
 :root { --encre:#0d0d0d; --papier:#fff; --doux:#6b6b6b; --trait:#e4e4e4;
-        --jaune:#FFD24D; --orange:#FF7142; --fond2:#f7f7f7; --barre:#0a0a0a; }
+        --jaune:#FFD24D; --orange:#FF7142; --fond2:#f7f7f7; --barre:#0a0a0a;
+        /* La hauteur de la ligne de titre, sous laquelle les en-têtes de
+           tableau viennent se coller. */
+        --h-tete:59px; }
 /* color-scheme:light dit au navigateur de ne pas assombrir de lui-même les
    contrôles de formulaire: sans cette ligne, les `select` et les `input`
    restent sombres sous un système en thème sombre, sur fond blanc. */
@@ -70,7 +73,12 @@ a { color:inherit; }
 /* La disposition: un rail de navigation à gauche, le contenu à droite. Sur
    petit écran le rail passe au-dessus et défile à l'horizontale. */
 .enveloppe { display:grid; grid-template-columns:212px minmax(0,1fr); min-height:100vh; }
-@media (max-width:820px) { .enveloppe { grid-template-columns:1fr; } }
+@media (max-width:820px) {
+  .enveloppe { grid-template-columns:1fr; }
+  /* Sur petit écran le sous-titre passe à la ligne: la barre est plus haute, et
+     les en-têtes de tableau doivent descendre d'autant. */
+  :root { --h-tete:84px; }
+}
 
 aside { background:var(--barre); color:#e8e8e8; padding:18px 0 40px; }
 aside .marque { display:block; padding:2px 18px 20px; font-size:14px; font-weight:600;
@@ -105,7 +113,21 @@ aside .pied a { padding:3px 0; color:#9a9a9a; font-size:11.5px; }
 }
 
 main { min-width:0; }
-.tete { border-bottom:2px solid var(--encre); padding:15px 26px; display:flex;
+/* ── LA LIGNE DU TITRE RESTE VISIBLE ──────────────────────────────── [16.08.2026]
+   Demandé par Anna: « eu quero que cima da linha onde tem o nome da pagina
+   fique fixo para sempre vermos o scrollando para baixo ». Sur 8432 contacts ou
+   sur une fiche de production, on descend loin et l'on ne sait plus sur quel
+   écran on est ni ce que dit le compteur.
+
+   `--h-tete` existe parce que les en-têtes de tableau collent DÉJÀ en haut. Sans
+   décalage ils se glisseraient sous le titre et l'on perdrait les noms de
+   colonnes — exactement ce qu'on venait de gagner. La valeur suit la hauteur
+   réelle: 15 px de marge en haut, 15 en bas, une ligne de 18 px à 1,5.
+
+   Le fond est explicite. Un élément collant garde son fond d'origine, et le
+   contenu qui passe dessous se lit au travers. */
+.tete { position:sticky; top:0; z-index:30; background:var(--papier);
+        border-bottom:2px solid var(--encre); padding:15px 26px; display:flex;
         align-items:baseline; gap:16px; flex-wrap:wrap; }
 .tete h1 { font-size:18px; margin:0; }
 .tete .sst { color:var(--doux); font-size:13px; }
@@ -125,7 +147,8 @@ table { border-collapse:collapse; width:100%; font-size:14px; }
 th, td { padding:8px 14px; border-bottom:1px solid var(--trait); text-align:left;
          vertical-align:top; }
 th { background:var(--fond2); font-size:11.5px; text-transform:uppercase;
-     letter-spacing:.04em; color:var(--doux); position:sticky; top:0; }
+     letter-spacing:.04em; color:var(--doux); position:sticky; top:var(--h-tete);
+     z-index:10; }
 tbody tr:hover { background:var(--fond2); }
 td .sec { color:var(--doux); font-size:12.5px; }
 form.filtres { padding:14px 26px; border-bottom:1px solid var(--trait); display:flex;
