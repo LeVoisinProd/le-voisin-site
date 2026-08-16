@@ -35,7 +35,7 @@ declare(strict_types=1);
  */
 const DASH_ECRANS = [
 
-    'accueil'      => ['Tableau de bord', 'a_faire', []],
+    'accueil'      => ['Tableau de bord', 'ok', []],
 
     // Le cœur, dans ses mots. Tout ce qui a une date y figure: shows confirmés,
     // en attente, voyages, logistique.
@@ -54,15 +54,15 @@ const DASH_ECRANS = [
 
     'administration' => ['Administration', 'ok', []],
 
-    'documentation'  => ['Documentation', 'a_faire', []],
+    'documentation'  => ['Documentation', 'ok', []],
 
-    'marketing'      => ['Marketing', 'a_faire', []],
+    'marketing'      => ['Marketing', 'ok', []],
 
-    'parametres'     => ['Paramètres et équipe', 'a_faire', []],
+    'parametres'     => ['Paramètres et équipe', 'ok', []],
 ];
 
 /** L'écran servi quand aucun n'est demandé. */
-const DASH_DEFAUT = 'calendrier';
+const DASH_DEFAUT = 'accueil';
 
 /** Toutes les clefs, sous-écrans compris, à plat. Sert au routeur. */
 function dash_clefs(): array
