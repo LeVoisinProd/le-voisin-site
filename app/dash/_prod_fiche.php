@@ -100,7 +100,11 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   <?php endif; ?>
 </div>
 <style>
-.barre-doc{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 -4px}
+/* JUSTIFIÉS À DROITE, comme partout ailleurs. [16.08.2026] Demandé par Anna
+   pour tout le site: un bouton d'impression n'est pas le geste principal d'un
+   écran, c'est ce qu'on fait à la fin. À gauche il se lit avant le contenu et
+   attire le clic; à droite il attend qu'on ait fini. */
+.barre-doc{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;margin:14px 0 -4px}
 .bt-pdf{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;
   border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier);
   text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
@@ -197,8 +201,7 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 <?php elseif ($onglet === 'dossier'): ?>
 
   <p class="aide top">Les textes du dossier de demande de fonds. Le résumé, les coproductions
-     et les soutiens viennent de la Synthèse — inutile de les ressaisir ici.
-     <a href="<?= e($lien('dossier')) ?>&amp;imprimer=1" target="_blank" rel="noopener">Version imprimable</a></p>
+     et les soutiens viennent de la Synthèse — inutile de les ressaisir ici.</p>
 
   <form method="post" action="<?= e($lien('dossier')) ?>">
     <?= Auth::csrfField() ?>
@@ -246,8 +249,7 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 
   <p class="aide top">Rédigée depuis le Planning, l'Équipe et la Logistique, puis
      <strong>modifiable librement</strong>. La régénérer remplace le texte ci-dessous:
-     ce qui a été écrit à la main est alors perdu, et c'est pour cela qu'on le demande.
-     <a href="<?= e($lien('fdr')) ?>&amp;imprimer=1" target="_blank" rel="noopener">Version imprimable</a></p>
+     ce qui a été écrit à la main est alors perdu, et c'est pour cela qu'on le demande.</p>
 
   <?php if ($ecrit): ?>
     <form method="post" action="<?= e($lien('fdr')) ?>" class="inline"

@@ -278,10 +278,19 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
   <a href="/dashboard.php?e=finances&amp;v=fonds" class="<?= $vue==='fonds'?'ici':'' ?>">Demandes de fonds</a>
   <?php if ($vue === 'releve'): ?>
     <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>&amp;v=releve&amp;imprimer=1"
-       target="_blank" rel="noopener" class="pdfl">Version imprimable</a>
+       target="_blank" rel="noopener" class="pdfl"
+       title="Ouvre une page nue. Dans la fenêtre qui s'ouvre: Imprimer, puis « Enregistrer au format PDF »">PDF — Relevé</a>
   <?php endif; ?>
 </div>
-<style>.onglets a.pdfl{margin-left:auto;color:var(--doux)}</style>
+<style>
+/* Le même bouton que dans les fiches de production, et à droite comme partout.
+   [16.08.2026] Deux formes différentes pour la même action — un lien gris ici,
+   un bouton noir là — obligent à réapprendre l'écran à chaque page. */
+.onglets a.pdfl{margin-left:auto;display:inline-flex;align-items:center;gap:7px;
+  padding:6px 14px;border:1px solid var(--encre);border-radius:5px;background:var(--encre);
+  color:var(--papier);font-size:13px;font-weight:600;border-bottom-color:var(--encre)}
+.onglets a.pdfl:hover{opacity:.86}
+</style>
 <form class="filtres" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="finances">
   <select name="s" onchange="this.form.submit()">
