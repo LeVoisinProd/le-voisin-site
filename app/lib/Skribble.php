@@ -40,7 +40,7 @@ class Skribble
 
     public static function configured(): bool
     {
-        return trim(setting('skribble_username')) !== '' && trim(setting('skribble_api_key')) !== '';
+        return trim(setting('skribble_username')) !== '' && trim(secret('skribble_api_key')) !== '';
     }
 
     /** Authentifie et renvoie le jeton d'accès (mis en cache pour la requête). */
@@ -50,7 +50,7 @@ class Skribble
         if ($tok !== null) return $tok;
         [$code, $resp] = self::http('POST', '/access/login', json_encode([
             'username' => trim(setting('skribble_username')),
-            'api-key'  => trim(setting('skribble_api_key')),
+            'api-key'  => trim(secret('skribble_api_key')),
         ]), false);
         if ($code >= 400 || trim($resp) === '') {
             throw new RuntimeException(tu('sys_skr_auth'));

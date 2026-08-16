@@ -121,6 +121,41 @@ function setting(string $key, string $default = ''): string
     return Settings::get($key, $default);
 }
 
+/**
+ * Un réglage qui porte un SECRET, déchiffré au vol. [16.08.2026]
+ *
+ * POURQUOI IL EXISTE. Relevé ce jour-là: `smtp_pass` et `skribble_api_key`
+ * étaient en clair dans `settings`. Un dump de cette base est du matériel
+ * sensible — la journée l'a établi pour les AVS et les IBAN — et un mot de
+ * passe SMTP qui part dans une sauvegarde sert à envoyer du courrier au nom du
+ * Voisin sans que rien ne le signale.
+ *
+ * IL LIT LES DEUX FORMES. Une valeur écrite avant le chiffrement n'a pas le
+ * préfixe `sb1:` et sort telle quelle; elle est remplacée dès qu'on ressaisit
+ * le réglage. C'est la migration silencieuse des fiches de collaborateur, et
+ * elle a le même défaut connu: elle ne se termine pas toute seule. D'où
+ * `db/chiffrer_reglages.php`, qui la termine d'un coup.
+ *
+ * NE PAS L'UTILISER POUR UN MOT DE PASSE QU'ON NE FAIT QUE VÉRIFIER. Le mot de
+ * passe du Catalogue, lui, se hache: on n'a jamais besoin de le relire, et un
+ * haché ne se déchiffre pas même avec la clef du `config.php`.
+ */
+function secret(string $key, string $default = ''): string
+{
+    $v = trim(Settings::get($key, ''));
+    if ($v === '') return $default;
+    if (!str_starts_with($v, 'sb1:')) return $v;
+    $clair = Crypto::dechiffrer($v);
+    return $clair === null ? $default : trim($clair);
+}
+
+/** Range un secret, chiffré. Une chaîne vide efface. */
+function set_secret(string $key, string $valeur): void
+{
+    $valeur = trim($valeur);
+    Settings::set($key, $valeur === '' ? '' : Crypto::chiffrer($valeur));
+}
+
 /** Réglage bilingue : setting_i18n('footer_note') → footer_note_fr / _en avec repli. */
 function setting_i18n(string $key, string $default = ''): string
 {

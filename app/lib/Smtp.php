@@ -73,7 +73,7 @@ class Smtp
         // souvent un espace ou un retour à la ligne invisible ; le serveur
         // répondait alors « 535 mot de passe invalide » sans qu'on puisse voir
         // pourquoi, puisque le mot de passe avait l'air juste.
-        $pass = trim((string)setting('smtp_pass', ''));
+        $pass = trim(secret('smtp_pass'));
         $port = (int)setting('smtp_port', '587');
         $secu = strtolower(trim((string)setting('smtp_secure', 'tls')));
 
@@ -178,7 +178,7 @@ class Smtp
         $hote = trim((string)setting('smtp_host', ''));
         $user = trim((string)setting('smtp_user', ''));
         // Voir la note dans send() : espaces de bord retirés.
-        $pass = trim((string)setting('smtp_pass', ''));
+        $pass = trim(secret('smtp_pass'));
         $port = (int)setting('smtp_port', '587') ?: 587;
         $secu = strtolower(trim((string)setting('smtp_secure', 'tls')));
 

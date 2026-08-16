@@ -67,8 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // essayé est celui qu'on vient de coller ou le précédent — et l'on cherche
     // alors du côté du serveur un défaut qui est dans le champ resté vide.
     $mdp = trim((string)($_POST['smtp_pass'] ?? ''));
-    if ($mdp === '-')    { Settings::set('smtp_pass', ''); Settings::set('smtp_pass_at', ''); }
-    elseif ($mdp !== '') { Settings::set('smtp_pass', $mdp); Settings::set('smtp_pass_at', date('Y-m-d H:i')); }
+    /* `set_secret` chiffre. [16.08.2026] Le mot de passe SMTP ne doit pas
+       toucher la base en clair, même le temps d'un enregistrement raté. */
+    if ($mdp === '-')    { set_secret('smtp_pass', ''); Settings::set('smtp_pass_at', ''); }
+    elseif ($mdp !== '') { set_secret('smtp_pass', $mdp); Settings::set('smtp_pass_at', date('Y-m-d H:i')); }
     $mdpSaisi = ($mdp !== '' && $mdp !== '-');
     $logo = (int)($_POST['logo_image_id'] ?? 0);
     Settings::set('logo_image_id', $logo > 0 ? (string)$logo : '');
@@ -147,7 +149,9 @@ function lv_controle_envoi(string $destination, bool $mdpSaisi = false): array
     // ---- 1. La voie d'envoi -------------------------------------------
     $hote = trim((string)setting('smtp_host', ''));
     $user = trim((string)setting('smtp_user', ''));
-    $pass = (string)setting('smtp_pass', '');
+    /* Déchiffré: ce diagnostic teste une connexion réelle, il lui faut la
+       valeur et non son enveloppe. [16.08.2026] */
+    $pass = secret('smtp_pass');
 
     if ($hote === '') {
         $bloc('ko', ta('st_d_route'),
