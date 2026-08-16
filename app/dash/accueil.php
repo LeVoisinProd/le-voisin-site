@@ -176,6 +176,10 @@ dash_haut('accueil', $urgent
 
 <?php require __DIR__ . '/_kanban.php'; ?>
 
+<?php /* Les skills viennent après le pipeline: le pipeline dit où en sont les
+     choses, les skills disent avec quoi les faire avancer. [16.08.2026] */ ?>
+<?php require __DIR__ . '/_skills.php'; ?>
+
 <?php if (!$urgent): ?>
   <div class="calme">Rien en retard, rien d'impayé, aucune attestation A1 hors délai.</div>
 <?php endif; ?>
