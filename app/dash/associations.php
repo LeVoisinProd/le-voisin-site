@@ -325,8 +325,19 @@ $q      = trim((string)($_GET['q'] ?? ''));
 $genre  = trim((string)($_GET['g'] ?? ''));
 $statut = trim((string)($_GET['st'] ?? ''));
 
-$where = ['supprime_le IS NULL']; $args = [];
-if (isset($GENRES[$genre]))   { $where[] = 'genre = ?';  $args[] = $genre; }
+/* ── L'ÉCRAN NE PORTE PLUS QUE LES ASSOCIATIONS ─────────────────────────────
+   [16.08.2026] Anna: « na pagina Associations et artistes tirar os artistas ».
+
+   Les lignes `genre = 'artiste'` venaient d'une reprise: le dashboard et le CMS
+   du site ont chacun une liste d'artistes, et l'import les avait versées ici à
+   côté des associations. Elles n'y avaient rien à faire — un artiste n'est pas
+   une entité juridique, il n'a ni IDE, ni AVS employeur, ni régime fiscal, et
+   les cinq onglets de conformité lui demandaient tout cela pour rien.
+
+   ELLES NE SONT PAS SUPPRIMÉES, elles ne sont plus affichées. En production il
+   n'y en a aucune de toute façon — mesuré: 15 lignes, toutes des associations.
+   Les artistes vivent dans `artists`, côté site, où ils ont leur page publique. */
+$where = ['supprime_le IS NULL', "genre = 'association'"]; $args = [];
 if (isset($STATUTS[$statut])) { $where[] = 'statut = ?'; $args[] = $statut; }
 if ($q !== '') {
     $like = '%' . str_replace(['%','_'], ['\%','\_'], $q) . '%';
@@ -336,7 +347,7 @@ if ($q !== '') {
 $sql = implode(' AND ', $where);
 
 $t0 = microtime(true);
-$st = DB::pdo()->prepare("SELECT * FROM organisation WHERE $sql ORDER BY genre, nom");
+$st = DB::pdo()->prepare("SELECT * FROM organisation WHERE $sql ORDER BY nom");
 $st->execute($args);
 $lignes = $st->fetchAll();
 $ms = (int)round((microtime(true) - $t0) * 1000);
@@ -351,13 +362,6 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 <form class="filtres" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="associations">
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Nom, discipline, direction, IDE">
-  <select name="g">
-    <option value="">Tout</option>
-    <?php foreach ($GENRES as $k => $v): ?>
-      <option value="<?= $k ?>"<?= $genre === $k ? ' selected' : '' ?>><?=
-        e(ucfirst($v)) ?>s (<?= $parGenre[$k] ?? 0 ?>)</option>
-    <?php endforeach; ?>
-  </select>
   <select name="st">
     <option value="">Tous les statuts</option>
     <?php foreach ($STATUTS as $k => $v): ?>
@@ -365,7 +369,7 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
     <?php endforeach; ?>
   </select>
   <button type="submit">Chercher</button>
-  <?php if ($q !== '' || $genre !== '' || $statut !== ''): ?>
+  <?php if ($q !== '' || $statut !== ''): ?>
     <a class="vider" href="/dashboard.php?e=associations">tout effacer</a><?php endif; ?>
   <a class="neuf" href="/dashboard.php?e=associations&amp;mod=1">+ nouvelle fiche</a>
 </form>
@@ -379,7 +383,7 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 
 <?php if (!$lignes): ?><p class="vide">Aucune fiche.</p><?php else: ?>
 <div class="tw"><table>
-  <thead><tr><th>Nom</th><th>Nature</th><th>Discipline</th><th>Direction</th>
+  <thead><tr><th>Nom</th><th>Discipline</th><th>Direction</th>
     <th>Pays</th><th>IDE</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
@@ -387,7 +391,6 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
       <td><a href="/dashboard.php?e=associations&amp;o=<?= (int)$r['id'] ?>"><?= e($r['nom']) ?></a>
         <?php if ($r['nom_legal'] && $r['nom_legal'] !== $r['nom']): ?>
           <div class="sec"><?= e($r['nom_legal']) ?></div><?php endif; ?></td>
-      <td class="sec"><?= e($GENRES[$r['genre']]) ?></td>
       <td class="sec"><?= e($r['discipline'] ?? '') ?></td>
       <td class="sec"><?= e($r['direction'] ?? '') ?></td>
       <td class="sec"><?= e(trim(($r['pays'] ?? '') . ' ' . ($r['canton'] ?? ''))) ?></td>
