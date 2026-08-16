@@ -32,6 +32,156 @@ const ONGLETS = [
 $id = (int)($_GET['b'] ?? 0);
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ENREGISTRER  (avant tout affichage: on redirige, on ne rend rien)
+// ═══════════════════════════════════════════════════════════════════════════
+
+$CHAMPS = ['projet','artiste','venue','venue_url','ville','pays','date_debut','date_fin',
+           'date_texte','heure','prix_cession','prix_vente','devise','client','statut',
+           'representations','notes_artiste','notes_internes'];
+$STATUTS = ['pending' => 'en attente', 'option' => 'option',
+            'confirmed' => 'confirmé', 'canceled' => 'annulé'];
+
+$err = [];
+$saisi = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    Auth::requireCsrf();
+
+    foreach ($CHAMPS as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
+
+    /* SUPPRESSION LOGIQUE, jamais un DELETE. Une date effacée par erreur se
+       retrouve, et c'est déjà la règle du dashboard actuel. */
+    if (($_POST['action'] ?? '') === 'supprimer' && $id > 0) {
+        DB::pdo()->prepare('UPDATE booking SET supprime_le = NOW() WHERE id = ?')->execute([$id]);
+        dash_flash('Booking supprimé. Il reste en base et peut être rétabli.');
+        redirect('/dashboard.php?e=bookings');
+    }
+
+    // Ce qui est vraiment obligatoire, et rien de plus: sans lieu ni date, la
+    // ligne ne veut rien dire et ne peut pas être retrouvée.
+    if ($saisi['venue'] === '')      $err['venue'] = 'Le lieu est nécessaire pour retrouver la date.';
+    if ($saisi['date_debut'] === '') $err['date_debut'] = 'Sans date, la ligne ne peut ni se trier ni se compter.';
+
+    foreach (['date_debut', 'date_fin'] as $d) {
+        if ($saisi[$d] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $saisi[$d])) {
+            $err[$d] = 'Format attendu: AAAA-MM-JJ.';
+        }
+    }
+    if ($saisi['date_debut'] !== '' && $saisi['date_fin'] !== ''
+        && !isset($err['date_debut']) && !isset($err['date_fin'])
+        && $saisi['date_fin'] < $saisi['date_debut']) {
+        $err['date_fin'] = 'La fin est avant le début.';
+    }
+    foreach (['prix_cession', 'prix_vente'] as $p) {
+        if ($saisi[$p] === '') continue;
+        $saisi[$p] = str_replace([',', ' ', "\u{202f}"], ['.', '', ''], $saisi[$p]);
+        if (!is_numeric($saisi[$p])) $err[$p] = 'Un montant, sans texte autour.';
+    }
+    if (!isset($STATUTS[$saisi['statut']])) $saisi['statut'] = 'pending';
+    if ($saisi['devise'] === '') $saisi['devise'] = 'CHF';
+    $saisi['representations'] = max(1, (int)($saisi['representations'] ?: 1));
+
+    if (!$err) {
+        $vals = [];
+        foreach ($CHAMPS as $c) $vals[] = $saisi[$c] === '' ? null : $saisi[$c];
+        if ($id > 0) {
+            $set = implode(',', array_map(fn($c) => "$c=?", $CHAMPS));
+            $vals[] = $id;
+            DB::pdo()->prepare("UPDATE booking SET $set WHERE id = ?")->execute($vals);
+            dash_flash('Booking enregistré.');
+        } else {
+            $q = implode(',', array_fill(0, count($CHAMPS), '?'));
+            DB::pdo()->prepare('INSERT INTO booking (' . implode(',', $CHAMPS) . ") VALUES ($q)")
+                     ->execute($vals);
+            $id = (int)DB::pdo()->lastInsertId();
+            dash_flash('Booking créé.');
+        }
+        /* Rediriger après un enregistrement réussi: sans cela, un
+           rafraîchissement renvoie le POST et crée un doublon. */
+        redirect('/dashboard.php?e=bookings&b=' . $id);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE FORMULAIRE
+// ═══════════════════════════════════════════════════════════════════════════
+
+if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $b = $id > 0 ? DB::one('SELECT * FROM booking WHERE id = ? AND supprime_le IS NULL', [$id]) : [];
+    if ($id > 0 && !$b) { dash_haut('bookings'); echo '<p class="vide">Ce booking n\'existe pas.</p>'; dash_bas(); return; }
+
+    // Ce qui a été saisi prime sur ce qui est en base: un refus ne doit rien effacer.
+    $v = fn(string $c) => $saisi[$c] ?? ($b[$c] ?? '');
+
+    dash_haut('bookings', $id > 0 ? 'modifier' : 'nouveau');
+    dash_form_style();
+    if ($err) echo '<div class="flash err">Rien n\'a été enregistré: '
+                 . count($err) . ' champ(s) à corriger. Ce que vous aviez saisi est conservé.</div>';
+    ?>
+    <div class="fil"><a href="/dashboard.php?e=bookings<?= $id > 0 ? '&amp;b=' . $id : '' ?>">← retour</a></div>
+    <form class="saisie" method="post"
+          action="/dashboard.php?e=bookings<?= $id > 0 ? '&amp;b=' . $id : '' ?>&amp;mod=1">
+      <?= Auth::csrfField() ?>
+      <div class="grille">
+        <div class="titre-bloc">Quoi, qui, où</div>
+        <?php
+        ch('projet',  'Projet',  $v('projet'),  $err);
+        ch('artiste', 'Artiste', $v('artiste'), $err);
+        ch('venue',   'Lieu',    $v('venue'),   $err, ['requis' => true]);
+        ch('ville',   'Ville',   $v('ville'),   $err);
+        ch('pays',    'Pays',    $v('pays'),    $err);
+        ch('client',  'Client',  $v('client'),  $err, ['aide' => 'Qui paie, si ce n\'est pas le lieu']);
+        ch('venue_url', 'Site du lieu', $v('venue_url'), $err, ['large' => true]);
+
+        echo '<div class="titre-bloc">Quand</div>';
+        ch('date_debut', 'Début', $v('date_debut'), $err, ['type' => 'date', 'requis' => true]);
+        ch('date_fin',   'Fin',   $v('date_fin'),   $err, ['type' => 'date',
+            'aide' => 'Seulement si la série tient sur plusieurs jours']);
+        ch('heure',      'Heure', substr((string)$v('heure'), 0, 5), $err, ['type' => 'time']);
+        ch('representations', 'Représentations', $v('representations') ?: 1, $err,
+           ['type' => 'number', 'aide' => 'Deux le même jour valent 1,5 jour de salaire, pas 2']);
+        ch('date_texte', 'Date affichée', $v('date_texte'), $err, ['large' => true,
+            'aide' => 'Ce que lit le public. « du 8 au 13 février » ne se dérive pas de deux dates',
+            'placeholder' => '12, 13, 14 décembre 2026']);
+
+        echo '<div class="titre-bloc">Combien</div>';
+        ch('prix_cession', 'Prix de cession', $v('prix_cession'), $err,
+           ['aide' => 'Ce que le lieu paie']);
+        ch('prix_vente',   'Prix de vente',   $v('prix_vente'), $err,
+           ['aide' => 'Ce qui est annoncé ou négocié']);
+        ch('devise', 'Devise', $v('devise') ?: 'CHF', $err,
+           ['type' => 'select', 'choix' => ['CHF' => 'CHF', 'EUR' => 'EUR']]);
+        ch('statut', 'Statut', $v('statut') ?: 'pending', $err,
+           ['type' => 'select', 'choix' => $STATUTS]);
+
+        echo '<div class="titre-bloc">Notes</div>';
+        ch('notes_artiste',  'Notes artiste',  $v('notes_artiste'),  $err,
+           ['type' => 'textarea', 'large' => true, 'aide' => 'L\'artiste les voit']);
+        ch('notes_internes', 'Notes internes', $v('notes_internes'), $err,
+           ['type' => 'textarea', 'large' => true, 'aide' => 'L\'équipe seulement, jamais partagées']);
+        ?>
+      </div>
+      <div class="actions">
+        <button type="submit"><?= $id > 0 ? 'Enregistrer' : 'Créer' ?></button>
+        <a class="sec2" href="/dashboard.php?e=bookings<?= $id > 0 ? '&amp;b=' . $id : '' ?>">annuler</a>
+        <?php if ($id > 0): ?>
+          <a class="sup" href="#"
+             onclick="if(confirm('Supprimer ce booking ? Il restera en base et pourra être rétabli.')){
+                        var f=document.createElement('form');f.method='post';
+                        f.action='/dashboard.php?e=bookings&b=<?= $id ?>&mod=1';
+                        f.innerHTML='<?= addslashes(Auth::csrfField()) ?><input name=action value=supprimer>';
+                        document.body.appendChild(f);f.submit();}return false;">supprimer</a>
+        <?php endif; ?>
+      </div>
+    </form>
+    <style>.fil { padding:12px 26px 0; font-size:13px; }
+           .fil a { color:var(--doux); text-decoration:none; }</style>
+    <?php
+    dash_bas();
+    return;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // LA FICHE
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -45,7 +195,9 @@ if ($id > 0) {
     $titre = trim(($b['projet'] ?? '') . ' · ' . ($b['venue'] ?? ''));
     dash_haut('bookings', e($b['date_texte'] ?: (string)$b['date_debut']) . ' · ' . e($b['ville'] ?? ''));
     ?>
-    <div class="fil"><a href="/dashboard.php?e=bookings">← tous les bookings</a></div>
+    <div class="fil"><a href="/dashboard.php?e=bookings">← tous les bookings</a>
+      <a class="mod" href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;mod=1">modifier</a></div>
+    <?php dash_flash_html(); ?>
 
     <div class="onglets">
       <?php foreach (ONGLETS as $c => $lib): ?>
@@ -123,8 +275,9 @@ if ($id > 0) {
     </div>
 
     <style>
-    .fil { padding:12px 26px 0; font-size:13px; }
+    .fil { padding:12px 26px 0; font-size:13px; display:flex; gap:16px; }
     .fil a { color:var(--doux); text-decoration:none; }
+    .fil a.mod { margin-left:auto; color:var(--encre); font-weight:600; }
     .onglets { display:flex; gap:2px; padding:12px 26px 0; border-bottom:1px solid var(--trait);
                overflow-x:auto; }
     .onglets a { padding:8px 15px; font-size:13.5px; text-decoration:none; white-space:nowrap;
@@ -233,7 +386,9 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' booking' . ($total>1?'
   <?php if ($q !== '' || $statut !== '' || $annee !== ''): ?>
     <a class="vider" href="/dashboard.php?e=bookings">tout effacer</a>
   <?php endif; ?>
+  <a class="neuf" href="/dashboard.php?e=bookings&amp;mod=1">+ nouveau booking</a>
 </form>
+<?php dash_flash_html(); ?>
 
 <?php if ($doublons > 0): ?>
 <div class="alerte">
@@ -293,6 +448,8 @@ td.d, th.d { text-align:right; white-space:nowrap; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .et.confirmed,
   :root:not([data-theme=light]) .et.option, :root:not([data-theme=light]) .et.canceled {
   background:transparent; color:inherit; } }
+.neuf { margin-left:auto; padding:8px 16px; background:var(--jaune); color:#0d0d0d;
+        border-radius:4px; text-decoration:none; font-size:13.5px; font-weight:600; }
 .alerte { margin:16px 26px 0; padding:12px 16px; background:var(--fond2);
           border-left:4px solid var(--orange); font-size:13.5px; max-width:80ch; }
 </style>

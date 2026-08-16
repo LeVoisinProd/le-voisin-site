@@ -34,6 +34,7 @@ declare(strict_types=1);
 require __DIR__ . '/app/bootstrap.php';
 require __DIR__ . '/app/dash/_ecrans.php';
 require __DIR__ . '/app/dash/_layout.php';
+require __DIR__ . '/app/dash/_form.php';
 
 I18n::init();
 session_boot();
