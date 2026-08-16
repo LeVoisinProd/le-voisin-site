@@ -252,10 +252,22 @@ if ($cid > 0) {
     <?php dash_flash_html(); ?>
     <div class="zone">
       <div class="tete-c">
-        <?php /* La photo est un data URI dans le dashboard, pas un chemin: on la
-                 rend telle quelle. 60 fiches sur 8432 en portent une. */ ?>
-        <?php if (trim((string)($k['photo'] ?? '')) !== ''): ?>
-          <img class="ph-c" src="<?= e((string)$k['photo']) ?>" alt="">
+        <?php /* LA PLACE DE LA PHOTO EST TOUJOURS TENUE, avec ou sans photo.
+                 Demandé par Anna le 16.08.2026. Sans emplacement fixe, le titre
+                 saute de 80 pixels selon que la fiche en porte une, et deux
+                 fiches côte à côte n'ont pas la même tête. Le carré vide dit
+                 aussi qu'il en manque une, ce qu'une absence ne dit pas.
+
+                 La photo est un data URI dans le dashboard, pas un chemin: on
+                 la rend telle quelle. 60 fiches sur 8432 en portent une. */ ?>
+        <?php $ph = trim((string)($k['photo'] ?? '')); ?>
+        <?php if ($ph !== ''): ?>
+          <img class="ph-c" src="<?= e($ph) ?>" alt="">
+        <?php else:
+          $ini = mb_strtoupper(mb_substr(trim((string)($k['prenom'] ?: $k['nom'])), 0, 1)
+                             . mb_substr(trim((string)($k['nom_famille'] ?: '')), 0, 1)); ?>
+          <div class="ph-c ph-vide" title="Aucune photo — elle s'ajoute en modifiant la fiche"><?=
+            e($ini) ?></div>
         <?php endif; ?>
         <div>
           <h2 class="gros"><?= e($k['nom']) ?></h2>
@@ -265,6 +277,20 @@ if ($cid > 0) {
           <?php endif; ?>
         </div>
       </div>
+      <?php /* ── DEUX COLONNES, ET NON TROIS ────────────────────────────────
+           [16.08.2026] La grille s'ajustait toute seule et faisait trois
+           colonnes sur un écran large. Une structure appelée « Association
+           Labo'Art / Festival 48ème de rue » se coupait alors sur trois lignes
+           dans 290 pixels, et une adresse de site sur deux. Anna: « desse jeito
+           fica informacao cortada, vamos deixar so com 2 colunas para poder ler
+           melhor ».
+
+           À gauche l'état civil — ce qui identifie et ce qui sert à écrire. À
+           droite ce qui sert à décider à qui écrire: les mois, les rencontres,
+           les associations, les notes. Ce sont deux lectures différentes et
+           elles ne se mélangent pas. */ ?>
+      <div class="fiche2">
+      <div class="col-g">
       <div class="fiche">
       <?php
       $l = function (string $lib, $val, string $href = '') {
@@ -294,35 +320,62 @@ if ($cid > 0) {
       $l('Référence', $k['ref']);
       ?>
       </div>
+      </div>
 
-      <?php /* LES TROIS LISTES EN PASTILLES, comme dans le formulaire. Une chaîne
-               « Chalon 2024, Jeune public, Carnet diffusion » se lit mal en une
-               ligne; découpée, on voit d'un coup où l'on s'est croisés. */
-      $past = function (string $titre, $val) {
+      <div class="col-d">
+
+      <?php /* LES QUATRE BLOCS S'AFFICHENT TOUJOURS, remplis ou vides. Anna les
+           a listés le 16.08.2026 comme manquants — et ils manquaient en effet:
+           ils ne s'affichaient que lorsqu'ils portaient quelque chose, donc sur
+           une fiche neuve la moitié droite était blanche et rien ne disait ce
+           qui pouvait y aller. Un bloc vide qui dit « aucune » enseigne la
+           fiche; un bloc absent la cache.
+
+           Découpé en pastilles plutôt qu'en une ligne: « Chalon 2024, Jeune
+           public, Carnet diffusion » se lit mal d'un trait, et découpé on voit
+           d'un coup où l'on s'est croisés. */
+      $past = function (string $titre, $val, string $rien) {
           $v = trim((string)($val ?? ''));
-          if ($v === '') return;
-          echo '<div class="past"><div class="past-t">' . e($titre) . '</div><div class="past-g">';
+          echo '<div class="past"><div class="past-t">' . e($titre) . '</div>';
+          if ($v === '') {
+              echo '<p class="past-rien">' . e($rien) . '</p></div>';
+              return;
+          }
+          echo '<div class="past-g">';
           foreach (array_filter(array_map('trim', explode(',', $v))) as $x)
               echo '<span class="past-p">' . e($x) . '</span>';
           echo '</div></div>';
       };
-      $past('Participations et rencontres', $k['participations']);
-      $past('Mois envisagés ou confirmés', $k['date_mois']);
-      $past('Directions artistiques liées', $k['directions']);
+
+      $past('Date de réalisation', $k['date_mois'],
+            'Aucun mois retenu. Ils se cochent en modifiant la fiche.');
+      if (trim((string)($k['date_notes'] ?? '')) !== '')
+          echo '<p class="past-n">' . nl2br(e((string)$k['date_notes'])) . '</p>';
+
+      $past('Participations et rencontres professionnelles', $k['participations'],
+            'Jamais croisé, ou pas encore noté.');
+
+      $past('Associations liées', $k['directions'],
+            'Aucune association liée. C\'est ce champ qui dit à qui proposer quoi.');
       ?>
 
-      <?php if (trim((string)($k['date_notes'] ?? '')) !== ''): ?>
-        <div class="bl"><h3>Précisions sur les dates</h3><p><?= nl2br(e((string)$k['date_notes'])) ?></p></div>
-      <?php endif; ?>
-      <?php if ($k['notes']): ?>
-        <div class="bl"><h3>Notes</h3><p><?= nl2br(e($k['notes'])) ?></p></div>
-      <?php endif; ?>
+      <div class="past">
+        <div class="past-t">Notes</div>
+        <?php if (trim((string)($k['notes'] ?? '')) !== ''): ?>
+          <p class="past-n"><?= nl2br(e((string)$k['notes'])) ?></p>
+        <?php else: ?>
+          <p class="past-rien">Aucune note.</p>
+        <?php endif; ?>
+      </div>
+
+      </div>
+      </div>
     </div>
     <style>
     .tete-c{display:flex;gap:16px;align-items:flex-start;margin-bottom:14px}
     .ph-c{width:64px;height:64px;object-fit:cover;border-radius:8px;flex:none;border:1px solid var(--trait)}
     .pron{font-size:12.5px;color:var(--doux);border:1px solid var(--trait);border-radius:10px;padding:1px 8px;margin-left:6px}
-    .past{margin:16px 0 0}
+    .past{margin:0 0 22px}
     .past-t{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--doux);margin-bottom:6px}
     .past-g{display:flex;flex-wrap:wrap;gap:6px}
     .past-p{font-size:13px;padding:3px 11px;border:1px solid var(--trait);border-radius:13px}
@@ -331,7 +384,17 @@ if ($cid > 0) {
     .fil a.mod{margin-left:auto;color:var(--encre);font-weight:600}
     h2.gros{font-size:21px;margin:0 0 4px}
     .sst2{margin:0 0 18px;color:var(--doux);font-size:14px}
-    .fiche{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:0 34px;max-width:960px}
+    /* Deux colonnes fixes, pas d'auto-fill: c'est l'auto-fill qui fabriquait la
+       troisième colonne et coupait les longs noms de structure. */
+    .fiche2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 44px;
+      align-items:start;max-width:1180px}
+    @media (max-width:900px){ .fiche2{grid-template-columns:minmax(0,1fr)} }
+    .fiche{display:block}
+    .col-d{padding-top:1px}
+    .past-rien{margin:0;font-size:13.5px;color:var(--doux);font-style:italic}
+    .past-n{margin:6px 0 0;font-size:14px;white-space:pre-wrap}
+    .ph-vide{display:flex;align-items:center;justify-content:center;background:var(--fond2);
+      color:var(--doux);font-size:20px;font-weight:600;letter-spacing:.02em}
     .fiche .l{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--trait)}
     .fiche .k{color:var(--doux);font-size:12.5px;min-width:140px}
     .fiche .v{font-size:14px;word-break:break-word}
