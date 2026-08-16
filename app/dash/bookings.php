@@ -11,9 +11,21 @@
  * avec ses cinq onglets. Elles partagent trop pour vivre séparées, et le
  * fichier reste lisible tant qu'il n'y a que ces deux-là.
  *
- * LES ONGLETS DE LA FICHE sont déclarés et vides pour l'instant. C'est le même
- * parti que le menu: montrer la carte plutôt que de la cacher. Chacun dit ce
- * qu'il portera et ce qui lui manque encore comme table.
+ * LES CINQ ONGLETS SONT ÉCRITS depuis le 16.08.2026. Ils étaient déclarés et
+ * vides, chacun disant ce qui lui manquait comme table; ces tables existent
+ * maintenant.
+ *
+ *   Deal        les lignes qui composent le prix, et l'écart avec le prix annoncé
+ *   Factures    ce qui est parti et ce qui n'est pas rentré
+ *   Contrats    déposer un PDF, l'envoyer à la signature, suivre l'état
+ *   Advancing   ce qu'on demande au lieu, un état par élément, et le portail
+ *               où il répond — advancing.php, la quatrième porte du site
+ *   Voyage      vols, transferts, hôtels, comme données et non comme fichiers
+ *
+ * CE QUI RESTE HORS DE PORTÉE, et c'est dit dans l'onglet plutôt qu'ici: la
+ * liaison bexio, donc l'émission des factures. Le portage du client depuis
+ * Apps Script est chiffré entre 12 h et 20 h pour le seul OAuth2. L'onglet
+ * Factures suit ce qui existe; il n'émet rien.
  */
 declare(strict_types=1);
 
@@ -100,6 +112,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        l'écran: `production` lit les Finances sans les modifier. Le routeur
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('bookings');
+
+    /* Les factures: ajouter, changer l'état, supprimer. */
+    $actF = (string)($_POST['fact'] ?? '');
+    if ($actF !== '' && $id > 0) {
+        if ($actF === 'ajouter') {
+            $d = static fn(string $k): ?string
+                => trim((string)($_POST[$k] ?? '')) !== '' ? (string)$_POST[$k] : null;
+            DB::insert('invoice', [
+                'booking_id'    => $id,
+                'numero'        => $d('numero'),
+                'type'          => (string)($_POST['type'] ?? 'totale'),
+                'destinataire'  => $d('destinataire'),
+                'montant'       => (float)str_replace(',', '.', (string)($_POST['montant'] ?? '0')),
+                'devise'        => (string)($_POST['devise'] ?? 'CHF'),
+                'date_emission' => $d('date_emission'),
+                'date_echeance' => $d('date_echeance'),
+                /* Une facture qui porte déjà une date d'émission n'est plus un
+                   brouillon: la saisir en brouillon obligerait à un second
+                   clic pour dire ce que la date dit déjà. */
+                'statut'        => $d('date_emission') ? 'envoyee' : 'brouillon',
+            ]);
+            dash_flash('Facture notée.');
+
+        } elseif ($actF === 'statut') {
+            $st = (string)($_POST['st'] ?? '');
+            if (in_array($st, ['brouillon','envoyee','payee','annulee'], true)) {
+                $maj = ['statut' => $st];
+                /* Passer à « payée » sans date de paiement laisserait un trou
+                   qu'on ne saurait plus combler trois mois après. */
+                if ($st === 'payee')  $maj['date_paiement'] = date('Y-m-d');
+                if ($st === 'envoyee') $maj['date_emission'] = date('Y-m-d');
+                DB::update('invoice', $maj, 'id = ? AND booking_id = ?',
+                           [(int)($_POST['ligne'] ?? 0), $id]);
+                dash_flash('Facture mise à jour.');
+            }
+
+        } elseif ($actF === 'supprimer') {
+            DB::delete('invoice', 'id = ? AND booking_id = ?',
+                       [(int)($_POST['ligne'] ?? 0), $id]);
+            dash_flash('Facture supprimée.');
+        }
+        redirect('/dashboard.php?e=bookings&b=' . $id . '&o=factures');
+    }
 
     /* L'advancing: la liste, les états, et le lien remis au lieu. */
     $actA = (string)($_POST['adv'] ?? '');
@@ -544,6 +599,150 @@ if ($id > 0) {
       .pt{margin-top:8px;font-size:12.5px;max-width:70ch}
       </style>
 
+    <?php elseif ($ong === 'factures'): ?>
+      <?php
+      /* FACTURES. [16.08.2026]
+
+         CE QUE CET ONGLET FAIT: suivre. Quelles factures existent sur cette
+         date, pour quel montant, parties quand, payées quand.
+
+         CE QU'IL NE FAIT PAS: produire la facture, ni parler à bexio. Ce n'est
+         pas un demi-travail, c'est la moitié qui n'est pas bloquée — le
+         portage du client bexio est chiffré entre 12 h et 20 h pour le seul
+         OAuth2. Et la question qui coûte cher n'est pas « comment j'émets »,
+         cela se fait déjà dans bexio, mais « qu'est-ce qui est parti et
+         qu'est-ce qui n'est pas rentré ». C'est précisément ce qui a manqué
+         pendant la crise de paiements d'août 2026: personne ne pouvait dire,
+         date par date, ce qui restait dû. */
+      $factures   = DB::all('SELECT * FROM invoice WHERE booking_id = ?
+                             ORDER BY COALESCE(date_emission,"9999-12-31"), id', [$id]);
+      $peutEcrire = dash_droit('bookings', dash_role()) === 'ecrit';
+      $TF = ['acompte'=>'Acompte','solde'=>'Solde','totale'=>'Totale',
+             'note_frais'=>'Note de frais','avoir'=>'Avoir'];
+      $SF = ['brouillon'=>'brouillon','envoyee'=>'envoyée','payee'=>'payée','annulee'=>'annulée'];
+
+      $facture = $paye = $du = 0.0;
+      $enRetard = [];
+      $auj = date('Y-m-d');
+      foreach ($factures as $f) {
+          if ($f['statut'] === 'annulee') continue;
+          $m = (float)$f['montant'] * ($f['type'] === 'avoir' ? -1 : 1);
+          if ($f['statut'] !== 'brouillon') $facture += $m;
+          if ($f['statut'] === 'payee') { $paye += $m; }
+          elseif ($f['statut'] === 'envoyee') {
+              $du += $m;
+              if ($f['date_echeance'] && (string)$f['date_echeance'] < $auj) $enRetard[] = $f;
+          }
+      }
+      ?>
+
+      <?php if ($factures): ?>
+        <div class="rap <?= $enRetard ? 'ecart' : 'ok' ?>">
+          Facturé <strong><?= number_format($facture,2,',',' ') ?></strong>,
+          encaissé <strong><?= number_format($paye,2,',',' ') ?></strong>,
+          en attente <strong><?= number_format($du,2,',',' ') ?></strong>.
+          <?php if ($enRetard): ?>
+            <strong><?= count($enRetard) ?></strong> facture<?= count($enRetard)>1?'s':'' ?>
+            au-delà de l'échéance.
+          <?php endif; ?>
+          <?php if ($b['prix_cession'] !== null && abs($facture - (float)$b['prix_cession']) > 0.5): ?>
+            <br>Le prix de cession annoncé est
+            <strong><?= number_format((float)$b['prix_cession'],2,',',' ') ?> <?= e($b['devise']) ?></strong>:
+            écart de <strong><?= number_format($facture - (float)$b['prix_cession'],2,',',' ') ?></strong>.
+            Un acompte seul explique un écart; deux mois après la date, non.
+          <?php endif; ?>
+        </div>
+
+        <div class="tbl"><table>
+          <thead><tr>
+            <th>Numéro</th><th>Nature</th><th>Destinataire</th><th>Émise</th>
+            <th>Échéance</th><th class="d">Montant</th><th>État</th><th></th>
+          </tr></thead>
+          <tbody>
+          <?php foreach ($factures as $f): $fid = (int)$f['id'];
+                $ret = $f['statut']==='envoyee' && $f['date_echeance'] && (string)$f['date_echeance'] < $auj; ?>
+            <tr>
+              <td><?= e($f['numero'] ?: '—') ?>
+                <?php if ($f['libelle']): ?><br><span class="pt"><?= e((string)$f['libelle']) ?></span><?php endif; ?>
+              </td>
+              <td class="sec"><?= e($TF[$f['type']] ?? $f['type']) ?></td>
+              <td class="sec"><?= e($f['destinataire'] ?? '') ?></td>
+              <td class="sec"><?= $f['date_emission'] ? e(date('d.m.Y', strtotime((string)$f['date_emission']))) : '' ?></td>
+              <td class="sec <?= $ret ? 'retard' : '' ?>">
+                <?= $f['date_echeance'] ? e(date('d.m.Y', strtotime((string)$f['date_echeance']))) : '' ?>
+                <?php if ($ret): ?><br><span class="pt">dépassée</span><?php endif; ?>
+              </td>
+              <td class="d"><?= $f['type']==='avoir' ? '&minus;' : '' ?><?= number_format((float)$f['montant'],2,',',' ') ?>
+                <?= e($f['devise']) ?></td>
+              <td><span class="et et-f<?= e($f['statut']) ?>"><?= e($SF[$f['statut']]) ?></span>
+                <?php if ($f['statut']==='payee' && $f['date_paiement']): ?>
+                  <br><span class="pt">le <?= e(date('d.m.Y', strtotime((string)$f['date_paiement']))) ?></span>
+                <?php endif; ?>
+              </td>
+              <td class="d">
+                <?php if ($peutEcrire): ?>
+                  <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=factures" class="inline">
+                    <?= Auth::csrfField() ?>
+                    <input type="hidden" name="fact" value="statut">
+                    <input type="hidden" name="ligne" value="<?= $fid ?>">
+                    <?php if ($f['statut']==='brouillon'): ?>
+                      <button type="submit" name="st" value="envoyee" class="lien-b">envoyée</button>
+                    <?php elseif ($f['statut']==='envoyee'): ?>
+                      <button type="submit" name="st" value="payee" class="lien-b">payée</button>
+                    <?php endif; ?>
+                  </form>
+                  <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=factures" class="inline"
+                        onsubmit="return confirm('Supprimer cette facture ?')">
+                    <?= Auth::csrfField() ?>
+                    <input type="hidden" name="fact" value="supprimer">
+                    <input type="hidden" name="ligne" value="<?= $fid ?>">
+                    <button type="submit" class="x">×</button>
+                  </form>
+                <?php endif; ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table></div>
+      <?php else: ?>
+        <p class="sec">Aucune facture notée sur cette date.</p>
+      <?php endif; ?>
+
+      <?php if ($peutEcrire): ?>
+      <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=factures" class="ajl">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="fact" value="ajouter">
+        <input type="text" name="numero" placeholder="Numéro" size="9">
+        <select name="type"><?php foreach ($TF as $k=>$v): ?>
+          <option value="<?= $k ?>" <?= $k==='totale'?'selected':'' ?>><?= e($v) ?></option><?php endforeach; ?></select>
+        <input type="text" name="destinataire" placeholder="Destinataire" size="16"
+               value="<?= e((string)($b['client'] ?: ($b['venue'] ?: ''))) ?>">
+        <input type="date" name="date_emission" title="Émise le">
+        <input type="date" name="date_echeance" title="Échéance">
+        <input type="text" name="montant" placeholder="Montant" size="8">
+        <select name="devise"><option>CHF</option><option>EUR</option></select>
+        <button type="submit">ajouter</button>
+      </form>
+      <p class="sec pt">Le numéro se recopie de bexio ou du carnet, il ne s'invente pas ici:
+         deux numérotations parallèles seraient pires que pas de numéro du tout.</p>
+      <?php endif; ?>
+
+      <div class="rap gris">
+        <strong>La liaison bexio n'est pas faite</strong>, et cet onglet ne la remplace pas:
+        il note ce qui existe, il n'émet rien. Le portage du client bexio, qui vit dans Apps
+        Script, est chiffré entre 12 h et 20 h pour le seul OAuth2, plus 6 à 10 h par
+        endpoint. La colonne <code>bexio_id</code> existe déjà et reste vide, pour que le
+        rapprochement ne demande pas une migration de plus.
+      </div>
+
+      <style>
+      .et-fpayee{border-color:#7bb33a;font-weight:600}
+      .et-fenvoyee{border-color:#d9a800}
+      .et-fannulee{opacity:.55}
+      td.retard{color:#e2653a}
+      .rap.gris{border-left-color:var(--doux)}
+      </style>
+
     <?php elseif ($ong === 'advancing'): ?>
       <?php
       /* ADVANCING. [16.08.2026]
@@ -944,20 +1143,6 @@ if ($id > 0) {
       tr.env form.ajl{margin-top:0;padding-top:0;border-top:0}
       </style>
 
-    <?php else: ?>
-      <?php
-      /* Chaque onglet dit ce qu'il portera ET ce qui lui manque comme table.
-         Un « bientôt » ne apprend rien; ceci apprend où en est la reprise. */
-      $quoi = [
-        'factures'  => ['Générer et télécharger les factures de ce booking.',
-                        'Demande la table `invoice` et la liaison bexio par API. Le client bexio actuel vit dans Apps Script: le porter en PHP est chiffré entre 12 h et 20 h pour le seul OAuth2.'],
-      ][$ong];
-      ?>
-      <div class="avis">
-        <h2><?= e(ONGLETS[$ong]) ?></h2>
-        <p><?= e($quoi[0]) ?></p>
-        <p><?= e($quoi[1]) ?></p>
-      </div>
     <?php endif; ?>
     </div>
 
