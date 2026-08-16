@@ -116,6 +116,24 @@ class ProdFiche
             'resume'        => '',
             'coproductions' => '',
             'soutiens'      => '',
+            /* Repris le 17.08.2026 de `lv-fiches`, où quatorze spectacles les
+               portaient et où la première reprise n'avait rien pour les
+               recevoir — ils seraient donc partis à la poubelle.
+
+               `production` N'EST PAS `coproductions`. C'est qui porte le
+               spectacle — « Gran Chichornia — direction de production: Beat
+               Ryser — diffusion: Anna Ladeira (Le Voisin) » — quand les
+               coproductions sont les maisons qui ont mis de l'argent. Sur un
+               dossier les deux se lisent à des endroits différents, et un jury
+               qui lit « coproduction: Gran Chichornia » comprend qu'ils ont
+               financé la pièce. Ils l'ont produite, ce n'est pas pareil.
+
+               `bio` est celle de l'ARTISTE et non de la pièce, et elle vit
+               quand même ici: elle s'imprime avec le dossier, et le même
+               artiste n'écrit pas la même bio pour deux spectacles. */
+            'production'    => '',
+            'bio'           => '',
+            'tournee'       => [],   // [{lieu, saison}] — les lieux déjà joués
             'statistiques'  => ['representations'=>'','spectateurs'=>'','recettes'=>'','villes'=>'','notes'=>''],
             'dossier'       => ['lettre'=>'','description'=>'','intention'=>'','calendrier'=>'',
                                 'publicCible'=>'','benefice'=>''],
