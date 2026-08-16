@@ -131,15 +131,44 @@ if ($m && !$m['supprime_le']) {
     if ($ecrire) DB::run("UPDATE organisation SET supprime_le = NOW() WHERE id = ?", [$m['id']]);
 }
 
-/* Ce que le Drive porte et que personne ne réclame. On le dit, on ne le crée
-   pas: un dossier n'est pas la preuve qu'une association nous concerne. */
-/* Tranché par Anna le 16.08.2026: « sao assos antigas que paramos de trabalhar ».
-   Leurs Shared Drives restent — on n'efface pas des archives comptables — mais
-   elles n'entrent pas en base. Une association terminée dans la liste des
-   associations actives est une ligne que quelqu'un relancera un jour pour rien. */
-echo "\n  Hors base, et volontairement — anciennes associations, collaboration terminée:\n"
-   . "    · LV_CH_BS_LaSecousse\n    · Mandarina & Co Verein\n"
-   . "    Leurs Drives restent en place. Ne pas les recréer au prochain import.\n";
+/* ── LES ANCIENNES, EN BASE MAIS TERMINÉES ──────────────────────────────────
+   [16.08.2026] Anna avait d'abord tranché « sao assos antigas que paramos de
+   trabalhar », et elles étaient restées dehors. La reprise du personnel a
+   montré ce que cela coûtait: DIX-NEUF PERSONNES sont employées par « La
+   Secousse CH » et « La Secousse FR », et sans association en base elles
+   restaient sans employeur — donc absentes de tout regroupement, et
+   introuvables par le filtre.
+
+   Elles entrent donc, en `statut = 'termine'`. C'est le bon état: la
+   collaboration est finie, mais les personnes, les contrats et les salaires
+   qu'elle a portés existent et doivent rester rattachables. Une association
+   terminée se filtre; une association absente fait disparaître ses gens.
+
+   Mandarina & Co Verein reste dehors: aucune personne, aucun engagement,
+   aucune date ne s'y rattache. Rien à raccrocher, donc rien à créer. */
+const ASSOS_TERMINEES = [
+    'lasecousse-ch' => ['La Secousse CH', 'BS', 'Suisse',  'LV_CH_BS_LaSecousse'],
+    'lasecousse-fr' => ['La Secousse FR', '',   'France',  ''],
+];
+foreach (ASSOS_TERMINEES as $ref => [$nom, $canton, $pays, $drive]) {
+    if (DB::one("SELECT id FROM organisation WHERE source_ref = ? OR nom = ?", [$ref, $nom])) {
+        printf("  %-14s existe déjà\n", $ref); continue;
+    }
+    printf("  %-14s → %-18s (%s) — créée, collaboration TERMINÉE\n", $ref, $nom, $pays);
+    if ($ecrire) {
+        DB::run("INSERT INTO organisation (source, source_ref, genre, gestion, nom, nom_legal,
+                                           canton, pays, statut, notes)
+                 VALUES ('drive', ?, 'association', 'diffusion', ?, ?, ?, ?, 'termine', ?)",
+                [$ref, $nom, $nom, $canton ?: null, $pays,
+                 "Collaboration terminée. Créée le 16.08.2026 parce que dix-neuf personnes du "
+               . "personnel y sont employées: sans elle, elles restaient sans employeur et "
+               . "disparaissaient des regroupements par association."
+               . ($drive !== '' ? " Shared Drive: $drive." : "")]);
+    }
+}
+
+echo "\n  Hors base, et volontairement: Mandarina & Co Verein — aucune personne,\n"
+   . "  aucun engagement, aucune date ne s'y rattache.\n";
 
 printf("\n  %d renommées · %d créées · %d inchangées · %d absentes\n",
        $renommes, $crees, $inchanges, $absents);
