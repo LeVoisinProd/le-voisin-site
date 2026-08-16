@@ -31,6 +31,14 @@ function dash_haut(string $ecranActif, string $sousTitre = ''): void
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title><?= e(dash_libelle($ecranActif)) ?> — Dashboard Le Voisin</title>
+
+<?php /* La Space Grotesk du site, déjà déclarée dans assets/css/fonts.css et
+         déjà servie aux pages publiques. On la lie plutôt que de la
+         redéclarer: une seule source, et le navigateur l'a souvent déjà en
+         cache pour avoir visité le site. */ ?>
+<link rel="preload" href="<?= e(url('/assets/fonts/space-grotesk-latin-wght-normal.woff2')) ?>"
+      as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="<?= e(url('/assets/css/fonts.css')) ?>">
 <style>
 :root { --encre:#0d0d0d; --papier:#fff; --doux:#6b6b6b; --trait:#e4e4e4;
         --jaune:#FFD24D; --orange:#FF7142; --fond2:#f7f7f7; --barre:#111; }
@@ -39,7 +47,8 @@ function dash_haut(string $ecranActif, string $sousTitre = ''): void
         --fond2:#1d1d1d; --barre:#0a0a0a; } }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--papier); color:var(--encre); font-size:15px;
-       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height:1.5; }
+       font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+       line-height:1.5; }
 a { color:inherit; }
 
 /* La disposition: un rail de navigation à gauche, le contenu à droite. Sur
@@ -57,6 +66,7 @@ aside a, aside span.mort { display:block; padding:6px 18px; font-size:13.5px;
 aside a:hover { background:#1c1c1c; color:#fff; }
 aside a.ici { background:#1c1c1c; color:#fff; border-left-color:var(--jaune); font-weight:600; }
 aside span.mort { color:#5e5e5e; cursor:default; }
+aside a.fils, aside span.mort.fils { padding-left:34px; font-size:12.5px; }
 aside .pied { margin-top:26px; padding:14px 18px 0; border-top:1px solid #262626;
         font-size:11.5px; color:#7d7d7d; }
 aside .pied a { padding:3px 0; color:#9a9a9a; font-size:11.5px; }
@@ -95,6 +105,7 @@ tbody tr:hover { background:var(--fond2); }
 td .sec { color:var(--doux); font-size:12.5px; }
 form.filtres { padding:14px 26px; border-bottom:1px solid var(--trait); display:flex;
         gap:10px; flex-wrap:wrap; align-items:center; background:var(--fond2); }
+input[type=search], input[type=text], select, button { font-family:inherit; }
 input[type=search], input[type=text] { flex:1 1 240px; min-width:180px; padding:8px 12px;
         border:1px solid var(--trait); border-radius:4px; font-size:15px;
         background:var(--papier); color:var(--encre); }
@@ -117,17 +128,27 @@ nav.pages .mut { border:0; color:var(--doux); }
 <aside>
   <div class="marque">LE <span>VOISIN</span></div>
   <div class="rail">
-  <?php foreach (dash_groupes() as $groupe => $ecrans): ?>
-    <div class="groupe"><?= e($groupe) ?></div>
-    <?php foreach ($ecrans as $ec): ?>
-      <?php if (dash_existe($ec['clef'])): ?>
-        <a href="/dashboard.php?e=<?= e($ec['clef']) ?>"
-           class="<?= $ec['clef'] === $ecranActif ? 'ici' : '' ?>"><?= e($ec['libelle']) ?></a>
-      <?php else: ?>
-        <span class="mort" title="Pas encore écrit"><?= e($ec['libelle']) ?></span>
-      <?php endif; ?>
-    <?php endforeach; ?>
-  <?php endforeach; ?>
+  <?php
+  $branche = dash_parent($ecranActif);
+  $entree = function (string $clef, string $libelle, bool $enfant) use ($ecranActif): void {
+      $cls = ($clef === $ecranActif ? 'ici' : '') . ($enfant ? ' fils' : '');
+      if (dash_existe($clef)) {
+          printf('<a href="/dashboard.php?e=%s" class="%s">%s</a>',
+                 e($clef), trim($cls), e($libelle));
+      } else {
+          printf('<span class="mort%s" title="Pas encore écrit">%s</span>',
+                 $enfant ? ' fils' : '', e($libelle));
+      }
+  };
+  foreach (DASH_ECRANS as $clef => [$libelle, $etat, $enfants]) {
+      $entree($clef, $libelle, false);
+      /* Les sous-écrans ne s'affichent que sous leur branche ouverte: dix-huit
+         entrées toutes dépliées font un mur, et le menu cesse d'être lisible. */
+      if ($enfants && $branche === $clef) {
+          foreach ($enfants as $c => [$l, $e]) $entree($c, $l, true);
+      }
+  }
+  ?>
   </div>
   <div class="pied">
     <?= e($u['name'] ?? $u['email'] ?? '') ?><br>

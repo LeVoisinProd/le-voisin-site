@@ -1,83 +1,95 @@
 <?php
 /**
- * La carte du dashboard. [16.08.2026]
+ * La carte du dashboard. [structure d'Anna, 16.08.2026]
  *
- * UN SEUL ENDROIT DÉCLARE LES ÉCRANS: leur nom, leur groupe, leur ordre, et
- * s'ils existent déjà. Le menu, le routeur et le titre de la page lisent tous
- * ce fichier. Ajouter un écran, c'est ajouter une ligne ici et poser le fichier
- * correspondant dans app/dash/.
+ * UN SEUL ENDROIT DÉCLARE LES ÉCRANS: leur nom, leur place, leur état. Le menu,
+ * le routeur et le titre de la page lisent tous ce fichier. Ajouter un écran,
+ * c'est ajouter une ligne ici et poser le fichier dans app/dash/.
  *
- * POURQUOI LES ÉCRANS PAS ENCORE ÉCRITS FIGURENT QUAND MÊME. Le dashboard
- * actuel a dix-huit entrées de menu, et la reprise en aura autant. Les cacher
- * jusqu'à ce qu'elles marchent donnerait, pendant des mois, une application qui
- * a l'air de savoir faire trois choses. Les montrer grisées dit la vérité: voilà
- * la carte, voilà où on en est.
+ * L'ORDRE EST CELUI D'ANNA, pas un rangement par familles techniques. Il suit
+ * la journée de travail: on ouvre sur ce qui demande une décision, puis on
+ * regarde les dates, puis les gens, puis l'argent. Le calendrier est en tête
+ * parce que, dans ses mots, « le calendrier est le cœur de la plateforme ».
  *
- * C'est aussi une protection contre un défaut mesuré dans le dashboard actuel,
- * le 15.08.2026: douze sections y sont des marqueurs « Contenu à venir » et
- * dix-neuf pages existent sans aucune entrée de menu, dont six sont écrites et
- * inatteignables. Un écran déclaré ici et sans fichier est visiblement à faire;
- * un fichier sans déclaration n'est servi par personne.
+ * LES ÉCRANS PAS ENCORE ÉCRITS FIGURENT QUAND MÊME, en gris. La reprise du
+ * dashboard prendra des mois: les cacher donnerait pendant tout ce temps
+ * l'impression d'un outil qui sait faire trois choses. La carte doit être vraie.
+ *
+ * C'est aussi une parade contre un défaut mesuré dans le dashboard actuel le
+ * 15.08.2026: douze sections y sont des marqueurs vides et dix-neuf pages
+ * existent sans aucune entrée de menu, dont six sont écrites et inatteignables.
+ * Ici un écran déclaré sans fichier se voit, et un fichier sans déclaration
+ * n'est servi à personne.
+ *
+ * Le détail de ce que chaque écran doit faire est dans
+ * `dados/dashboard_migration/ecrans_specification.md` du dépôt de travail.
  */
 declare(strict_types=1);
 
 /**
- * clef => [groupe, libellé, état]
+ * clef => [libellé, état, sous-écrans]
  *
- * état: 'ok'      l'écran existe et fonctionne
- *       'partiel' il existe mais ne fait qu'une partie du travail
+ * état: 'ok'      l'écran existe et fait son travail
+ *       'partiel' il existe et ne fait qu'une partie
  *       'a_faire' déclaré, pas encore écrit
  */
 const DASH_ECRANS = [
 
-    // ── Diffusion ───────────────────────────────────────────────────────────
-    'contacts'    => ['Diffusion', 'Contacts',            'partiel'],
-    'relances'    => ['Diffusion', 'Relances',            'a_faire'],
-    'trombi'      => ['Diffusion', 'Trombinoscope',       'a_faire'],
-    'emailing'    => ['Diffusion', 'Envois groupés',      'a_faire'],
+    'accueil'      => ['Tableau de bord', 'a_faire', []],
 
-    // ── Production ──────────────────────────────────────────────────────────
-    'projets'     => ['Production', 'Projets',            'a_faire'],
-    'dates'       => ['Production', 'Dates et tournées',  'a_faire'],
-    'calendrier'  => ['Production', 'Calendrier',         'a_faire'],
-    'documents'   => ['Production', 'Documents',          'a_faire'],
+    // Le cœur, dans ses mots. Tout ce qui a une date y figure: shows confirmés,
+    // en attente, voyages, logistique.
+    'calendrier'   => ['Calendrier', 'a_faire', [
+        'bookings'  => ['Bookings',  'a_faire'],
+        'projets'   => ['Projets',   'a_faire'],
+    ]],
 
-    // ── Personnel ───────────────────────────────────────────────────────────
-    'personnes'   => ['Personnel', 'Personnes',           'a_faire'],
-    'engagements' => ['Personnel', 'Engagements',         'a_faire'],
-    'salaires'    => ['Personnel', 'Salaires',            'a_faire'],
-    'temps'       => ['Personnel', 'Feuilles de temps',   'a_faire'],
+    'contacts'     => ['Contacts', 'partiel', []],
 
-    // ── Administration ──────────────────────────────────────────────────────
-    'associations'=> ['Administration', 'Associations',   'a_faire'],
-    'mensuel'     => ['Administration', 'Suivi mensuel',  'a_faire'],
-    'a1'          => ['Administration', 'Attestations A1', 'a_faire'],
+    'finances'     => ['Finances', 'a_faire', []],
 
-    // ── Argent ──────────────────────────────────────────────────────────────
-    'financements'=> ['Argent', 'Financements',           'a_faire'],
-    'factures'    => ['Argent', 'Factures',               'a_faire'],
-    'comptes'     => ['Argent', 'Grand livre',            'a_faire'],
+    // Associations et artistes ensemble: ce sont les mêmes fiches, avec ce qui
+    // se répète d'un show à l'autre, modèles de contrat et de deal compris.
+    'associations' => ['Associations et artistes', 'a_faire', []],
+
+    'administration' => ['Administration', 'a_faire', []],
+
+    'documentation'  => ['Documentation', 'a_faire', []],
+
+    'marketing'      => ['Marketing', 'a_faire', []],
+
+    'parametres'     => ['Paramètres et équipe', 'a_faire', []],
 ];
 
 /** L'écran servi quand aucun n'est demandé. */
 const DASH_DEFAUT = 'contacts';
 
-/** Les groupes, dans l'ordre du menu. Dérivé, pour n'avoir qu'une source. */
-function dash_groupes(): array
+/** Toutes les clefs, sous-écrans compris, à plat. Sert au routeur. */
+function dash_clefs(): array
 {
-    $g = [];
-    foreach (DASH_ECRANS as $clef => [$groupe, $libelle, $etat]) {
-        $g[$groupe][] = ['clef' => $clef, 'libelle' => $libelle, 'etat' => $etat];
+    $out = [];
+    foreach (DASH_ECRANS as $clef => [$lib, $etat, $enfants]) {
+        $out[$clef] = $lib;
+        foreach ($enfants as $c => [$l, $e]) $out[$c] = $l;
     }
-    return $g;
+    return $out;
 }
 
 function dash_libelle(string $clef): string
 {
-    return DASH_ECRANS[$clef][1] ?? 'Dashboard';
+    return dash_clefs()[$clef] ?? 'Dashboard';
 }
 
 function dash_existe(string $clef): bool
 {
-    return isset(DASH_ECRANS[$clef]) && is_file(__DIR__ . '/' . $clef . '.php');
+    return isset(dash_clefs()[$clef]) && is_file(__DIR__ . '/' . $clef . '.php');
+}
+
+/** La clef du parent d'un sous-écran, pour que le menu ouvre la bonne branche. */
+function dash_parent(string $clef): string
+{
+    foreach (DASH_ECRANS as $p => [$lib, $etat, $enfants]) {
+        if (isset($enfants[$clef])) return $p;
+    }
+    return $clef;
 }

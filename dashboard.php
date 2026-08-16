@@ -44,7 +44,9 @@ if (!Auth::check()) redirect('/admin/login.php');
    lettres et le tiret bas, puis on vérifie qu'elle est déclarée: rien de ce que
    le navigateur écrit ne peut désigner un fichier hors de app/dash/. */
 $clef = preg_replace('/[^a-z_]/', '', strtolower((string)($_GET['e'] ?? '')));
-if ($clef === '' || !isset(DASH_ECRANS[$clef])) $clef = DASH_DEFAUT;
+/* dash_clefs() rend AUSSI les sous-écrans. isset(DASH_ECRANS[...]) ne voyait
+   que le premier niveau, et « bookings » retombait donc sur les contacts. */
+if ($clef === '' || !isset(dash_clefs()[$clef])) $clef = DASH_DEFAUT;
 
 if (!dash_existe($clef)) {
     dash_a_faire($clef);   // déclaré au menu, pas encore écrit
