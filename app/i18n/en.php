@@ -28,6 +28,9 @@ return [
     'documents'       => 'Documents',
     'presse'          => 'Press', // [V31-PRESSE]
     'videos'          => 'Videos',
+    'booking_cta'     => 'Would you like to programme this show?',
+    'booking_cta_sub' => 'You have just watched the full recording. This request goes straight into our touring pipeline, with the show already filled in — we read every one.',
+    'booking_cta_b'   => 'Request a date',
     'listen'          => 'Listen',
     'bio'             => 'Bio',
     'bio_more'        => 'Full bio',

@@ -28,7 +28,10 @@ return [
     'filter_apply'    => 'Filtrer',
     'documents'       => 'Documents',
     'presse'          => 'Presse', // [V31-PRESSE]
-    'videos'          => 'Vidéos',
+    'videos'          => 'VidÃ©os',
+    'booking_cta'     => 'Vous voulez programmer ce spectacle ?',
+    'booking_cta_sub' => 'Vous venez de voir la captation. Cette demande arrive directement dans notre suivi de diffusion, avec le spectacle déjà renseigné — nous lisons chacune d’elles.',
+    'booking_cta_b'   => 'Faire une demande de date',
     'listen'          => 'Écouter',
     'bio'             => 'Bio',
     'bio_more'        => 'Bio complète',

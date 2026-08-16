@@ -42,6 +42,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $spectacles = Offers::spectacles();
+
+/* LE SPECTACLE PEUT ARRIVER DÉJÀ CHOISI. [16.08.2026] Le lien posé sous la
+   vidéo d'une fiche de spectacle passe son titre en `?projet=`, pour que la
+   personne qui vient de regarder le teaser n'ait pas à le retaper — et surtout
+   pour qu'elle l'écrive comme nous l'écrivons, sinon le rapprochement avec la
+   pièce échoue côté bureau.
+
+   ON NE FAIT CONFIANCE À RIEN DE CE QUI VIENT DE L'URL: la valeur n'est retenue
+   que si elle correspond exactement à un spectacle réel. Un paramètre libre
+   recopié dans le champ serait un texte choisi par le visiteur affiché tel quel
+   dans notre formulaire. */
+if (!$envoye && ($_GET['projet'] ?? '') !== '' && !isset($v['projet'])) {
+    $demande = trim((string)$_GET['projet']);
+    foreach ($spectacles as $sp) if (strcasecmp((string)$sp, $demande) === 0) { $v['projet'] = (string)$sp; break; }
+}
+
 $titre = 'Demande de booking';
 
 ob_start();

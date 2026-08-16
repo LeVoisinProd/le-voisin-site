@@ -74,6 +74,38 @@ $annee = (int)($item['year_creation'] ?? 0);
         </div>
         <?php endif; ?>
 
+        <?php /* ── L'APPEL À PROGRAMMER, JUSTE SOUS LA CAPTATION ──────────────
+             [16.08.2026] Demandé par Anna. Le formulaire `/demande.php`
+             existait et RIEN N'Y MENAIT depuis le site: il fallait connaître
+             l'adresse. Un pipeline dont la seule porte d'entrée est une adresse
+             que personne n'a reste vide, et c'est exactement ce qu'il était.
+
+             ICI ET NON SUR LA PAGE PUBLIQUE, et la différence est tout le
+             raisonnement: cette page est derrière le mot de passe du Catalogue.
+             Qui la lit est un programmateur, il vient de voir la captation
+             entière, et c'est la seconde où il sait s'il veut la pièce. Le même
+             bouton sur la fiche publique s'adresserait surtout à des curieux.
+
+             LE TITRE PART DANS L'URL, en français (`title_fr`) quelle que soit
+             la langue affichée: c'est le libellé que le bureau manipule, celui
+             de `Offers::spectacles()`. Envoyer le titre traduit ferait échouer
+             le rapprochement avec la pièce, et une demande rattachée à rien
+             retombe dans le tri à la main.
+
+             Le formulaire revalide ce paramètre contre la liste réelle: rien de
+             ce qui vient de l'URL n'est réaffiché sur parole. */ ?>
+        <?php $tFr = trim((string)($item['title_fr'] ?? '')) ?: trim((string)($item['title_en'] ?? '')); ?>
+        <?php if ($tFr !== ''): ?>
+        <div class="cat-cta">
+          <div>
+            <strong><?= e(t('booking_cta')) ?></strong>
+            <p><?= e(t('booking_cta_sub')) ?></p>
+          </div>
+          <a class="cat-cta-b" href="<?= e(url('/demande.php')) ?>?projet=<?= rawurlencode($tFr) ?>">
+            <?= e(t('booking_cta_b')) ?></a>
+        </div>
+        <?php endif; ?>
+
         <?php /* [12.08.2026] SEULEMENT les vidéos réservées au Catalogue.
 
                  Ma première version les montrait toutes, en me disant que qui

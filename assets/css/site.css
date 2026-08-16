@@ -2287,6 +2287,29 @@ a.esp-card:focus-visible { outline: var(--trait-fort) solid var(--yellow); outli
 .cat-video-lgd { font-size: 13px; color: var(--grey); margin: 8px 0 0; }
 .cat-distribution { margin-top: 30px; }
 
+/* ── L'APPEL À PROGRAMMER, SOUS LA CAPTATION ────────────────────── [16.08.2026]
+   Le thème du site est monochrome et l'accent est le noir : ce bloc ne va donc
+   pas chercher une couleur qui n'existe pas ailleurs. Il se distingue par le
+   fond et par le trait, pas par une teinte importée du dashboard.
+
+   `align-items: center` et non `stretch` : sans lui, le bouton s'étire sur
+   toute la hauteur du texte et prend l'air d'un bandeau publicitaire. */
+.cat-cta {
+  display: flex; gap: 26px; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; margin: 26px 0 0; padding: 20px 24px;
+  border: var(--trait) solid var(--line); border-radius: 16px;
+}
+.cat-cta strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.cat-cta p { margin: 0; font-size: 14px; color: var(--grey); max-width: 62ch; }
+.cat-cta-b {
+  flex: none; padding: 12px 22px; border-radius: 999px;
+  background: var(--accent); color: #fff; text-decoration: none;
+  font-size: 14.5px; font-weight: 600; white-space: nowrap;
+}
+.cat-cta-b:hover { opacity: .84; }
+@media (max-width: 620px) { .cat-cta-b { width: 100%; text-align: center; } }
+
+
 .cat-fiche-aside { display: flex; flex-direction: column; gap: 18px; }
 .cat-bloc { border: var(--trait) solid var(--line); border-radius: 16px; padding: 22px 24px; }
 .cat-bloc h2 {
