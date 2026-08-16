@@ -203,10 +203,20 @@ if ($cid > 0) {
       <a class="mod" href="/dashboard.php?e=contacts&amp;c=<?= $cid ?>&amp;mod=1">modifier</a></div>
     <?php dash_flash_html(); ?>
     <div class="zone">
-      <h2 class="gros"><?= e($k['nom']) ?></h2>
-      <?php if ($k['prenom'] || $k['nom_famille']): ?>
-        <p class="sst2"><?= e(trim(($k['prenom'] ?? '') . ' ' . ($k['nom_famille'] ?? ''))) ?></p>
-      <?php endif; ?>
+      <div class="tete-c">
+        <?php /* La photo est un data URI dans le dashboard, pas un chemin: on la
+                 rend telle quelle. 60 fiches sur 8432 en portent une. */ ?>
+        <?php if (trim((string)($k['photo'] ?? '')) !== ''): ?>
+          <img class="ph-c" src="<?= e((string)$k['photo']) ?>" alt="">
+        <?php endif; ?>
+        <div>
+          <h2 class="gros"><?= e($k['nom']) ?></h2>
+          <?php if ($k['prenom'] || $k['nom_famille'] || $k['pronom']): ?>
+            <p class="sst2"><?= e(trim(($k['prenom'] ?? '') . ' ' . ($k['nom_famille'] ?? ''))) ?><?php
+              if ($k['pronom']): ?> <span class="pron"><?= e((string)$k['pronom']) ?></span><?php endif; ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
       <div class="fiche">
       <?php
       $l = function (string $lib, $val, string $href = '') {
@@ -220,25 +230,54 @@ if ($cid > 0) {
       $l('Ville', trim((string)($k['ville_struct'] ?? '') . ' ' . ($k['pays_struct'] ? '· ' . $k['pays_struct'] : '')));
       $l('Région', $k['region']);
       $l('Site', $k['site']);
+      $l('Instagram', $k['instagram']);
+      $l('LinkedIn', $k['linkedin']);
       $l('Courriel pro', $k['email_pro1'], 'mailto:');
       $l('Courriel', $k['email1'], 'mailto:');
       $l('Autre courriel', $k['email2'], 'mailto:');
       $l('Téléphone pro', $k['tel_pro1'], 'tel:');
       $l('Téléphone', $k['tel1'], 'tel:');
-      $l('Adresse', trim((string)($k['adresse'] ?? '') . ' ' . ($k['cp'] ?? '') . ' ' . ($k['ville'] ?? '')));
+      $l('Adresse', trim((string)($k['adresse'] ?? '') . ' ' . ($k['adresse2'] ?? '')
+                        . ' ' . ($k['cp'] ?? '') . ' ' . ($k['ville'] ?? '')));
       $l('Département', $k['dept']);
       $l('Pays', $k['pays']);
       $l('Mots-clefs', $k['mots_cles']);
       $l('Description', $k['description']);
-      $l('Participations', $k['participations']);
       $l('Référence', $k['ref']);
       ?>
       </div>
+
+      <?php /* LES TROIS LISTES EN PASTILLES, comme dans le formulaire. Une chaîne
+               « Chalon 2024, Jeune public, Carnet diffusion » se lit mal en une
+               ligne; découpée, on voit d'un coup où l'on s'est croisés. */
+      $past = function (string $titre, $val) {
+          $v = trim((string)($val ?? ''));
+          if ($v === '') return;
+          echo '<div class="past"><div class="past-t">' . e($titre) . '</div><div class="past-g">';
+          foreach (array_filter(array_map('trim', explode(',', $v))) as $x)
+              echo '<span class="past-p">' . e($x) . '</span>';
+          echo '</div></div>';
+      };
+      $past('Participations et rencontres', $k['participations']);
+      $past('Mois envisagés ou confirmés', $k['date_mois']);
+      $past('Directions artistiques liées', $k['directions']);
+      ?>
+
+      <?php if (trim((string)($k['date_notes'] ?? '')) !== ''): ?>
+        <div class="bl"><h3>Précisions sur les dates</h3><p><?= nl2br(e((string)$k['date_notes'])) ?></p></div>
+      <?php endif; ?>
       <?php if ($k['notes']): ?>
         <div class="bl"><h3>Notes</h3><p><?= nl2br(e($k['notes'])) ?></p></div>
       <?php endif; ?>
     </div>
     <style>
+    .tete-c{display:flex;gap:16px;align-items:flex-start;margin-bottom:14px}
+    .ph-c{width:64px;height:64px;object-fit:cover;border-radius:8px;flex:none;border:1px solid var(--trait)}
+    .pron{font-size:12.5px;color:var(--doux);border:1px solid var(--trait);border-radius:10px;padding:1px 8px;margin-left:6px}
+    .past{margin:16px 0 0}
+    .past-t{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--doux);margin-bottom:6px}
+    .past-g{display:flex;flex-wrap:wrap;gap:6px}
+    .past-p{font-size:13px;padding:3px 11px;border:1px solid var(--trait);border-radius:13px}
     .fil{padding:12px 26px 0;font-size:13px;display:flex;gap:16px}
     .fil a{color:var(--doux);text-decoration:none}
     .fil a.mod{margin-left:auto;color:var(--encre);font-weight:600}
