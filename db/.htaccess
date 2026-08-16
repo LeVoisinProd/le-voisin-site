@@ -1,0 +1,24 @@
+# db/ ne se sert pas par le web. Jamais. [16.08.2026]
+#
+# POURQUOI CE FICHIER EXISTE. Le CMS ne renvoie vers index.php que ce qui
+# n'existe PAS sur le disque — c'est la RewriteCond %{REQUEST_FILENAME} !-f de
+# la racine. Autrement dit, tant que db/ était vide, /db/quelquechose.php
+# tombait sur le routeur et finissait en redirection inoffensive. Dès qu'un
+# fichier .php existe réellement ici, Apache le sert et l'exécute pour qui le
+# demande.
+#
+# Ce dossier contient le moteur de migrations et les scripts de maintenance:
+# des outils qui lisent et réécrivent la base, y compris les fiches
+# personnelles. Aucun d'eux n'a de raison d'être joignable depuis l'extérieur.
+#
+# Les scripts se défendent aussi eux-mêmes — chiffrer_fiches.php répond 404
+# hors ligne de commande — mais on ne fait pas dépendre la sécurité d'un
+# dossier de la vigilance de chaque fichier qu'on y déposera un jour.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
