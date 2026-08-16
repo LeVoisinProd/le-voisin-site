@@ -80,6 +80,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('bookings');
 
+    /* Le voyage: ajouter, supprimer. Même parti que les lignes de deal. */
+    $actV = (string)($_POST['voyage'] ?? '');
+    if ($actV !== '' && $id > 0) {
+        if ($actV === 'ajouter') {
+            /* Une date vide reste NULL et non « 0000-00-00 »: le tri met les
+               lignes sans date à la fin, ce qui suppose de vrais NULL. */
+            $dt = static fn(string $k): ?string
+                => trim((string)($_POST[$k] ?? '')) !== ''
+                   ? date('Y-m-d H:i:s', strtotime((string)$_POST[$k])) : null;
+            $m = trim((string)($_POST['montant'] ?? ''));
+            DB::insert('trip_item', [
+                'booking_id' => $id,
+                'type'       => (string)($_POST['type'] ?? 'vol'),
+                'qui'        => trim((string)($_POST['qui'] ?? '')) ?: null,
+                'libelle'    => trim((string)($_POST['libelle'] ?? '')) ?: null,
+                'depart'     => trim((string)($_POST['depart'] ?? '')) ?: null,
+                'arrivee'    => trim((string)($_POST['arrivee'] ?? '')) ?: null,
+                'date_debut' => $dt('date_debut'),
+                'date_fin'   => $dt('date_fin'),
+                'reference'  => trim((string)($_POST['reference'] ?? '')) ?: null,
+                'montant'    => $m !== '' ? (float)str_replace(',', '.', $m) : null,
+                'devise'     => (string)($_POST['devise'] ?? 'CHF'),
+                'charge'     => (string)($_POST['charge'] ?? 'incluse'),
+            ]);
+            dash_flash('Trajet ajouté.');
+        } elseif ($actV === 'supprimer') {
+            /* La ligne doit appartenir à CE booking: sans cette condition, un
+               id changé dans le formulaire supprimerait le trajet d'une autre
+               date. Même garde que pour les contrats. */
+            DB::delete('trip_item', 'id = ? AND booking_id = ?',
+                       [(int)($_POST['ligne'] ?? 0), $id]);
+            dash_flash('Trajet supprimé.');
+        }
+        redirect('/dashboard.php?e=bookings&b=' . $id . '&o=voyage');
+    }
+
     /* Les contrats: déposer, envoyer à la signature, supprimer. Comme les
        lignes de deal, ils n'ont rien à voir avec le formulaire du booking, et
        on repart aussitôt. */
@@ -458,6 +494,117 @@ if ($id > 0) {
       .pt{margin-top:8px;font-size:12.5px;max-width:70ch}
       </style>
 
+    <?php elseif ($ong === 'voyage'): ?>
+      <?php
+      /* VOYAGE. [16.08.2026]
+
+         DES DONNÉES, PAS DES FICHIERS. C'est tout l'objet: ces informations
+         existaient déjà, mais comme pièces jointes dans l'espace — un PDF de
+         billet, une confirmation d'hôtel. On ne pouvait ni les additionner, ni
+         voir qui voyage quand, ni rapprocher leur coût du prix de cession.
+
+         LE TRI EST CHRONOLOGIQUE et non par nature: un voyage se lit dans
+         l'ordre où il se vit. Ranger les vols ensemble puis les hôtels
+         ensemble obligerait à recomposer la journée de tête. */
+      $trajets = DB::all('SELECT * FROM trip_item WHERE booking_id = ?
+                          ORDER BY COALESCE(date_debut, "9999-12-31"), id', [$id]);
+      $peutEcrire = dash_droit('bookings', dash_role()) === 'ecrit';
+      $TV = ['vol'=>'Vol','train'=>'Train','bus'=>'Bus','voiture'=>'Voiture',
+             'transfert'=>'Transfert','hotel'=>'Hôtel','autre'=>'Autre'];
+      $CG2 = ['incluse'=>'incluse','lieu'=>'à la charge du lieu','nous'=>'à notre charge'];
+
+      $totV = ['incluse'=>0.0,'lieu'=>0.0,'nous'=>0.0];
+      foreach ($trajets as $t) if ($t['montant'] !== null) $totV[$t['charge']] += (float)$t['montant'];
+      ?>
+
+      <?php if ($trajets): ?>
+        <div class="tbl"><table>
+          <thead><tr>
+            <th>Quand</th><th>Nature</th><th>Qui</th><th>Trajet</th>
+            <th>Référence</th><th>Charge</th><th class="d">Montant</th><th></th>
+          </tr></thead>
+          <tbody>
+          <?php foreach ($trajets as $t): ?>
+            <tr class="c-<?= e($t['charge']) ?>">
+              <td class="sec">
+                <?php if ($t['date_debut']): ?>
+                  <?= e(date('d.m H:i', strtotime((string)$t['date_debut']))) ?>
+                  <?php if ($t['date_fin']): ?><br><span class="pt">au <?= e(date('d.m H:i', strtotime((string)$t['date_fin']))) ?></span><?php endif; ?>
+                <?php else: ?><span class="pt">sans date</span><?php endif; ?>
+              </td>
+              <td><?= e($TV[$t['type']] ?? $t['type']) ?>
+                <?php if ($t['libelle']): ?><br><span class="pt"><?= e($t['libelle']) ?></span><?php endif; ?>
+              </td>
+              <td class="sec"><?= e($t['qui'] ?? '') ?></td>
+              <td class="sec">
+                <?= e($t['depart'] ?? '') ?><?php if ($t['arrivee']): ?> &rarr; <?= e($t['arrivee']) ?><?php endif; ?>
+              </td>
+              <td class="sec"><?= e($t['reference'] ?? '') ?></td>
+              <td class="sec"><?= e($CG2[$t['charge']]) ?></td>
+              <td class="d"><?= $t['montant'] !== null
+                  ? number_format((float)$t['montant'],2,',',' ') . ' ' . e($t['devise']) : '' ?></td>
+              <td class="d">
+                <?php if ($peutEcrire): ?>
+                  <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=voyage" class="inline"
+                        onsubmit="return confirm('Supprimer cette ligne ?')">
+                    <?= Auth::csrfField() ?>
+                    <input type="hidden" name="voyage" value="supprimer">
+                    <input type="hidden" name="ligne" value="<?= (int)$t['id'] ?>">
+                    <button type="submit" class="x">×</button>
+                  </form>
+                <?php endif; ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+          <tfoot>
+            <?php foreach ($CG2 as $k => $lib): if (!$totV[$k]) continue; ?>
+            <tr class="tot c-<?= $k ?>"><td colspan="6"><?= e(ucfirst($lib)) ?></td>
+              <td class="d"><strong><?= number_format($totV[$k],2,',',' ') ?></strong></td><td></td></tr>
+            <?php endforeach; ?>
+          </tfoot>
+        </table></div>
+
+        <?php /* Le voyage inclus pèse sur le prix de cession comme n'importe
+                 quelle ligne de deal. Le dire ici évite d'ouvrir deux onglets
+                 pour savoir si le compte est bon. */ ?>
+        <?php if ($totV['incluse'] > 0 && $b['prix_cession'] !== null): ?>
+          <div class="rap ok">Le voyage inclus représente
+            <strong><?= number_format($totV['incluse'],2,',',' ') ?></strong> sur un prix de cession
+            annoncé de <strong><?= number_format((float)$b['prix_cession'],2,',',' ') ?>
+            <?= e($b['devise']) ?></strong>, soit
+            <strong><?= number_format($totV['incluse'] / max((float)$b['prix_cession'],0.01) * 100, 1, ',', ' ') ?> %</strong>.</div>
+        <?php endif; ?>
+      <?php else: ?>
+        <p class="sec">Aucun trajet. Ces informations existent sans doute déjà quelque part
+           en pièce jointe: les poser ici permet de les compter et de voir la journée
+           dans l'ordre.</p>
+      <?php endif; ?>
+
+      <?php if ($peutEcrire): ?>
+      <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=voyage" class="ajl">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="voyage" value="ajouter">
+        <select name="type"><?php foreach ($TV as $k=>$v): ?>
+          <option value="<?= $k ?>"><?= e($v) ?></option><?php endforeach; ?></select>
+        <input type="text" name="qui"      placeholder="Qui voyage" size="16">
+        <input type="text" name="depart"   placeholder="De" size="10">
+        <input type="text" name="arrivee"  placeholder="À"  size="10">
+        <input type="datetime-local" name="date_debut" title="Départ">
+        <input type="datetime-local" name="date_fin"   title="Arrivée ou fin de séjour">
+        <input type="text" name="reference" placeholder="Référence" size="10">
+        <select name="charge"><?php foreach ($CG2 as $k=>$v): ?>
+          <option value="<?= $k ?>"><?= e($v) ?></option><?php endforeach; ?></select>
+        <input type="text" name="montant" placeholder="Montant" size="8">
+        <select name="devise"><option>CHF</option><option>EUR</option></select>
+        <button type="submit">ajouter</button>
+      </form>
+      <p class="sec pt">Un hôtel se note avec la date d'arrivée et celle de départ.
+         « Qui voyage » est du texte libre: une partie des personnes en tournée n'ont
+         pas de fiche chez nous, et attendre qu'elles en aient une empêcherait de
+         noter le billet.</p>
+      <?php endif; ?>
+
     <?php elseif ($ong === 'contrats'): ?>
       <?php
       /* CONTRATS. [16.08.2026]
@@ -584,8 +731,6 @@ if ($id > 0) {
                         'Demande la table `invoice` et la liaison bexio par API. Le client bexio actuel vit dans Apps Script: le porter en PHP est chiffré entre 12 h et 20 h pour le seul OAuth2.'],
         'advancing' => ['Fiches techniques, accueil et logistique du show.',
                         'C\'est la mécanique la plus intéressante d\'artistu: un formulaire construit champ par champ, envoyé au lieu, avec un état par champ (demandé, reçu, accepté) et un portail où le lieu répond. Rien d\'équivalent n\'existe ici.'],
-        'voyage'    => ['Vols, transferts, hôtels.',
-                        'Demande une table `logistique` rattachée au booking. Aujourd\'hui ces informations sont des catégories de documents dans l\'espace collaborateur: des fichiers, pas des données.'],
       ][$ong];
       ?>
       <div class="avis">
