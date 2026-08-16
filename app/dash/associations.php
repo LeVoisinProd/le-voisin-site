@@ -383,18 +383,38 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 
 <?php if (!$lignes): ?><p class="vide">Aucune fiche.</p><?php else: ?>
 <div class="tw"><table>
-  <thead><tr><th>Nom</th><th>Discipline</th><th>Direction</th>
-    <th>Pays</th><th>IDE</th><th>Statut</th></tr></thead>
+  <?php /* ── LES CINQ COLONNES ─────────────────────────────────────────────
+       [16.08.2026] Choisies par Anna: nom, direction, ville et canton,
+       discipline, statut.
+
+       L'IDE SORT DE LA LISTE. C'est un numéro à douze chiffres qu'on ne lit pas
+       en balayant une colonne: on le cherche quand on remplit un formulaire, et
+       on l'a alors sous les yeux dans la fiche. Une colonne qu'on ne lit jamais
+       prend la largeur de celles qu'on lit.
+
+       LA VILLE REMPLACE LE PAYS, avec le canton à côté. « Suisse » sur treize
+       lignes sur quinze n'apprend rien; « Genève GE » situe l'association, et
+       c'est le canton qui décide de l'impôt à la source. */ ?>
+  <thead><tr><th>Nom</th><th>Direction</th><th>Ville, canton</th>
+    <th>Discipline</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
     <tr>
       <td><a href="/dashboard.php?e=associations&amp;o=<?= (int)$r['id'] ?>"><?= e($r['nom']) ?></a>
         <?php if ($r['nom_legal'] && $r['nom_legal'] !== $r['nom']): ?>
           <div class="sec"><?= e($r['nom_legal']) ?></div><?php endif; ?></td>
-      <td class="sec"><?= e($r['discipline'] ?? '') ?></td>
       <td class="sec"><?= e($r['direction'] ?? '') ?></td>
-      <td class="sec"><?= e(trim(($r['pays'] ?? '') . ' ' . ($r['canton'] ?? ''))) ?></td>
-      <td class="sec"><?= e($r['ide'] ?? '') ?></td>
+      <?php /* Le pays ne suit que s'il n'est pas suisse: quinze lignes qui
+           répètent « Suisse » cachent les deux qui ne le sont pas. */ ?>
+      <td class="sec"><?php
+        $lieu = trim((string)($r['ville'] ?? ''));
+        if (($r['canton'] ?? '') !== '') $lieu = trim($lieu . ($lieu !== '' ? ' ' : '') . $r['canton']);
+        $pays = trim((string)($r['pays'] ?? ''));
+        $etr  = $pays !== '' && !in_array(mb_strtolower($pays), ['ch', 'suisse'], true);
+        echo e($lieu ?: ($etr ? $pays : ''));
+        if ($etr && $lieu !== '') echo '<div class="sec">' . e($pays) . '</div>';
+      ?></td>
+      <td class="sec"><?= e($r['discipline'] ?? '') ?></td>
       <td><span class="et s-<?= e($r['statut']) ?>"><?= e($STATUTS[$r['statut']] ?? '') ?></span></td>
     </tr>
   <?php endforeach; ?>
