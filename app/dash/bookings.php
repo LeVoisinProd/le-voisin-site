@@ -129,6 +129,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('bookings');
 
+    /* ── LES PRIX SAISIS EN LOT ────────────────────────────────────────────
+       [16.08.2026] On n'écrit QUE les lignes qui changent, et un champ vide ne
+       vide rien. Une grille de cinquante champs se survole; un enregistrement
+       distrait ne doit pas effacer ce qu'on n'a pas regardé. Pour remettre à
+       zéro on écrit 0 — geste explicite, qui ne se fait pas par inadvertance. */
+    if (($_POST['act'] ?? '') === 'prix_lot') {
+        $nbr = static function ($x): ?float {
+            $t = trim((string)$x);
+            if ($t === '') return null;
+            /* On accepte « 12 000 », « 12'000 » et « 12000.50 »: c'est ainsi
+               qu'on écrit un montant en Suisse, et refuser l'apostrophe ferait
+               perdre la saisie sans dire pourquoi. */
+            $t = str_replace([' ', "'", "Â ", ','], ['', '', '', '.'], $t);
+            return is_numeric($t) ? (float)$t : null;
+        };
+        $ids = array_map('intval', array_keys($_POST['c'] ?? []));
+        $n = 0;
+        foreach ($ids as $bid) {
+            if ($bid <= 0) continue;
+            $ligne = DB::one('SELECT prix_cession, prix_vente, devise FROM booking
+                               WHERE id = ? AND supprime_le IS NULL', [$bid]);
+            if (!$ligne) continue;
+
+            $c = $nbr($_POST['c'][$bid] ?? '');
+            $v = $nbr($_POST['v'][$bid] ?? '');
+            $d = in_array($_POST['d'][$bid] ?? '', ['CHF', 'EUR'], true) ? $_POST['d'][$bid] : (string)$ligne['devise'];
+
+            $maj = [];
+            if ($c !== null && (float)$ligne['prix_cession'] !== $c) $maj['prix_cession'] = $c;
+            if ($v !== null && (float)$ligne['prix_vente']   !== $v) $maj['prix_vente']   = $v;
+            if ($d !== (string)$ligne['devise'])                     $maj['devise']       = $d;
+            if (!$maj) continue;
+
+            $sets = implode(', ', array_map(fn($k) => "`$k` = ?", array_keys($maj)));
+            DB::run("UPDATE booking SET $sets WHERE id = ?", [...array_values($maj), $bid]);
+            $n++;
+        }
+        dash_flash($n > 0 ? "$n date(s) mise(s) à jour." : 'Rien n\'a changé.');
+        redirect('/dashboard.php?e=bookings&v=prix');
+    }
+
     /* Les fichiers de la date. */
     $actB = (string)($_POST['bfic'] ?? '');
     if ($actB !== '' && $id > 0) {
@@ -1373,6 +1414,21 @@ $lien = function (array $chg) use ($q, $statut, $annee, $page): string {
 
 $ETIQ = ['option'=>'option','confirmed'=>'confirmé','canceled'=>'annulé','pending'=>'en attente'];
 
+/* ── LA VUE « PRIX » ────────────────────────────────────────────────────────
+   [16.08.2026] Une page à part et non une colonne de plus dans la liste: la
+   liste sert à retrouver une date, la grille à remplir cinquante nombres. Les
+   deux gestes ne se font pas le même jour et ne demandent pas la même mise en
+   page. */
+if (($_GET['v'] ?? '') === 'prix') {
+    $sansPrix = (int)DB::val("SELECT COUNT(*) FROM booking
+                               WHERE supprime_le IS NULL AND (prix_cession IS NULL OR prix_cession = 0)");
+    dash_haut('bookings', '<a href="/dashboard.php?e=bookings" class="ret">toutes les dates</a> · <strong>les prix</strong>');
+    dash_flash_html();
+    require __DIR__ . '/_bookings_prix.php';
+    dash_bas();
+    return;
+}
+
 dash_haut('bookings', number_format($total,0,',',' ') . ' booking' . ($total>1?'s':'') . ' · ' . $ms . ' ms');
 ?>
 
@@ -1396,6 +1452,14 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' booking' . ($total>1?'
     <a class="vider" href="/dashboard.php?e=bookings">tout effacer</a>
   <?php endif; ?>
   <a class="neuf" href="/dashboard.php?e=bookings&amp;mod=1">+ nouveau booking</a>
+  <?php /* Le chemin vers la grille des prix. Sans lui elle n'existe pas: une
+       page qu'on atteint en tapant une adresse n'est ouverte par personne. Le
+       compte dit combien il reste à faire — « les prix » tout court ne donne
+       aucune raison de cliquer. */ ?>
+  <?php $sansPx = (int)DB::val("SELECT COUNT(*) FROM booking
+          WHERE supprime_le IS NULL AND (prix_cession IS NULL OR prix_cession = 0)"); ?>
+  <a class="lien-px" href="/dashboard.php?e=bookings&amp;v=prix">Saisir les prix<?php
+    if ($sansPx): ?> <span class="cpt"><?= $sansPx ?></span><?php endif; ?></a>
 </form>
 <?php dash_flash_html(); ?>
 
@@ -1454,6 +1518,12 @@ td.d, th.d { text-align:right; white-space:nowrap; }
 .et.option    { background:#fff6d9; border-color:#f0dfa3; color:#6b5312; }
 .et.pending   { background:var(--fond2); }
 .et.canceled  { background:#fbe9e7; border-color:#f0c3bb; color:#7a2b1e; }
+.lien-px{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;
+  border:1px solid var(--trait);border-radius:4px;text-decoration:none;font-size:13.5px;
+  font-weight:600;color:var(--encre)}
+.lien-px:hover{border-color:var(--encre)}
+.lien-px .cpt{padding:1px 8px;border-radius:9px;background:var(--jaune);color:#0d0d0d;
+  font-size:11.5px}
 .neuf { margin-left:auto; padding:8px 16px; background:var(--jaune); color:#0d0d0d;
         border-radius:4px; text-decoration:none; font-size:13.5px; font-weight:600; }
 .alerte { margin:16px 26px 0; padding:12px 16px; background:var(--fond2);
