@@ -466,10 +466,28 @@ $sst = number_format($total, 0, ',', ' ') . ' fiche' . ($total > 1 ? 's' : '')
 dash_haut('contacts', e($sst));
 ?>
 
-<form class="filtres" method="get" action="/dashboard.php">
+<?php /* ── LA BARRE, SUR DEUX LIGNES ─────────────────────────────────────────
+     [16.08.2026] Demandé par Anna. Les six contrôles se suivaient à la file et
+     passaient à la ligne au hasard de la largeur de l'écran: le bouton
+     « Chercher » et « nouveau contact » se retrouvaient tantôt à droite,
+     tantôt au milieu de la deuxième ligne, jamais au même endroit d'un écran à
+     l'autre. On cherche un bouton qu'on a déjà cliqué cent fois — il doit être
+     là où on l'a laissé.
+
+     Ligne du haut: le champ de recherche, large, et à droite les deux gestes
+     qui terminent — chercher, ou créer. Ligne du bas: les cinq filtres, qui
+     précisent une recherche sans jamais la déclencher seuls. */ ?>
+<form class="filtres deux-lignes" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="contacts">
-  <input type="search" name="q" value="<?= e($q) ?>"
-         placeholder="Nom, structure, ville, mots-clefs, notes" autofocus>
+
+  <div class="fl-haut">
+    <input type="search" name="q" value="<?= e($q) ?>"
+           placeholder="Nom, structure, ville, mots-clefs, notes" autofocus>
+    <button type="submit">Chercher</button>
+    <a class="neuf" href="/dashboard.php?e=contacts&amp;mod=1">+ nouveau contact</a>
+  </div>
+
+  <div class="fl-bas">
   <select name="cat">
     <option value="">Toutes les catégories</option>
     <?php foreach ($cats as $c): ?>
@@ -507,15 +525,32 @@ dash_haut('contacts', e($sst));
         e($p['pays_struct']) ?> (<?= $p['n'] ?>)</option>
     <?php endforeach; ?>
   </select>
-  <button type="submit">Chercher</button>
-  <?php if ($q !== '' || $cat !== '' || $pays !== ''): ?>
+  <?php if ($q !== '' || $cat !== '' || $reg !== '' || $part !== '' || $dir !== '' || $pays !== ''): ?>
     <a class="vider" href="/dashboard.php?e=contacts">tout effacer</a>
   <?php endif; ?>
-  <a class="neuf" href="/dashboard.php?e=contacts&amp;mod=1">+ nouveau contact</a>
+  </div>
 </form>
 <?php dash_flash_html(); ?>
-<style>.neuf{margin-left:auto;padding:8px 16px;background:var(--jaune);color:#0d0d0d;
-  border-radius:4px;text-decoration:none;font-size:13.5px;font-weight:600}</style>
+<style>
+.filtres.deux-lignes{display:block}
+.fl-haut{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+/* Le champ prend toute la place restante: c'est le geste principal, et un
+   champ court invite à taper court. `min-width:0` sinon un flex-item refuse de
+   passer sous sa largeur intrinsèque et pousse les boutons hors de l'écran. */
+.fl-haut input[type=search]{flex:1 1 auto;min-width:0}
+.fl-haut button{white-space:nowrap}
+/* `margin-left:0` annule le `margin-left:auto` d'origine: c'est le conteneur
+   qui pousse maintenant, et laisser les deux ferait un trou entre le bouton et
+   le lien. */
+.neuf{margin-left:0;padding:8px 16px;background:var(--jaune);color:#0d0d0d;
+  border-radius:4px;text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
+.fl-bas{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fl-bas select{max-width:100%}
+@media (max-width:640px){
+  .fl-haut{flex-wrap:wrap}
+  .fl-haut input[type=search]{flex:1 1 100%}
+}
+</style>
 
 <?php if (!$lignes): ?>
   <p class="vide">Aucune fiche ne correspond.<?php if ($mode === 'index'): ?>
