@@ -111,6 +111,56 @@ $trous = [
    '/dashboard.php?e=associations', 'Ce n\'est pas un doublon, c\'est à trancher'],
 ];
 
+/* ── LE PIPELINE ────────────────────────────────────────────────────────────
+   [16.08.2026] Demandé par Anna sur le tableau de bord même, et non sur un
+   écran à part: c'est la page qu'elle ouvre en arrivant, et un tableau qu'il
+   faut aller chercher ne se tient pas à jour.
+
+   LES ÉCRITURES SONT TRAITÉES ICI, avant tout affichage, parce qu'elles
+   arrivent par deux chemins: les formulaires classiques, qui redirigent, et le
+   glisser-déposer, qui appelle en `fetch` et attend du JSON. Les deux passent
+   par les mêmes fonctions de `Kanban` — deux chemins vers la même table
+   finissent toujours par diverger sur une règle. */
+$kbEcrit = dash_droit('accueil', dash_role()) === 'ecrit';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['kb'] ?? '') !== '') {
+    Auth::requireCsrf();
+    dash_exige_ecriture('accueil');
+    $act  = (string)$_POST['kb'];
+    $json = isset($_GET['kbjson']);
+    $ok   = true;
+
+    if ($act === 'col_creer') {
+        Kanban::colonneCreer((string)($_POST['titre'] ?? ''));
+    } elseif ($act === 'col_maj') {
+        Kanban::colonneRenommer((int)($_POST['id'] ?? 0), (string)($_POST['titre'] ?? ''),
+                                (string)($_POST['couleur'] ?? 'neutre'));
+    } elseif ($act === 'col_archiver') {
+        Kanban::colonneArchiver((int)($_POST['id'] ?? 0));
+    } elseif ($act === 'col_ordre') {
+        Kanban::colonnesOrdre((array)($_POST['ids'] ?? []));
+    } elseif ($act === 'carte_creer') {
+        Kanban::carteCreer((int)($_POST['colonne_id'] ?? 0), (string)($_POST['titre'] ?? ''));
+    } elseif ($act === 'carte_maj') {
+        Kanban::carteEcrire((int)($_POST['id'] ?? 0), (string)($_POST['titre'] ?? ''),
+                            (string)($_POST['note'] ?? ''), (string)($_POST['echeance'] ?? ''));
+        /* Le menu « Colonne » de la fiche déplace aussi: c'est le chemin sans
+           JavaScript, et il doit faire exactement ce que fait le glisser. */
+        $vers = (int)($_POST['colonne_id'] ?? 0);
+        if ($vers > 0) Kanban::carteDeplacer((int)($_POST['id'] ?? 0), $vers);
+    } elseif ($act === 'carte_archiver') {
+        Kanban::carteArchiver((int)($_POST['id'] ?? 0));
+    } elseif ($act === 'carte_deplacer') {
+        $ok = Kanban::carteDeplacer((int)($_POST['id'] ?? 0), (int)($_POST['colonne_id'] ?? 0),
+                                    (int)($_POST['avant_id'] ?? 0));
+    } else {
+        $ok = false;
+    }
+
+    if ($json) { header('Content-Type: application/json'); echo json_encode(['ok' => $ok]); exit; }
+    redirect('/dashboard.php?e=accueil');
+}
+
 $urgent = count($a1Retard) + $adminTardN + (int)$impayesTot['n'];
 $fmt = fn($v) => number_format((float)$v, 0, ',', ' ');
 
@@ -119,6 +169,8 @@ dash_haut('accueil', $urgent
     : 'rien d\'urgent');
 ?>
 <div class="zone">
+
+<?php require __DIR__ . '/_kanban.php'; ?>
 
 <?php if (!$urgent): ?>
   <div class="calme">Rien en retard, rien d'impayé, aucune attestation A1 hors délai.</div>
