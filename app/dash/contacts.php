@@ -6,9 +6,12 @@
  * MariaDB. Le dashboard actuel les embarque dans son JavaScript, 2,23 Mo, et
  * cherche en mémoire à chaque frappe.
  *
- * ÉTAT: partiel. On lit, on cherche, on filtre. Ouvrir une fiche, créer et
- * modifier ne sont pas encore là, et c'est ce qui manque pour travailler
- * plutôt que consulter.
+ * TROIS VUES DANS UN FICHIER, choisies par ?c=<id> et ?mod: la liste, la fiche,
+ * le formulaire. Lire, chercher, filtrer, ouvrir, créer, modifier, supprimer.
+ *
+ * LA SUPPRESSION EST LOGIQUE. Une fiche effacée reste en base avec sa date et
+ * sort des listes. Sur 7 841 contacts construits en des années, une suppression
+ * définitive est une perte qu'on ne remarque que le jour où l'on cherche.
  */
 declare(strict_types=1);
 
@@ -16,6 +19,200 @@ const PAR_PAGE = 50;
 
 /** En dessous de cette longueur, FULLTEXT ne voit pas le mot. */
 const FT_MIN = 4;
+
+$cid = (int)($_GET['c'] ?? 0);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENREGISTRER
+// ═══════════════════════════════════════════════════════════════════════════
+
+$CH_CONTACT = ['nom','prenom','nom_famille','fonction','structure','categorie',
+               'ville_struct','pays_struct','region','adresse','cp','ville','dept','pays',
+               'email1','email2','email_pro1','tel1','tel_pro1','site',
+               'mots_cles','description','participations','notes'];
+$err = $saisi = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    Auth::requireCsrf();
+    foreach ($CH_CONTACT as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
+
+    if (($_POST['action'] ?? '') === 'supprimer' && $cid > 0) {
+        DB::pdo()->prepare('UPDATE contact SET supprime_le = NOW() WHERE id = ?')->execute([$cid]);
+        dash_flash('Contact supprimé. Il reste en base et peut être rétabli.');
+        redirect('/dashboard.php?e=contacts');
+    }
+
+    if ($saisi['nom'] === '') $err['nom'] = 'Sans nom, la fiche ne se retrouve pas.';
+    foreach (['email1','email2','email_pro1'] as $m) {
+        if ($saisi[$m] !== '' && !filter_var($saisi[$m], FILTER_VALIDATE_EMAIL)) {
+            $err[$m] = 'Cette adresse ne ressemble pas à une adresse.';
+        }
+    }
+
+    if (!$err) {
+        $vals = array_map(fn($c) => $saisi[$c] === '' ? null : $saisi[$c], $CH_CONTACT);
+        if ($cid > 0) {
+            $set = implode(',', array_map(fn($c) => "$c=?", $CH_CONTACT));
+            DB::pdo()->prepare("UPDATE contact SET $set WHERE id = ?")->execute([...$vals, $cid]);
+            dash_flash('Contact enregistré.');
+        } else {
+            /* `ref` est NOT NULL et unique: elle vient de la reprise du dashboard.
+               Une fiche créée ici s'en donne une qui ne peut pas entrer en
+               collision avec les « c001 » à « c7841 » déjà repris. */
+            $ref = 'n' . date('ymdHis') . random_int(10, 99);
+            $cols = array_merge(['ref'], $CH_CONTACT);
+            $q = implode(',', array_fill(0, count($cols), '?'));
+            DB::pdo()->prepare('INSERT INTO contact (' . implode(',', $cols) . ") VALUES ($q)")
+                     ->execute([$ref, ...$vals]);
+            $cid = (int)DB::pdo()->lastInsertId();
+            dash_flash('Contact créé.');
+        }
+        redirect('/dashboard.php?e=contacts&c=' . $cid);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE FORMULAIRE
+// ═══════════════════════════════════════════════════════════════════════════
+
+if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $k = $cid > 0 ? DB::one('SELECT * FROM contact WHERE id = ? AND supprime_le IS NULL', [$cid]) : [];
+    if ($cid > 0 && !$k) { dash_haut('contacts'); echo '<p class="vide">Ce contact n\'existe pas.</p>'; dash_bas(); return; }
+    $v = fn(string $c) => $saisi[$c] ?? ($k[$c] ?? '');
+
+    $cats = DB::pdo()->query("SELECT DISTINCT categorie FROM contact
+        WHERE supprime_le IS NULL AND categorie IS NOT NULL ORDER BY categorie")->fetchAll(PDO::FETCH_COLUMN);
+    $choixCat = ['' => '(aucune)'] + array_combine($cats, $cats);
+
+    dash_haut('contacts', $cid > 0 ? 'modifier' : 'nouveau contact');
+    dash_form_style();
+    if ($err) echo '<div class="flash err">Rien n\'a été enregistré: ' . count($err)
+                 . ' champ(s) à corriger. Ce que vous aviez saisi est conservé.</div>';
+    ?>
+    <div class="fil"><a href="/dashboard.php?e=contacts<?= $cid > 0 ? '&amp;c=' . $cid : '' ?>">← retour</a></div>
+    <form class="saisie" method="post"
+          action="/dashboard.php?e=contacts<?= $cid > 0 ? '&amp;c=' . $cid : '' ?>&amp;mod=1">
+      <?= Auth::csrfField() ?>
+      <div class="grille">
+        <div class="titre-bloc">Qui</div>
+        <?php
+        ch('nom', 'Nom affiché', $v('nom'), $err, ['requis'=>true, 'large'=>true,
+           'aide'=>'Ce qui apparaît dans les listes. Souvent le nom de la structure']);
+        ch('prenom', 'Prénom', $v('prenom'), $err);
+        ch('nom_famille', 'Nom de famille', $v('nom_famille'), $err);
+        ch('fonction', 'Fonction', $v('fonction'), $err);
+        ch('categorie', 'Catégorie', $v('categorie'), $err, ['type'=>'select','choix'=>$choixCat]);
+
+        echo '<div class="titre-bloc">La structure</div>';
+        ch('structure', 'Structure', $v('structure'), $err, ['large'=>true]);
+        ch('ville_struct', 'Ville', $v('ville_struct'), $err);
+        ch('pays_struct', 'Pays', $v('pays_struct'), $err);
+        ch('region', 'Région', $v('region'), $err);
+        ch('site', 'Site', $v('site'), $err, ['large'=>true]);
+
+        echo '<div class="titre-bloc">Joindre</div>';
+        ch('email_pro1', 'Courriel professionnel', $v('email_pro1'), $err, ['type'=>'email']);
+        ch('email1', 'Courriel', $v('email1'), $err, ['type'=>'email']);
+        ch('email2', 'Autre courriel', $v('email2'), $err, ['type'=>'email']);
+        ch('tel_pro1', 'Téléphone professionnel', $v('tel_pro1'), $err);
+        ch('tel1', 'Téléphone', $v('tel1'), $err);
+
+        echo '<div class="titre-bloc">Adresse postale</div>';
+        ch('adresse', 'Adresse', $v('adresse'), $err, ['large'=>true]);
+        ch('cp', 'Code postal', $v('cp'), $err);
+        ch('ville', 'Ville', $v('ville'), $err);
+        ch('dept', 'Département', $v('dept'), $err);
+        ch('pays', 'Pays', $v('pays'), $err);
+
+        echo '<div class="titre-bloc">Le reste</div>';
+        ch('mots_cles', 'Mots-clefs', $v('mots_cles'), $err, ['large'=>true,
+           'aide'=>'Ils entrent dans la recherche par index']);
+        ch('description', 'Description', $v('description'), $err, ['large'=>true]);
+        ch('participations', 'Participations', $v('participations'), $err);
+        ch('notes', 'Notes', $v('notes'), $err, ['type'=>'textarea','large'=>true,'rows'=>5,
+           'aide'=>'Elles entrent aussi dans la recherche']);
+        ?>
+      </div>
+      <div class="actions">
+        <button type="submit"><?= $cid > 0 ? 'Enregistrer' : 'Créer' ?></button>
+        <a class="sec2" href="/dashboard.php?e=contacts<?= $cid > 0 ? '&amp;c=' . $cid : '' ?>">annuler</a>
+        <?php if ($cid > 0): ?>
+        <a class="sup" href="#" onclick="if(confirm('Supprimer ce contact ? Il restera en base.')){
+             var f=document.createElement('form');f.method='post';
+             f.action='/dashboard.php?e=contacts&c=<?= $cid ?>&mod=1';
+             f.innerHTML='<?= addslashes(Auth::csrfField()) ?><input name=action value=supprimer>';
+             document.body.appendChild(f);f.submit();}return false;">supprimer</a>
+        <?php endif; ?>
+      </div>
+    </form>
+    <style>.fil{padding:12px 26px 0;font-size:13px}.fil a{color:var(--doux);text-decoration:none}</style>
+    <?php dash_bas(); return;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA FICHE
+// ═══════════════════════════════════════════════════════════════════════════
+
+if ($cid > 0) {
+    $k = DB::one('SELECT * FROM contact WHERE id = ? AND supprime_le IS NULL', [$cid]);
+    if (!$k) { dash_haut('contacts'); echo '<p class="vide">Ce contact n\'existe pas.</p>'; dash_bas(); return; }
+
+    dash_haut('contacts', e(trim((string)($k['fonction'] ?? '') . ' ' . ($k['categorie'] ? '· ' . $k['categorie'] : ''))));
+    ?>
+    <div class="fil"><a href="/dashboard.php?e=contacts">← tous les contacts</a>
+      <a class="mod" href="/dashboard.php?e=contacts&amp;c=<?= $cid ?>&amp;mod=1">modifier</a></div>
+    <?php dash_flash_html(); ?>
+    <div class="zone">
+      <h2 class="gros"><?= e($k['nom']) ?></h2>
+      <?php if ($k['prenom'] || $k['nom_famille']): ?>
+        <p class="sst2"><?= e(trim(($k['prenom'] ?? '') . ' ' . ($k['nom_famille'] ?? ''))) ?></p>
+      <?php endif; ?>
+      <div class="fiche">
+      <?php
+      $l = function (string $lib, $val, string $href = '') {
+          if ($val === null || $val === '') return;
+          $v = $href ? '<a href="' . e($href . $val) . '">' . e((string)$val) . '</a>' : e((string)$val);
+          printf('<div class="l"><span class="k">%s</span><span class="v">%s</span></div>', e($lib), $v);
+      };
+      $l('Fonction', $k['fonction']);
+      $l('Catégorie', $k['categorie']);
+      $l('Structure', $k['structure']);
+      $l('Ville', trim((string)($k['ville_struct'] ?? '') . ' ' . ($k['pays_struct'] ? '· ' . $k['pays_struct'] : '')));
+      $l('Région', $k['region']);
+      $l('Site', $k['site']);
+      $l('Courriel pro', $k['email_pro1'], 'mailto:');
+      $l('Courriel', $k['email1'], 'mailto:');
+      $l('Autre courriel', $k['email2'], 'mailto:');
+      $l('Téléphone pro', $k['tel_pro1'], 'tel:');
+      $l('Téléphone', $k['tel1'], 'tel:');
+      $l('Adresse', trim((string)($k['adresse'] ?? '') . ' ' . ($k['cp'] ?? '') . ' ' . ($k['ville'] ?? '')));
+      $l('Département', $k['dept']);
+      $l('Pays', $k['pays']);
+      $l('Mots-clefs', $k['mots_cles']);
+      $l('Description', $k['description']);
+      $l('Participations', $k['participations']);
+      $l('Référence', $k['ref']);
+      ?>
+      </div>
+      <?php if ($k['notes']): ?>
+        <div class="bl"><h3>Notes</h3><p><?= nl2br(e($k['notes'])) ?></p></div>
+      <?php endif; ?>
+    </div>
+    <style>
+    .fil{padding:12px 26px 0;font-size:13px;display:flex;gap:16px}
+    .fil a{color:var(--doux);text-decoration:none}
+    .fil a.mod{margin-left:auto;color:var(--encre);font-weight:600}
+    h2.gros{font-size:21px;margin:0 0 4px}
+    .sst2{margin:0 0 18px;color:var(--doux);font-size:14px}
+    .fiche{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:0 34px;max-width:960px}
+    .fiche .l{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--trait)}
+    .fiche .k{color:var(--doux);font-size:12.5px;min-width:140px}
+    .fiche .v{font-size:14px;word-break:break-word}
+    .bl{margin-top:24px;padding:13px 17px;background:var(--fond2);max-width:800px}
+    .bl h3{font-size:13px;margin:0 0 6px}.bl p{margin:0;font-size:14px}
+    </style>
+    <?php dash_bas(); return;
+}
 
 $q    = trim((string)($_GET['q'] ?? ''));
 $cat  = trim((string)($_GET['cat'] ?? ''));
@@ -66,7 +263,7 @@ $page   = min($page, $pages);
 $offset = ($page - 1) * PAR_PAGE;
 
 $st = DB::pdo()->prepare(
-    "SELECT ref, nom, prenom, nom_famille, fonction, structure, categorie,
+    "SELECT id, ref, nom, prenom, nom_famille, fonction, structure, categorie,
             ville_struct, pays_struct, email1, email_pro1, tel1, site
        FROM contact WHERE $sqlWhere ORDER BY nom
       LIMIT " . PAR_PAGE . " OFFSET $offset");
@@ -120,7 +317,11 @@ dash_haut('contacts', e($sst));
   <?php if ($q !== '' || $cat !== '' || $pays !== ''): ?>
     <a class="vider" href="/dashboard.php?e=contacts">tout effacer</a>
   <?php endif; ?>
+  <a class="neuf" href="/dashboard.php?e=contacts&amp;mod=1">+ nouveau contact</a>
 </form>
+<?php dash_flash_html(); ?>
+<style>.neuf{margin-left:auto;padding:8px 16px;background:var(--jaune);color:#0d0d0d;
+  border-radius:4px;text-decoration:none;font-size:13.5px;font-weight:600}</style>
 
 <?php if (!$lignes): ?>
   <p class="vide">Aucune fiche ne correspond.<?php if ($mode === 'index'): ?>
@@ -134,7 +335,7 @@ dash_haut('contacts', e($sst));
   <tbody>
   <?php foreach ($lignes as $r): ?>
     <tr>
-      <td><?= e($r['nom']) ?><?php if ($r['prenom'] || $r['nom_famille']): ?>
+      <td><a href="/dashboard.php?e=contacts&amp;c=<?= (int)$r['id'] ?>"><?= e($r['nom']) ?></a><?php if ($r['prenom'] || $r['nom_famille']): ?>
         <div class="sec"><?= e(trim(($r['prenom'] ?? '') . ' ' . ($r['nom_famille'] ?? ''))) ?></div>
       <?php endif; ?></td>
       <td class="sec"><?= e($r['fonction'] ?? '') ?></td>

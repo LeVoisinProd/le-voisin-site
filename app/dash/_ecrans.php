@@ -44,7 +44,7 @@ const DASH_ECRANS = [
         'projets'   => ['Projets',   'ok'],
     ]],
 
-    'contacts'     => ['Contacts', 'partiel', []],
+    'contacts'     => ['Contacts', 'ok', []],
 
     'finances'     => ['Finances', 'a_faire', []],
 
