@@ -31,7 +31,10 @@ const MOIS_SAISON = 9;
 $ETATS_ENC = ['attendu'=>'attendu','recu'=>'reçu','partiel'=>'partiel','sans_objet'=>'sans objet'];
 $ETATS_VER = ['attendu'=>'attendu','verse'=>'versé','partiel'=>'partiel','sans_objet'=>'sans objet'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+/* Les états d'encaissement et de versement du relevé. La condition sur `df`
+   est nécessaire: ce bloc attrapait TOUS les POST de l'écran et redirigeait
+   vers le relevé, donc il avalait ceux des demandes de fonds, plus bas. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['df'] ?? '') === '') {
     Auth::requireCsrf();
     /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
        l'écran: `production` lit les Finances sans les modifier. Le routeur
@@ -51,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('/dashboard.php?e=finances&s=' . (int)($_POST['s'] ?? 0) . '&v=releve');
 }
 
-$vue = ($_GET['v'] ?? '') === 'releve' ? 'releve' : 'apercu';
+$vue = in_array($_GET['v'] ?? '', ['releve','fonds'], true) ? (string)$_GET['v'] : 'apercu';
 
 $auj = new DateTimeImmutable('today');
 $saisonAuj = (int)$auj->format('n') >= MOIS_SAISON
@@ -104,6 +107,45 @@ $ecarts   = array_filter($lignes, fn($l) => $l['n_lignes'] > 0 && $l['prix_cessi
                        && abs((float)$l['prix_cession'] - (float)$l['somme_lignes']) > 0.5);
 
 $fmt = fn($v) => number_format((float)$v, 0, ',', ' ');
+
+/* LES DEMANDES DE FONDS. Traitées avant tout affichage: on redirige, on ne
+   rend rien. Elles ne partagent rien avec le relevé ni avec l'aperçu. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['df'] ?? '') !== '') {
+    Auth::requireCsrf();
+    dash_exige_ecriture('finances');
+    $act = (string)$_POST['df'];
+
+    if ($act === 'ajouter' && trim((string)($_POST['inst'] ?? '')) !== '') {
+        $t = static fn(string $k, int $max = 190): ?string
+            => trim((string)($_POST[$k] ?? '')) !== '' ? mb_substr(trim((string)$_POST[$k]), 0, $max) : null;
+        $m = trim((string)($_POST['demande'] ?? ''));
+        DB::insert('demande_fonds', [
+            'asso'     => $t('asso') ?? '—',
+            'inst'     => $t('inst') ?? '—',
+            'proj'     => $t('proj'),
+            'type'     => $t('type', 60),
+            'canton'   => $t('canton', 8),
+            'priorite' => in_array($_POST['priorite'] ?? '', ['P0','P1','P2','P3','P4'], true)
+                          ? $_POST['priorite'] : 'P2',
+            'statut'   => in_array($_POST['statut'] ?? '', ['a-preparer','en-cours','soumis',
+                            'en-attente','en-suspens','accorde','refuse','decompte'], true)
+                          ? $_POST['statut'] : 'a-preparer',
+            /* Un montant qui ne se lit pas comme un nombre reste NULL plutôt que
+               de tomber à zéro: « pas encore chiffré » et « on demande 0 » ne
+               veulent pas dire la même chose. */
+            'demande'  => $m !== '' && is_numeric(str_replace([',',' ',"'"], ['.','',''], $m))
+                          ? (float)str_replace([',',' ',"'"], ['.','',''], $m) : null,
+            'delai'    => $t('delai', 10),
+        ]);
+        dash_flash('Demande ajoutée.');
+
+    } elseif ($act === 'supprimer') {
+        DB::pdo()->prepare('UPDATE demande_fonds SET supprime_le = NOW() WHERE id = ?')
+                 ->execute([(int)($_POST['ligne'] ?? 0)]);
+        dash_flash('Demande supprimée. Elle reste en base.');
+    }
+    redirect('/dashboard.php?e=finances&v=fonds');
+}
 
 /* LE RELEVÉ. Une ligne par date, le détail en colonnes, le total en bas.
    C'est la forme du « Statement » d'artistu, qu'Anna a montrée comme modèle, et
@@ -233,6 +275,7 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
 <div class="onglets">
   <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>" class="<?= $vue==='apercu'?'ici':'' ?>">Aperçu</a>
   <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>&amp;v=releve" class="<?= $vue==='releve'?'ici':'' ?>">Relevé</a>
+  <a href="/dashboard.php?e=finances&amp;v=fonds" class="<?= $vue==='fonds'?'ici':'' ?>">Demandes de fonds</a>
   <?php if ($vue === 'releve'): ?>
     <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>&amp;v=releve&amp;imprimer=1"
        target="_blank" rel="noopener" class="pdfl">Version imprimable</a>
@@ -249,7 +292,13 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
   </select>
 </form>
 
-<?php if ($vue === 'releve'): ?>
+<?php if ($vue === 'fonds'): ?>
+<div class="zone">
+  <?php $ecrit = dash_droit('finances', dash_role()) === 'ecrit';
+        require __DIR__ . '/_finances_fonds.php'; ?>
+</div>
+
+<?php elseif ($vue === 'releve'): ?>
 <div class="zone">
   <div class="tw"><table class="rel">
     <thead><tr>
