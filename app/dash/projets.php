@@ -36,6 +36,26 @@ $CHAMPS = ['phase','responsable','valide_par','budget','devise','organisation_id
            'lieu_creation','notes'];
 $err = $saisi = [];
 
+/* LES LIENS DE PRESSKIT. Traités avant le bloc ci-dessous, qui exige un projet
+   ouvert ($id > 0): ceux-ci portent un identifiant de spectacle du CMS, pas de
+   projet du dashboard, et se postent depuis la liste. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['pk'] ?? '') !== '') {
+    Auth::requireCsrf();
+    dash_exige_ecriture('projets');
+
+    $cms = (int)($_POST['projet_cms'] ?? 0);
+    if ($cms > 0) {
+        if ((string)$_POST['pk'] === 'ouvrir') {
+            Presskit::ouvrir($cms, (string)($_POST['destinataire'] ?? ''));
+            dash_flash('Lien ouvert. Il expire dans ' . Presskit::JOURS . ' jours, et tout ancien lien cesse de fonctionner.');
+        } elseif ((string)$_POST['pk'] === 'revoquer') {
+            Presskit::revoquer($cms);
+            dash_flash('Lien révoqué.');
+        }
+    }
+    redirect('/dashboard.php?e=projets');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $id > 0) {
     Auth::requireCsrf();
     /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
@@ -300,9 +320,86 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
   </tbody>
 </table></div>
 
+<?php /* ── LES PRESSKITS ────────────────────────────────────────────────────
+       [16.08.2026]
+
+       ILS NE PENDENT PAS AUX PROJETS CI-DESSUS, et il faut le dire plutôt que
+       de le cacher. La table `projet` du dashboard porte la production — la
+       phase, le budget, les dates. Le contenu qu'un presskit partage — intro,
+       distribution, photos, fiches techniques — vit dans `projects`, la table
+       du CMS, parce que c'est elle qui alimente le site public.
+
+       Ce sont donc deux listes, et c'est exactement la duplication que la
+       spécification veut supprimer: « nous allons revoir ce qui est ici est
+       déjà dans le cms, on ne veut pas travailler en double. » Tant qu'elle
+       n'est pas faite, mieux vaut deux listes honnêtes qu'une seule qui
+       mentirait sur ce qu'elle montre. */ ?>
+
+<h2 class="sect2">Presskits</h2>
+<p class="sec expl">Le lien qu'on envoie à un programmateur intéressé: intro, photos et
+   fiches techniques, sans lui demander d'ouvrir un compte ni de connaître le mot de passe
+   du Catalogue. Il se révoque, contrairement à une adresse publique une fois partagée.
+   <br>Ces spectacles sont ceux du <strong>site</strong>, pas les projets de production
+   ci-dessus: le contenu d'un presskit vit dans le CMS.</p>
+
+<div class="tw"><table>
+  <thead><tr><th>Spectacle</th><th>Lien</th><th>Visites</th><th></th></tr></thead>
+  <tbody>
+  <?php foreach (Presskit::projets() as $s): $sid = (int)$s['id'];
+        $actif = $s['jeton'] && !(int)$s['revoque']
+                 && (!$s['expire_a'] || strtotime((string)$s['expire_a']) > time());
+        $url = $actif ? rtrim((string)cfg('base_url',''), '/') . '/presskit.php?t=' . $s['jeton'] : ''; ?>
+    <tr>
+      <td><?= e((string)($s['title_fr'] ?: $s['title_en'])) ?></td>
+      <td class="sec">
+        <?php if ($actif): ?>
+          <input type="text" class="url" value="<?= e($url) ?>" readonly onclick="this.select()"
+                 aria-label="Lien du presskit">
+          <?php if ($s['destinataire']): ?><br><span class="np">remis à <?= e((string)$s['destinataire']) ?></span><?php endif; ?>
+        <?php elseif ($s['jeton']): ?>
+          <span class="sec">révoqué ou expiré</span>
+        <?php else: ?>
+          <span class="sec">—</span>
+        <?php endif; ?>
+      </td>
+      <td class="d sec"><?= $s['visites'] !== null ? (int)$s['visites'] : '' ?>
+        <?php if ($s['dernier_acces']): ?><br><span class="np"><?= e(date('d.m.Y', strtotime((string)$s['dernier_acces']))) ?></span><?php endif; ?>
+      </td>
+      <td class="d">
+        <?php if (dash_droit('projets', dash_role()) === 'ecrit'): ?>
+          <form method="post" action="/dashboard.php?e=projets" class="inline">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="pk" value="ouvrir">
+            <input type="hidden" name="projet_cms" value="<?= $sid ?>">
+            <button type="submit" class="lien-b"><?= $actif ? 'renouveler' : 'ouvrir' ?></button>
+          </form>
+          <?php if ($actif): ?>
+            <form method="post" action="/dashboard.php?e=projets" class="inline"
+                  onsubmit="return confirm('Révoquer ce lien ?')">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="pk" value="revoquer">
+              <input type="hidden" name="projet_cms" value="<?= $sid ?>">
+              <button type="submit" class="lien-b">révoquer</button>
+            </form>
+          <?php endif; ?>
+        <?php endif; ?>
+      </td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table></div>
+
 <style>
 td.d,th.d{text-align:right;white-space:nowrap}
 tr.passe{opacity:.55}
+.sect2{margin:34px 26px 4px;font-size:16px}
+.expl{margin:0 26px 12px;max-width:80ch;font-size:13.5px}
+.url{width:100%;max-width:420px;padding:5px 8px;font-family:ui-monospace,Menlo,monospace;
+  font-size:11.5px;border:1px solid var(--trait);border-radius:4px;
+  background:var(--fond2);color:var(--encre)}
+.lien-b{background:none;border:0;color:var(--doux);text-decoration:underline;
+  cursor:pointer;font:inherit;font-size:12.5px;padding:2px 6px}
+.lien-b:hover{color:var(--encre)}
 .np{font-size:10.5px;border:1px solid var(--trait);border-radius:3px;padding:0 4px;
     margin-left:6px;color:var(--doux)}
 .ph{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--trait);white-space:nowrap}

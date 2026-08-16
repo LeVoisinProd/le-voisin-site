@@ -44,10 +44,24 @@ $reserve = (string)($doc['owner_type'] ?? '') === 'project'
         && (string)($doc['zone'] ?? '') === 'doc';
 
 if ($reserve) {
+    /* TROISIÈME CLEF : le jeton d'un presskit.            [16.08.2026]
+
+       Le presskit sert précisément à partager une fiche technique avec
+       quelqu'un qui n'a ni compte du bureau ni mot de passe du Catalogue. Il
+       passe donc par CE portier, avec son jeton, plutôt que par un second
+       chemin vers les mêmes fichiers : deux portes vers une pièce, ce sont
+       deux serrures à se rappeler, et c'est ainsi qu'est né le trou du 13.08.
+
+       Le jeton ne vaut que pour SON projet. `ouvre()` compare le projet du
+       lien à celui du document : un jeton de Bestiarium n'ouvre pas le rider
+       d'un autre spectacle. */
+    $pk = (string)($_GET['pk'] ?? '');
+    $parPresskit = $pk !== '' && Presskit::ouvre($pk, (int)($doc['owner_id'] ?? 0));
+
     /* Le bureau passe : il est déjà chez lui, et lui demander en plus le mot de
        passe du Catalogue pour relire un rider qu'il vient de déposer n'ajoute
        rien. Sinon, la porte du Catalogue, qui ramènera ici après. */
-    if (!Auth::check() && !CatalogAuth::check()) {
+    if (!$parPresskit && !Auth::check() && !CatalogAuth::check()) {
         redirect('/catalogue.php');
     }
 }
