@@ -46,7 +46,7 @@ const DASH_ECRANS = [
 
     'contacts'     => ['Contacts', 'ok', []],
 
-    'finances'     => ['Finances', 'a_faire', []],
+    'finances'     => ['Finances', 'partiel', []],
 
     // Associations et artistes ensemble: ce sont les mêmes fiches, avec ce qui
     // se répète d'un show à l'autre, modèles de contrat et de deal compris.

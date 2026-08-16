@@ -47,6 +47,34 @@ $saisi = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
 
+    /* Les lignes de deal se saisissent depuis l'onglet Deal et n'ont rien à voir
+       avec le formulaire du booking: on les traite ici et on repart. */
+    $actD = (string)($_POST['deal'] ?? '');
+    if ($actD !== '' && $id > 0) {
+        if ($actD === 'ajouter') {
+            $q  = (float)str_replace(',', '.', (string)($_POST['quantite'] ?? '1')) ?: 1;
+            $pu = trim((string)($_POST['prix_unitaire'] ?? ''));
+            $pu = $pu === '' ? null : (float)str_replace([',', ' ', "'"], ['.', '', ''], $pu);
+            $mt = trim((string)($_POST['montant'] ?? ''));
+            $mt = $mt === '' ? ($pu !== null ? round($q * $pu, 2) : null)
+                             : (float)str_replace([',', ' ', "'"], ['.', '', ''], $mt);
+            DB::pdo()->prepare(
+              'INSERT INTO deal_item (booking_id,type,libelle,charge,quantite,prix_unitaire,montant,devise,ordre)
+               VALUES (?,?,?,?,?,?,?,?,(SELECT COALESCE(MAX(o.ordre),0)+10 FROM deal_item o WHERE o.booking_id=?))')
+              ->execute([$id,
+                (string)($_POST['type'] ?? 'autre'), trim((string)($_POST['libelle'] ?? '')) ?: null,
+                (string)($_POST['charge'] ?? 'incluse'), $q, $pu, $mt,
+                (string)($_POST['devise'] ?? 'CHF'), $id]);
+            dash_flash('Ligne ajoutée.');
+        }
+        if ($actD === 'supprimer') {
+            DB::pdo()->prepare('DELETE FROM deal_item WHERE id = ? AND booking_id = ?')
+                     ->execute([(int)($_POST['ligne'] ?? 0), $id]);
+            dash_flash('Ligne supprimée.');
+        }
+        redirect('/dashboard.php?e=bookings&b=' . $id . '&o=deal');
+    }
+
     foreach ($CHAMPS as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
 
     /* SUPPRESSION LOGIQUE, jamais un DELETE. Une date effacée par erreur se
@@ -249,13 +277,112 @@ if ($id > 0) {
         </div>
       </div>
 
+    <?php elseif ($ong === 'deal'): ?>
+      <?php
+      $lignes = DB::all('SELECT * FROM deal_item WHERE booking_id = ? ORDER BY ordre, id', [$id]);
+      $TY = ['cachet'=>'cachet','frais_booking'=>'frais de booking','voyage'=>'voyage',
+             'hebergement'=>'hébergement','per_diem'=>'per diem','droits'=>'droits',
+             'materiel'=>'matériel','catering'=>'catering','marge'=>'marge','autre'=>'autre'];
+      $CG = ['incluse'=>'incluse dans la cession','lieu'=>'à la charge du lieu','nous'=>'à notre charge'];
+      $tot = ['incluse'=>0.0, 'lieu'=>0.0, 'nous'=>0.0];
+      foreach ($lignes as $l) $tot[$l['charge']] += (float)$l['montant'];
+      ?>
+      <?php if ($lignes): ?>
+      <div class="tw"><table>
+        <thead><tr><th>Nature</th><th>Libellé</th><th>Charge</th><th class="d">Qté</th>
+          <th class="d">Prix</th><th class="d">Montant</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach ($lignes as $l): ?>
+          <tr class="c-<?= e($l['charge']) ?>">
+            <td><?= e($TY[$l['type']] ?? $l['type']) ?></td>
+            <td class="sec"><?= e($l['libelle'] ?? '') ?></td>
+            <td class="sec"><?= e($CG[$l['charge']]) ?></td>
+            <td class="d sec"><?= rtrim(rtrim(number_format((float)$l['quantite'],2,',',' '),'0'),',') ?></td>
+            <td class="d sec"><?= $l['prix_unitaire'] !== null
+                ? number_format((float)$l['prix_unitaire'],2,',',' ') : '' ?></td>
+            <td class="d"><?= $l['montant'] !== null
+                ? number_format((float)$l['montant'],2,',',' ') . ' ' . e($l['devise']) : '' ?></td>
+            <td class="d">
+              <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=deal" class="inline"
+                    onsubmit="return confirm('Supprimer cette ligne ?')">
+                <?= Auth::csrfField() ?>
+                <input type="hidden" name="deal" value="supprimer">
+                <input type="hidden" name="ligne" value="<?= (int)$l['id'] ?>">
+                <button type="submit" class="x">×</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+        <tfoot>
+          <?php foreach ($CG as $k => $lib): if (!$tot[$k]) continue; ?>
+          <tr class="tot c-<?= $k ?>"><td colspan="5"><?= e(ucfirst($lib)) ?></td>
+            <td class="d"><strong><?= number_format($tot[$k],2,',',' ') ?></strong></td><td></td></tr>
+          <?php endforeach; ?>
+        </tfoot>
+      </table></div>
+
+      <?php /* Le rapprochement avec le prix annoncé. Un écart n'est pas une
+               erreur en soi: il dit seulement que les deux ne se sont pas encore
+               parlé, et c'est exactement ce qu'on veut voir. */ ?>
+      <?php if ($b['prix_cession'] !== null): ?>
+        <?php $ecart = (float)$b['prix_cession'] - $tot['incluse']; ?>
+        <div class="rap <?= abs($ecart) > 0.5 ? 'ecart' : 'ok' ?>">
+          Prix de cession annoncé <strong><?= number_format((float)$b['prix_cession'],2,',',' ') ?>
+          <?= e($b['devise']) ?></strong>, somme des lignes incluses
+          <strong><?= number_format($tot['incluse'],2,',',' ') ?></strong>.
+          <?php if (abs($ecart) > 0.5): ?>
+            Écart de <strong><?= number_format($ecart,2,',',' ') ?></strong>.
+            Ce n'est pas forcément une erreur: les deux ne se sont pas encore parlé.
+          <?php else: ?>Les deux concordent.<?php endif; ?>
+        </div>
+      <?php endif; ?>
+      <?php else: ?>
+        <p class="sec">Aucune ligne. Le prix de ce booking n'est pour l'instant qu'un
+           nombre: ajouter les lignes dit ce qu'il contient.</p>
+      <?php endif; ?>
+
+      <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=deal" class="ajl">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="deal" value="ajouter">
+        <select name="type"><?php foreach ($TY as $k=>$v): ?>
+          <option value="<?= $k ?>"><?= e($v) ?></option><?php endforeach; ?></select>
+        <input type="text" name="libelle" placeholder="Libellé">
+        <select name="charge"><?php foreach ($CG as $k=>$v): ?>
+          <option value="<?= $k ?>"><?= e($v) ?></option><?php endforeach; ?></select>
+        <input type="text" name="quantite" value="1" size="3" title="Quantité">
+        <input type="text" name="prix_unitaire" placeholder="Prix unitaire" size="10">
+        <input type="text" name="montant" placeholder="ou montant" size="10">
+        <select name="devise"><option>CHF</option><option>EUR</option></select>
+        <button type="submit">ajouter</button>
+      </form>
+      <p class="sec pt">Laisser le montant vide le calcule depuis la quantité et le prix.
+         Le remplir directement permet un forfait négocié, sans inventer un prix unitaire.</p>
+
+      <style>
+      td.d,th.d{text-align:right;white-space:nowrap}
+      tr.c-lieu td,tr.c-nous td{opacity:.72}
+      tr.tot td{border-top:2px solid var(--encre);background:var(--fond2)}
+      tr.tot.c-lieu td,tr.tot.c-nous td{border-top-width:1px;background:transparent}
+      button.x{background:none;color:var(--doux);padding:0 6px;font-size:16px;cursor:pointer}
+      form.inline{display:inline}
+      form.ajl{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:18px;
+        padding-top:16px;border-top:1px solid var(--trait)}
+      form.ajl input,form.ajl select{padding:6px 9px;font-size:13.5px;font-family:inherit;
+        border:1px solid var(--trait);border-radius:4px;background:var(--papier);color:var(--encre)}
+      form.ajl input[name=libelle]{flex:1;min-width:140px}
+      form.ajl button{padding:6px 15px;font-size:13px}
+      .rap{margin-top:16px;padding:11px 15px;background:var(--fond2);font-size:13.5px;
+        border-left:4px solid var(--jaune);max-width:76ch}
+      .rap.ecart{border-left-color:var(--orange)}
+      .pt{margin-top:8px;font-size:12.5px;max-width:70ch}
+      </style>
+
     <?php else: ?>
       <?php
       /* Chaque onglet dit ce qu'il portera ET ce qui lui manque comme table.
          Un « bientôt » ne apprend rien; ceci apprend où en est la reprise. */
       $quoi = [
-        'deal'      => ['Cachets, termes du deal et extras.',
-                        'Demande une table `deal_item`, avec un type par ligne: cachet, frais de booking, voyage, hébergement, droits. Les modèles par artiste vivront dans l\'écran Associations et artistes.'],
         'factures'  => ['Générer et télécharger les factures de ce booking.',
                         'Demande la table `invoice` et la liaison bexio par API. Le client bexio actuel vit dans Apps Script: le porter en PHP est chiffré entre 12 h et 20 h pour le seul OAuth2.'],
         'contrats'  => ['Contrats, avec signature en ligne.',
