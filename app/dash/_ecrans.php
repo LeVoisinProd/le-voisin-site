@@ -41,7 +41,7 @@ const DASH_ECRANS = [
     // en attente, voyages, logistique.
     'calendrier'   => ['Calendrier', 'ok', [
         'bookings'  => ['Bookings',  'ok'],
-        'projets'   => ['Projets',   'a_faire'],
+        'projets'   => ['Projets',   'ok'],
     ]],
 
     'contacts'     => ['Contacts', 'partiel', []],
