@@ -28,6 +28,27 @@ declare(strict_types=1);
 
 const MOIS_SAISON = 9;
 
+$ETATS_ENC = ['attendu'=>'attendu','recu'=>'reçu','partiel'=>'partiel','sans_objet'=>'sans objet'];
+$ETATS_VER = ['attendu'=>'attendu','verse'=>'versé','partiel'=>'partiel','sans_objet'=>'sans objet'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    Auth::requireCsrf();
+    $bid = (int)($_POST['id'] ?? 0);
+    $col = (string)($_POST['col'] ?? '');
+    $val = (string)($_POST['val'] ?? '');
+    $ok  = ($col === 'encaissement' && isset($ETATS_ENC[$val]))
+        || ($col === 'versement'    && isset($ETATS_VER[$val]));
+    if ($bid && $ok) {
+        $dcol = $col === 'encaissement' ? 'encaisse_le' : 'verse_le';
+        $fait = in_array($val, ['recu', 'verse'], true) ? date('Y-m-d') : null;
+        DB::pdo()->prepare("UPDATE booking SET $col = ?, $dcol = ? WHERE id = ?")
+                 ->execute([$val, $fait, $bid]);
+    }
+    redirect('/dashboard.php?e=finances&s=' . (int)($_POST['s'] ?? 0) . '&v=releve');
+}
+
+$vue = ($_GET['v'] ?? '') === 'releve' ? 'releve' : 'apercu';
+
 $auj = new DateTimeImmutable('today');
 $saisonAuj = (int)$auj->format('n') >= MOIS_SAISON
            ? (int)$auj->format('Y') : (int)$auj->format('Y') - 1;
@@ -80,8 +101,35 @@ $ecarts   = array_filter($lignes, fn($l) => $l['n_lignes'] > 0 && $l['prix_cessi
 
 $fmt = fn($v) => number_format((float)$v, 0, ',', ' ');
 
+/* LE RELEVÉ. Une ligne par date, le détail en colonnes, le total en bas.
+   C'est la forme du « Statement » d'artistu, qu'Anna a montrée comme modèle, et
+   c'est la seule vue qui répond à la question de fin de période: qui attend
+   encore son argent.
+
+   Les colonnes se calculent depuis deal_item, en une requête et non en une par
+   ligne: sur soixante dates, une requête par ligne se sentirait. */
+$releve = DB::all(
+    "SELECT b.id, b.date_debut, b.date_texte, b.projet, b.artiste, b.venue, b.ville,
+            b.prix_cession, b.devise, b.statut, b.encaissement, b.versement,
+            COALESCE(SUM(CASE WHEN d.type='cachet'        THEN d.montant END),0) cachet,
+            COALESCE(SUM(CASE WHEN d.type='frais_booking' THEN d.montant END),0) booking,
+            COALESCE(SUM(CASE WHEN d.type='voyage'        THEN d.montant END),0) voyage,
+            COALESCE(SUM(CASE WHEN d.type NOT IN ('cachet','frais_booking','voyage')
+                              THEN d.montant END),0) autres,
+            COALESCE(SUM(CASE WHEN d.charge='nous' THEN d.montant END),0) a_nous,
+            COUNT(d.id) n_lignes
+       FROM booking b
+       LEFT JOIN deal_item d ON d.booking_id = b.id
+      WHERE b.supprime_le IS NULL AND b.date_debut >= ? AND b.date_debut < ?
+        AND b.statut <> 'canceled'
+      GROUP BY b.id ORDER BY b.date_debut", [$debut, $fin]);
+
 dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count($lignes) . ' dates');
 ?>
+<div class="onglets">
+  <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>" class="<?= $vue==='apercu'?'ici':'' ?>">Aperçu</a>
+  <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>&amp;v=releve" class="<?= $vue==='releve'?'ici':'' ?>">Relevé</a>
+</div>
 <form class="filtres" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="finances">
   <select name="s" onchange="this.form.submit()">
@@ -91,6 +139,104 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
     <?php endforeach; ?>
   </select>
 </form>
+
+<?php if ($vue === 'releve'): ?>
+<div class="zone">
+  <div class="tw"><table class="rel">
+    <thead><tr>
+      <th>Date</th><th>Projet</th><th>Lieu</th>
+      <th class="d">Cachets</th><th class="d">Frais booking</th><th class="d">Voyage</th>
+      <th class="d">Autres</th><th class="d">À notre charge</th>
+      <th class="d">Prix de cession</th><th>Encaissement</th><th>Versement</th>
+    </tr></thead>
+    <tbody>
+    <?php
+    $T = ['cachet'=>0.0,'booking'=>0.0,'voyage'=>0.0,'autres'=>0.0,'a_nous'=>0.0,'prix'=>0.0];
+    foreach ($releve as $r):
+      foreach (['cachet','booking','voyage','autres','a_nous'] as $k) $T[$k] += (float)$r[$k];
+      $T['prix'] += (float)$r['prix_cession'];
+      $ss = $r['n_lignes'] == 0; ?>
+      <tr class="<?= $ss ? 'nul' : '' ?>">
+        <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$r['id'] ?>&amp;o=deal"><?=
+          e($r['date_texte'] ?: (string)$r['date_debut']) ?></a></td>
+        <td><?= e($r['projet'] ?? '') ?><?php if ($r['artiste']): ?>
+          <div class="sec"><?= e($r['artiste']) ?></div><?php endif; ?></td>
+        <td class="sec"><?= e($r['venue'] ?? '') ?><?php if ($r['ville']): ?>
+          <div class="sec"><?= e($r['ville']) ?></div><?php endif; ?></td>
+        <?php foreach (['cachet','booking','voyage','autres','a_nous'] as $k): ?>
+          <td class="d<?= $k==='a_nous' ? ' neg' : '' ?>"><?=
+            (float)$r[$k] ? $fmt($r[$k]) : '<span class="tiret">·</span>' ?></td>
+        <?php endforeach; ?>
+        <td class="d fort"><?= $r['prix_cession'] !== null
+            ? $fmt($r['prix_cession']) . ' ' . e($r['devise']) : '<span class="tiret">·</span>' ?></td>
+        <?php foreach ([['encaissement',$ETATS_ENC],['versement',$ETATS_VER]] as [$col,$choix]): ?>
+        <td>
+          <form method="post" action="/dashboard.php?e=finances" class="inline">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="id"  value="<?= (int)$r['id'] ?>">
+            <input type="hidden" name="s"   value="<?= $saison ?>">
+            <input type="hidden" name="col" value="<?= $col ?>">
+            <select name="val" class="p-<?= e($r[$col]) ?>" onchange="this.form.submit()">
+              <?php foreach ($choix as $k => $v): ?>
+                <option value="<?= $k ?>"<?= $r[$col]===$k?' selected':'' ?>><?= e($v) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </form>
+        </td>
+        <?php endforeach; ?>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+    <tfoot><tr>
+      <td colspan="3"><strong>Total</strong></td>
+      <?php foreach (['cachet','booking','voyage','autres','a_nous'] as $k): ?>
+        <td class="d"><strong><?= $T[$k] ? $fmt($T[$k]) : '' ?></strong></td>
+      <?php endforeach; ?>
+      <td class="d"><strong><?= $fmt($T['prix']) ?></strong></td>
+      <td colspan="2"></td>
+    </tr></tfoot>
+  </table></div>
+
+  <?php $sansDetail = count(array_filter($releve, fn($r) => $r['n_lignes'] == 0)); ?>
+  <?php if ($sansDetail): ?>
+  <div class="alerte"><strong><?= $sansDetail ?> dates sur <?= count($releve) ?> n'ont
+    aucune ligne de détail.</strong> Elles apparaissent en gris et ne comptent dans
+    aucune colonne sauf le prix. Un relevé qui ne dit pas ce qu'il ignore ment par
+    omission.</div>
+  <?php endif; ?>
+
+  <div class="avis">
+    <h2>Deux états et pas un</h2>
+    <p><strong>Encaissement</strong> dit si le lieu a payé. <strong>Versement</strong> dit
+       si l'artiste a été payé. Les deux ne vont pas ensemble: une date peut être
+       encaissée sans que l'artiste soit payé, et c'est le cas normal pendant quelques
+       semaines. L'inverse arrive aussi, quand on avance le salaire avant que le lieu
+       ne règle, et c'est exactement le trou de trésorerie que la réserve doit couvrir.</p>
+    <p>Une seule colonne « payé » ne saurait pas dire lequel des deux.</p>
+  </div>
+</div>
+
+<style>
+.onglets{display:flex;gap:2px;padding:12px 26px 0;border-bottom:1px solid var(--trait)}
+.onglets a{padding:8px 15px;font-size:13.5px;text-decoration:none;
+  border-bottom:3px solid transparent;color:var(--doux)}
+.onglets a.ici{color:var(--encre);border-bottom-color:var(--jaune);font-weight:600}
+table.rel{font-size:13px}
+table.rel td.fort{font-weight:600}
+table.rel td.neg{color:var(--orange)}
+table.rel tr.nul td{opacity:.45}
+table.rel tfoot td{border-top:2px solid var(--encre);background:var(--fond2);padding-top:10px}
+.tiret{color:var(--trait)}
+form.inline{display:inline}
+table.rel select{font-size:12px;padding:2px 5px;border:1px solid var(--trait);
+  border-radius:3px;background:var(--papier);color:var(--encre)}
+table.rel select.p-recu,table.rel select.p-verse{background:#e7f6ea;border-color:#bfe3c8}
+table.rel select.p-partiel{background:#fff6d9;border-color:#f0dfa3}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) table.rel select{
+  background:var(--papier)!important}}
+</style>
+<?php dash_bas(); return; ?>
+<?php endif; ?>
 
 <div class="zone">
 
@@ -184,6 +330,10 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
 </div>
 
 <style>
+.onglets{display:flex;gap:2px;padding:12px 26px 0;border-bottom:1px solid var(--trait)}
+.onglets a{padding:8px 15px;font-size:13.5px;text-decoration:none;
+  border-bottom:3px solid transparent;color:var(--doux)}
+.onglets a.ici{color:var(--encre);border-bottom-color:var(--jaune);font-weight:600}
 h3.sect{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
   margin:30px 0 8px;border-bottom:1px solid var(--trait);padding-bottom:5px}
 h3.sect:first-child{margin-top:0}
