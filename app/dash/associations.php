@@ -387,8 +387,6 @@ $ms = (int)round((microtime(true) - $t0) * 1000);
 
 $parGenre = DB::pdo()->query("SELECT genre, COUNT(*) n FROM organisation
                                WHERE supprime_le IS NULL GROUP BY genre")->fetchAll(PDO::FETCH_KEY_PAIR);
-$doubles = (int)DB::pdo()->query("SELECT COUNT(*) FROM (SELECT nom FROM organisation
-     WHERE supprime_le IS NULL GROUP BY nom HAVING COUNT(DISTINCT genre) > 1) x")->fetchColumn();
 
 dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') . ' · ' . $ms . ' ms');
 ?>
@@ -408,11 +406,6 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 </form>
 <?php dash_flash_html(); ?>
 
-<?php if ($doubles): ?>
-<div class="alerte"><strong><?= $doubles ?> noms existent comme association ET comme artiste.</strong>
-  Ce n'est pas un doublon: chaque compagnie accompagnée a monté sa propre association, et les
-  deux fiches ne portent pas la même chose. Les rapprocher est une décision, pas un nettoyage.</div>
-<?php endif; ?>
 
 <?php if (!$lignes): ?><p class="vide">Aucune fiche.</p><?php else: ?>
 <div class="tw"><table>
@@ -433,9 +426,12 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
   <tbody>
   <?php foreach ($lignes as $r): ?>
     <tr>
-      <td><a href="/dashboard.php?e=associations&amp;o=<?= (int)$r['id'] ?>"><?= e($r['nom']) ?></a>
-        <?php if ($r['nom_legal'] && $r['nom_legal'] !== $r['nom']): ?>
-          <div class="sec"><?= e($r['nom_legal']) ?></div><?php endif; ?></td>
+      <?php /* Le nom légal ne suit plus le nom. [16.08.2026] Anna: « esta doublon
+           os noms das assos, deixa so com o lien, o nome em baixo nao serve para
+           nada ». « CRILE » et « Association CRILE » sur deux lignes disent la
+           même chose et doublent la hauteur de chaque ligne. Le nom légal reste
+           dans la fiche, où il sert — sur un contrat. */ ?>
+      <td><a href="/dashboard.php?e=associations&amp;o=<?= (int)$r['id'] ?>"><?= e($r['nom']) ?></a></td>
       <td class="sec"><?= e($r['direction'] ?? '') ?></td>
       <?php /* Le pays ne suit que s'il n'est pas suisse: quinze lignes qui
            répètent « Suisse » cachent les deux qui ne le sont pas. */ ?>
