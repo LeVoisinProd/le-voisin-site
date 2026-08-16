@@ -211,10 +211,35 @@ if ($id > 0) {
 
     /* Les dates de cette organisation. C'est ce qui fait qu'une fiche sert:
        elle relie l'entité à ce qu'elle a joué. */
-    $st = DB::pdo()->prepare("SELECT * FROM booking WHERE supprime_le IS NULL
-                               AND (artiste = ? OR projet = ?) ORDER BY date_debut DESC LIMIT 12");
-    $st->execute([$o['nom'], $o['nom']]);
+    /* ── LES DATES DE L'ASSOCIATION, PAR LE VRAI LIEN ───────────────────────
+       [16.08.2026] Elle les cherchait en comparant des NOMS: `artiste = 'X' OR
+       projet = 'X'`. Ça marchait par accident pour Encontro, dont l'association
+       et l'artiste portent le même nom, et ne trouvait RIEN pour Gran
+       Chicornia, dont les dates disent « Annina Mosimann ».
+
+       Le lien existe depuis ce matin: `projet_prod.organisation_id` dit quelle
+       association porte quelle pièce, et `booking.projet` porte le titre de la
+       pièce. On passe donc par là. Une coïncidence de noms n'est pas un lien,
+       et surtout: son absence n'est pas l'absence de dates.
+
+       Le compte total est séparé de la liste — on n'affiche que douze, et dire
+       « 12 » quand il y en a trente cacherait les dix-huit autres. */
+    $st = DB::pdo()->prepare(
+        "SELECT b.* FROM booking b
+           JOIN projects p     ON p.title_fr = b.projet
+           JOIN projet_prod pp ON pp.project_id = p.id
+          WHERE b.supprime_le IS NULL AND pp.organisation_id = ?
+          ORDER BY b.date_debut DESC LIMIT 12");
+    $st->execute([$id]);
     $dates = $st->fetchAll();
+
+    $st = DB::pdo()->prepare(
+        "SELECT COUNT(*) FROM booking b
+           JOIN projects p     ON p.title_fr = b.projet
+           JOIN projet_prod pp ON pp.project_id = p.id
+          WHERE b.supprime_le IS NULL AND pp.organisation_id = ?");
+    $st->execute([$id]);
+    $datesN = (int)$st->fetchColumn();
 
     /* La même entité vue par l'autre bout: association et artiste à la fois. */
     $st = DB::pdo()->prepare('SELECT id, genre, source FROM organisation
@@ -277,7 +302,8 @@ if ($id > 0) {
       <?php if ($o['notes']): ?>
         <div class="bl"><h3>Notes</h3><p><?= nl2br(e($o['notes'])) ?></p></div><?php endif; ?>
 
-      <h3 class="sect">Dates <span class="n"><?= count($dates) ?><?= count($dates) === 12 ? ' dernières' : '' ?></span></h3>
+      <h3 class="sect">Dates <span class="n"><?= $datesN ?></span><?php
+        if ($datesN > count($dates)): ?> <span class="sec">les <?= count($dates) ?> dernières</span><?php endif; ?></h3>
       <?php if (!$dates): ?>
         <p class="sec">Aucune date rattachée. Le rapprochement se fait sur le nom:
            si les dates portent une autre orthographe, elles n'apparaissent pas ici.</p>

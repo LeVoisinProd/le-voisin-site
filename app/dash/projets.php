@@ -223,8 +223,20 @@ $ms = (int)round((microtime(true) - $t0) * 1000);
 
 $parPhase = DB::pdo()->query("SELECT phase, COUNT(*) n FROM projet_prod GROUP BY phase")
                      ->fetchAll(PDO::FETCH_KEY_PAIR);
-$sansProd = (int)DB::pdo()->query("SELECT COUNT(*) FROM projects pr
-    LEFT JOIN projet_prod pp ON pp.project_id = pr.id WHERE pp.project_id IS NULL")->fetchColumn();
+/* ── L'AVERTISSEMENT « n projets sans couche production » EST RETIRÉ ────────
+   [16.08.2026] Anna: « mais uma vez estamos preparando o site essa msg nao tem
+   porque ». C'est la même règle qu'elle a déjà donnée deux fois aujourd'hui:
+   on construit la base, et un champ vide n'est pas un défaut à signaler.
+
+   Une fiche de production se crée toute seule à la première ouverture —
+   `ProdFiche::ligne()` l'insère — donc « n'a pas de couche production » veut
+   seulement dire « personne n'a encore ouvert cette fiche ». Le dire en rouge
+   en haut de l'écran transforme un état normal de chantier en reproche
+   quotidien, et un reproche quotidien qu'on ne peut pas faire taire finit par
+   couvrir les vrais.
+
+   La requête part avec le bloc: elle tournait à chaque ouverture pour un
+   affichage qui n'existe plus. */
 
 dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' · ' . $ms . ' ms');
 ?>
@@ -256,11 +268,6 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
 </form>
 <?php dash_flash_html(); ?>
 
-<?php if ($sansProd): ?>
-<div class="alerte"><strong><?= $sansProd ?> projets n'ont pas de couche production.</strong>
-  Ils existent sur le site et personne n'a encore dit qui les porte, à quelle phase ils
-  sont, ni quel budget. Ouvrir la fiche et cliquer sur « modifier la production » suffit.</div>
-<?php endif; ?>
 
 <div class="tw"><table>
   <thead><tr><th>Projet</th><th>Type</th><th>Phase</th><th>Porteur</th>
