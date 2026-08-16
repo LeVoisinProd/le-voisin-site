@@ -41,10 +41,44 @@ final class Traduction
     /** Le temps qu'on accepte d'attendre, par appel. */
     private const DELAI = 25;
 
+    /**
+     * Les clefs sont CHIFFRÉES au repos, contrairement aux autres secrets de
+     * `settings`. [16.08.2026]
+     *
+     * Relevé le même jour: `smtp_pass`, `skribble_api_key` et
+     * `catalogue_password` y sont en clair. Ce n'est pas une raison d'en
+     * ajouter une quatrième — c'est une raison de commencer par celle qu'on
+     * écrit aujourd'hui. Un dump de cette base est du matériel sensible, la
+     * journée entière l'a montré: une clef d'API qui part dans une sauvegarde
+     * se dépense chez quelqu'un d'autre, et rien ne le signale.
+     *
+     * `Crypto::` est celui des fiches de collaborateur, avec la même clef
+     * dérivée du `secret` du `config.php`. Une valeur écrite avant ce
+     * changement reste lisible: on la rend telle quelle si elle ne porte pas le
+     * préfixe. C'est la même migration silencieuse que pour les fiches, et elle
+     * se termine dès que la clef est ressaisie une fois.
+     */
+    private static function cle(string $nom): string
+    {
+        $v = trim(setting($nom));
+        if ($v === '') return '';
+        if (!str_starts_with($v, 'sb1:')) return $v;      // écrite avant le chiffrement
+        $clair = Crypto::dechiffrer($v);
+        return $clair === null ? '' : trim($clair);
+    }
+
+    /** Range une clef, chiffrée. Une chaîne vide efface. */
+    public static function poserCle(string $nom, string $valeur): void
+    {
+        if (!in_array($nom, ['deepl_key', 'anthropic_key'], true)) return;
+        $valeur = trim($valeur);
+        Settings::set($nom, $valeur === '' ? '' : Crypto::chiffrer($valeur));
+    }
+
     public static function moteur(): string
     {
-        if (trim(setting('deepl_key')) !== '')     return 'deepl';
-        if (trim(setting('anthropic_key')) !== '') return 'anthropic';
+        if (self::cle('deepl_key') !== '')     return 'deepl';
+        if (self::cle('anthropic_key') !== '') return 'anthropic';
         return '';
     }
 
@@ -160,7 +194,7 @@ final class Traduction
     /** DeepL accepte plusieurs textes par requête et les rend dans l'ordre. */
     private static function deeplLot(array $textes, string $vers, string $de): array
     {
-        $cle  = trim(setting('deepl_key'));
+        $cle  = self::cle('deepl_key');
         $hote = str_ends_with($cle, ':fx') ? 'api-free.deepl.com' : 'api.deepl.com';
         [$code, $corps] = self::http("https://$hote/v2/translate", [
             'Authorization: DeepL-Auth-Key ' . $cle,
@@ -230,7 +264,7 @@ final class Traduction
             "comment, preamble, numbering or quotation marks.";
 
         [$code, $rep] = self::http('https://api.anthropic.com/v1/messages', [
-            'x-api-key: ' . trim(setting('anthropic_key')),
+            'x-api-key: ' . self::cle('anthropic_key'),
             'anthropic-version: 2023-06-01',
             'Content-Type: application/json',
         ], json_encode([
@@ -302,7 +336,7 @@ final class Traduction
 
     private static function deepl(string $texte, string $vers, string $de): ?string
     {
-        $cle = trim(setting('deepl_key'));
+        $cle = self::cle('deepl_key');
         /* Les clefs gratuites finissent par « :fx » et vivent sur un autre
            domaine. Se tromper de domaine donne un 403 qui ressemble à une clef
            invalide, et l'on cherche au mauvais endroit. */
@@ -339,7 +373,7 @@ final class Traduction
             "preamble or quotation marks. Output the translation and nothing else.";
 
         [$code, $corps] = self::http('https://api.anthropic.com/v1/messages', [
-            'x-api-key: ' . trim(setting('anthropic_key')),
+            'x-api-key: ' . self::cle('anthropic_key'),
             'anthropic-version: 2023-06-01',
             'Content-Type: application/json',
         ], json_encode([

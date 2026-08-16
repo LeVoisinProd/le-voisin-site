@@ -54,9 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        la même raison: sinon un enregistrement distrait coupe le service. */
     if (($_POST['act'] ?? '') === 'traduction') {
         foreach (['deepl_key', 'anthropic_key'] as $k) {
-            if (($_POST['vider_' . $k] ?? '') === '1') { Settings::set($k, ''); continue; }
+            /* `Traduction::poserCle` chiffre. On ne passe plus par
+               `Settings::set` en direct: la clef ne doit jamais toucher la base
+               en clair, même le temps d'un enregistrement raté. */
+            if (($_POST['vider_' . $k] ?? '') === '1') { Traduction::poserCle($k, ''); continue; }
             $v = trim((string)($_POST[$k] ?? ''));
-            if ($v !== '') Settings::set($k, $v);
+            if ($v !== '') Traduction::poserCle($k, $v);
         }
         Settings::set('anthropic_model', trim((string)($_POST['anthropic_model'] ?? '')));
         dash_flash(Traduction::configured()
