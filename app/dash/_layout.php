@@ -57,8 +57,16 @@ a { color:inherit; }
 @media (max-width:820px) { .enveloppe { grid-template-columns:1fr; } }
 
 aside { background:var(--barre); color:#e8e8e8; padding:18px 0 40px; }
-aside .marque { padding:0 18px 18px; font-size:14px; font-weight:600; letter-spacing:.02em; }
-aside .marque span { color:var(--jaune); }
+aside .marque { display:block; padding:2px 18px 20px; font-size:14px; font-weight:600;
+        letter-spacing:.02em; text-decoration:none; color:#e8e8e8; border-left:0; }
+aside .marque img { display:block; width:100%; max-width:132px; height:auto; }
+/* Le logo est noir sur fond clair: sur le rail sombre il faut l'inverser.
+   Ce n'est pas un choix esthétique, sans cela il disparaît. */
+aside .marque img { filter:invert(1) brightness(1.9); }
+@media (max-width:820px) {
+  aside .marque { padding:4px 12px 8px; }
+  aside .marque img { max-width:92px; }
+}
 aside .groupe { padding:16px 18px 5px; font-size:10.5px; text-transform:uppercase;
         letter-spacing:.09em; color:#8a8a8a; }
 aside a, aside span.mort { display:block; padding:6px 18px; font-size:13.5px;
@@ -126,7 +134,24 @@ nav.pages .mut { border:0; color:var(--doux); }
 <div class="enveloppe">
 
 <aside>
-  <div class="marque">LE <span>VOISIN</span></div>
+  <a class="marque" href="/dashboard.php" aria-label="Le Voisin">
+    <?php
+    /* Le vrai logo, et la même cascade que le site public: d'abord celui posé
+       dans les réglages du CMS, sinon le fichier livré avec le code, et le
+       texte seulement si les deux manquent. Une seule source pour les deux
+       côtés: changer le logo dans les réglages le change ici aussi. */
+    $logoId  = (int)setting('logo_image_id', '0');
+    $logoImg = $logoId ? Img::row($logoId) : null;
+    if ($logoImg) {
+        printf('<img src="%s" alt="Le Voisin">',
+               e(upload_url('i/' . $logoImg['id'] . '/orig.' . $logoImg['ext'])));
+    } elseif (is_file(LV_ROOT . '/assets/img/logo-levoisin.png')) {
+        printf('<img src="%s" alt="Le Voisin">', e(url('/assets/img/logo-levoisin.png')));
+    } else {
+        echo 'LE&nbsp;VOISIN';
+    }
+    ?>
+  </a>
   <div class="rail">
   <?php
   $branche = dash_parent($ecranActif);
