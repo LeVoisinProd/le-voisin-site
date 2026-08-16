@@ -37,6 +37,20 @@
  */
 declare(strict_types=1);
 
+/**
+ * EN LIGNE DE COMMANDE, ET NULLE PART AILLEURS. [ajouté le 16.08.2026]
+ *
+ * db/ porte désormais son propre .htaccess qui refuse tout, et cela devrait
+ * suffire. Cette garde est la deuxième serrure: un .htaccess se perd lors
+ * d'une copie, d'un déploiement partiel ou d'un changement d'hébergeur, et ce
+ * fichier-ci applique des migrations de schéma. Il ne doit jamais être
+ * joignable par une requête HTTP, pas même une fois.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 require __DIR__ . '/../app/bootstrap.php';
 
 const DOSSIER = __DIR__ . '/migrations';
