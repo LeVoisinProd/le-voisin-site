@@ -1,0 +1,24 @@
+# install/ ne se sert jamais par le web. [16.08.2026]
+#
+# POURQUOI CE FICHIER EXISTE, ET IL A UNE HISTOIRE. Le 16.08.2026 on a trouvé
+# une copie complète du site déballée par erreur dans la racine web, et son
+# install/index.php répondait 200 sur le site public. Il s'arrêtait aux
+# prérequis et n'offrait pas de formulaire — mais un installateur de CMS
+# joignable depuis l'extérieur n'a aucune raison d'exister, et il devient une
+# vraie porte le jour où les permissions changent.
+#
+# Le dossier est versionné parce qu'il porte schema.sql, le schéma d'origine
+# des 19 tables du CMS. migrer.php dit dans son en-tête que ce schéma
+# « n'existait nulle part »: il existait, dans cette copie perdue. Le perdre
+# pour de bon aurait voulu dire ne plus pouvoir recréer la base de zéro.
+#
+# CE DOSSIER NE DOIT PAS PARTIR DANS UN PAQUET. Cette règle est la deuxième
+# serrure, pour le jour où quelqu'un l'y mettra quand même.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
