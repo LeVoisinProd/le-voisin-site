@@ -128,12 +128,117 @@ $releve = DB::all(
         AND b.statut <> 'canceled'
       GROUP BY b.id ORDER BY b.date_debut", [$debut, $fin]);
 
+/* LE RELEVÉ IMPRIMABLE.                                    [16.08.2026]
+ *
+ * POURQUOI CE N'EST PAS UN PDF PRODUIT PAR LE SERVEUR. Le site n'a aucune
+ * bibliothèque de génération — vérifié ce jour: ni FPDF, ni TCPDF, ni Dompdf —
+ * et en ajouter une pour un tableau coûterait cher pour ce que ça rend. Le
+ * navigateur, lui, sait déjà faire un PDF d'une page: « Imprimer », puis
+ * « Enregistrer au format PDF ». Le résultat est un vrai PDF, sélectionnable et
+ * cherchable, ce qu'une image ne serait pas.
+ *
+ * CE QUE ÇA COÛTE, ET IL FAUT LE DIRE: il reste deux clics à faire, et le pied
+ * de page porte ce que le navigateur y met. Le jour où un relevé devra partir
+ * par e-mail sans intervention — un envoi automatique à un artiste — il faudra
+ * une vraie bibliothèque. Aujourd'hui le besoin est « je veux ce tableau en PDF
+ * pour l'attacher », et cela y répond.
+ *
+ * LA PAGE EST NUE: ni menu, ni onglets, ni liens. Une feuille imprimée n'a que
+ * faire d'une navigation, et les liens ressortiraient soulignés sur du papier.
+ */
+if ($vue === 'releve' && ($_GET['imprimer'] ?? '') === '1'):
+    $T = ['cachet'=>0.0,'booking'=>0.0,'voyage'=>0.0,'autres'=>0.0,'a_nous'=>0.0,'prix'=>0.0];
+    foreach ($releve as $r) {
+        foreach (['cachet','booking','voyage','autres','a_nous'] as $k) $T[$k] += (float)$r[$k];
+        $T['prix'] += (float)$r['prix_cession'];
+    }
+    $sansDetail = count(array_filter($releve, fn($r) => $r['n_lignes'] == 0));
+?><!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<title>Relevé <?= $saison ?>-<?= $saison + 1 ?> — Le Voisin</title>
+<style>
+  body{margin:0;padding:22px;background:#fff;color:#111;
+    font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+  h1{font-size:18px;margin:0 0 2px}
+  .st{color:#666;font-size:12px;margin:0 0 16px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:5px 7px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#555;
+    border-bottom:1.5px solid #111}
+  td.d,th.d{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .sec{color:#777;font-size:10.5px}
+  tfoot td{border-top:1.5px solid #111;border-bottom:0;font-weight:700;padding-top:8px}
+  .note{margin-top:14px;font-size:10.5px;color:#555;max-width:120ch}
+  .imp{margin:0 0 16px;padding:8px 12px;background:#f3f3f1;font-size:12px}
+  @media print{ .imp{display:none} body{padding:0} @page{size:landscape;margin:12mm} }
+</style>
+</head><body>
+<p class="imp">Faites « Imprimer », puis choisissez « Enregistrer au format PDF ».
+   Ce bandeau ne s'imprime pas.</p>
+
+<h1>Relevé de saison <?= $saison ?>–<?= $saison + 1 ?></h1>
+<p class="st">Le Voisin · <?= count($releve) ?> date<?= count($releve) > 1 ? 's' : '' ?> ·
+   établi le <?= date('d.m.Y') ?></p>
+
+<table>
+  <thead><tr>
+    <th>Date</th><th>Projet</th><th>Lieu</th>
+    <th class="d">Cachets</th><th class="d">Frais booking</th><th class="d">Voyage</th>
+    <th class="d">Autres</th><th class="d">À notre charge</th>
+    <th class="d">Prix de cession</th><th>Encaissement</th><th>Versement</th>
+  </tr></thead>
+  <tbody>
+  <?php foreach ($releve as $r): ?>
+    <tr>
+      <td><?= e($r['date_texte'] ?: (string)$r['date_debut']) ?></td>
+      <td><?= e($r['projet'] ?? '') ?><?php if ($r['artiste']): ?><div class="sec"><?= e($r['artiste']) ?></div><?php endif; ?></td>
+      <td><?= e($r['venue'] ?? '') ?><?php if ($r['ville']): ?><div class="sec"><?= e($r['ville']) ?></div><?php endif; ?></td>
+      <?php foreach (['cachet','booking','voyage','autres','a_nous'] as $k): ?>
+        <td class="d"><?= (float)$r[$k] ? $fmt($r[$k]) : '·' ?></td>
+      <?php endforeach; ?>
+      <td class="d"><?= $r['prix_cession'] !== null ? $fmt($r['prix_cession']) . ' ' . e($r['devise']) : '·' ?></td>
+      <td class="sec"><?= e((string)($r['encaissement'] ?? '')) ?></td>
+      <td class="sec"><?= e((string)($r['versement'] ?? '')) ?></td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+  <tfoot><tr>
+    <td colspan="3">Total</td>
+    <?php foreach (['cachet','booking','voyage','autres','a_nous'] as $k): ?>
+      <td class="d"><?= $fmt($T[$k]) ?></td>
+    <?php endforeach; ?>
+    <td class="d"><?= $fmt($T['prix']) ?></td><td></td><td></td>
+  </tr></tfoot>
+</table>
+
+<?php if ($sansDetail): ?>
+  <p class="note"><strong><?= $sansDetail ?></strong> date<?= $sansDetail > 1 ? 's' : '' ?>
+     sur <?= count($releve) ?> n'<?= $sansDetail > 1 ? 'ont' : 'a' ?> aucune ligne de deal:
+     pour <?= $sansDetail > 1 ? 'celles-là' : 'celle-là' ?> les colonnes de détail sont vides,
+     et seul le prix est connu. Un relevé qui ne dit pas ce qu'il ignore ment par omission.</p>
+<?php endif; ?>
+
+<p class="note">Un prix de cession est encaissé par l'association productrice et non par
+   Le Voisin CH: la somme ci-dessus n'est pas le chiffre d'affaires du bureau. Et une somme
+   de prix n'est pas un résultat — il y manque les charges.</p>
+
+</body></html>
+<?php
+    exit;
+endif;
+
 dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count($lignes) . ' dates');
 ?>
 <div class="onglets">
   <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>" class="<?= $vue==='apercu'?'ici':'' ?>">Aperçu</a>
   <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>&amp;v=releve" class="<?= $vue==='releve'?'ici':'' ?>">Relevé</a>
+  <?php if ($vue === 'releve'): ?>
+    <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>&amp;v=releve&amp;imprimer=1"
+       target="_blank" rel="noopener" class="pdfl">Version imprimable</a>
+  <?php endif; ?>
 </div>
+<style>.onglets a.pdfl{margin-left:auto;color:var(--doux)}</style>
 <form class="filtres" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="finances">
   <select name="s" onchange="this.form.submit()">
