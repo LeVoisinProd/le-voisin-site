@@ -56,6 +56,12 @@ const DASH_ECRANS = [
     // se répète d'un show à l'autre, modèles de contrat et de deal compris.
     'associations' => ['Associations', 'ok', []],
 
+    /* Entre les associations et l'administration, parce que c'est la chaîne
+       réelle: une association emploie des gens, et employer des gens fabrique
+       les obligations de l'écran suivant — AVS, impôt à la source, A1.
+       [17.08.2026] */
+    'personnel'    => ['Personnel', 'ok', []],
+
     'administration' => ['Administration', 'ok', []],
 
     'documentation'  => ['Documentation', 'ok', []],
@@ -116,6 +122,12 @@ const DASH_ACCES = [
     // L'argent se lit par la production, pour chiffrer une date sans avoir à
     // demander. Il ne s'écrit que par la direction.
     'finances'       => ['direction'=>'ecrit', 'production'=>'lit'],
+
+    // 42 numéros AVS et 40 IBAN sur un seul écran. C'est LA raison d'être de
+    // toute cette grille, plus encore qu'Administration: là il s'agit de
+    // déclarations, ici de l'identité et du compte en banque de 91 personnes.
+    // Aucun rôle sauf `direction`, et pas de ligne 'lecture' même en lecture.
+    'personnel'      => ['direction'=>'ecrit'],
 
     // AVS, impôt à la source, salaires des treize associations. C'est la
     // raison d'être de toute cette grille.
