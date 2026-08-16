@@ -30,6 +30,11 @@ declare(strict_types=1);
 
 require __DIR__ . '/../app/bootstrap.php';
 
+/* CE QUE CETTE CONSTANTE FAIT, ET CE QU'ELLE NE FAIT PAS. Elle ne pilote que
+   le message de fin: « voici les colonnes du dashboard qu'on ne reprend pas ».
+   La reprise, elle, est pilotée par $colonnes plus bas — et le 16.08.2026 on
+   a corrigé celle-ci en croyant corriger la reprise. `pronom` et `adresse2`
+   sont restés perdus un tour de plus. Les deux listes doivent s'accorder. */
 const IGNORE = ['instagram', 'linkedin'];
 
 $source = $argv[1] ?? '';
@@ -44,8 +49,8 @@ if (!is_array($fiches)) {
     exit(1);
 }
 
-$colonnes = ['ref', 'nom', 'prenom', 'nom_famille', 'fonction', 'structure', 'categorie',
-             'ville_struct', 'pays_struct', 'region', 'adresse', 'cp', 'ville', 'dept', 'pays',
+$colonnes = ['ref', 'nom', 'prenom', 'nom_famille', 'pronom', 'fonction', 'structure', 'categorie',
+             'ville_struct', 'pays_struct', 'region', 'adresse', 'adresse2', 'cp', 'ville', 'dept', 'pays',
              'email1', 'email2', 'email_pro1', 'tel1', 'tel_pro1', 'site',
              'mots_cles', 'description', 'participations', 'photo', 'date_mois',
              'date_notes', 'notes'];
