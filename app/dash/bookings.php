@@ -73,12 +73,62 @@ if ($dl > 0) {
     exit;
 }
 
+/* TÉLÉCHARGER UN FICHIER DÉPOSÉ PAR LE LIEU. Même parti que les contrats:
+   uploads/private/ n'est pas servi par Apache, et le rôle est déjà vérifié à
+   la porte. Le champ doit appartenir à CE booking. */
+$adl = (int)($_GET['adl'] ?? 0);
+if ($adl > 0) {
+    $c = Advancing::champ($adl);
+    if (!$c || (int)$c['booking_id'] !== $id || !$c['fichier']) { http_response_code(404); exit('Introuvable'); }
+    $f = Advancing::dossier($adl) . '/' . $c['fichier'];
+    if (!is_file($f)) { http_response_code(404); exit('Fichier introuvable'); }
+
+    /* Téléchargement forcé et jamais rendu dans la page: un SVG déposé par un
+       tiers peut porter du script, et l'afficher en ligne l'exécuterait dans
+       notre domaine. */
+    header('Content-Type: application/octet-stream');
+    header('Content-Length: ' . filesize($f));
+    header('Content-Disposition: attachment; filename="' . basename($f) . '"');
+    header('X-Content-Type-Options: nosniff');
+    readfile($f);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
     /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
        l'écran: `production` lit les Finances sans les modifier. Le routeur
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('bookings');
+
+    /* L'advancing: la liste, les états, et le lien remis au lieu. */
+    $actA = (string)($_POST['adv'] ?? '');
+    if ($actA !== '' && $id > 0) {
+        if ($actA === 'ajouter' && trim((string)($_POST['libelle'] ?? '')) !== '') {
+            Advancing::ajouter($id, $_POST);
+            dash_flash('Élément ajouté.');
+
+        } elseif ($actA === 'etat') {
+            /* Valider est un geste d'ici et jamais du portail: Advancing::etat()
+               est la seule voie vers « accepte », et le portail ne l'appelle
+               pas. Recevoir n'est pas valider. */
+            Advancing::etat((int)($_POST['champ'] ?? 0), $id, (string)($_POST['etat'] ?? ''));
+            dash_flash('État changé.');
+
+        } elseif ($actA === 'supprimer') {
+            Advancing::supprimer((int)($_POST['champ'] ?? 0), $id);
+            dash_flash('Élément supprimé.');
+
+        } elseif ($actA === 'ouvrir') {
+            $l = Advancing::ouvrirLien($id, (string)($_POST['destinataire'] ?? ''));
+            dash_flash('Lien ouvert. Il expire dans ' . Advancing::JOURS . ' jours.');
+
+        } elseif ($actA === 'revoquer') {
+            Advancing::revoquer($id);
+            dash_flash('Lien révoqué. Le lieu ne peut plus répondre.');
+        }
+        redirect('/dashboard.php?e=bookings&b=' . $id . '&o=advancing');
+    }
 
     /* Le voyage: ajouter, supprimer. Même parti que les lignes de deal. */
     $actV = (string)($_POST['voyage'] ?? '');
@@ -494,6 +544,178 @@ if ($id > 0) {
       .pt{margin-top:8px;font-size:12.5px;max-width:70ch}
       </style>
 
+    <?php elseif ($ong === 'advancing'): ?>
+      <?php
+      /* ADVANCING. [16.08.2026]
+
+         LE POINT N'EST PAS LE FORMULAIRE, C'EST L'ÉTAT PAR CHAMP. Un plan de
+         feu REÇU n'est pas un plan de feu ACCEPTÉ, et c'est exactement là que
+         les tournées se cassent. Le portail ne peut donc jamais faire monter
+         un champ au-delà de « reçu »: valider est un geste d'ici.
+
+         L'écran s'ouvre sur ce qui manque, pas sur la liste complète: la
+         question qu'on se pose en ouvrant cet onglet est « qu'est-ce qui
+         bloque », pas « qu'est-ce que j'avais demandé ». */
+      $champs     = Advancing::champs($id);
+      $av         = Advancing::avancement($id);
+      $lien       = Advancing::lien($id);
+      $peutEcrire = dash_droit('bookings', dash_role()) === 'ecrit';
+
+      $sections = [];
+      foreach ($champs as $c) $sections[(string)($c['section'] ?? '')][] = $c;
+
+      $urlPortail = $lien && !(int)$lien['revoque']
+          ? rtrim((string)cfg('base_url', ''), '/') . '/advancing.php?t=' . $lien['jeton'] : '';
+      ?>
+
+      <?php if ($champs): ?>
+        <div class="rap <?= $av['manquants_obligatoires'] > 0 ? 'ecart' : 'ok' ?>">
+          <strong><?= $av['accepte'] ?></strong> accepté<?= $av['accepte'] > 1 ? 's' : '' ?>,
+          <strong><?= $av['recu'] ?></strong> reçu<?= $av['recu'] > 1 ? 's' : '' ?> à valider,
+          <strong><?= $av['demande'] ?></strong> en attente<?php if ($av['refuse']): ?>,
+          <strong><?= $av['refuse'] ?></strong> à refaire<?php endif; ?>.
+          <?php if ($av['manquants_obligatoires'] > 0): ?>
+            Il manque <strong><?= $av['manquants_obligatoires'] ?></strong> élément<?= $av['manquants_obligatoires'] > 1 ? 's' : '' ?>
+            marqué<?= $av['manquants_obligatoires'] > 1 ? 's' : '' ?> nécessaire<?= $av['manquants_obligatoires'] > 1 ? 's' : '' ?>.
+          <?php else: ?>Rien de nécessaire ne manque.<?php endif; ?>
+        </div>
+      <?php endif; ?>
+
+      <?php /* Le lien remis au lieu, en tête: c'est la première chose qu'on
+               vient chercher ici quand on prépare une date. */ ?>
+      <div class="lienbox">
+        <?php if ($urlPortail): ?>
+          <div class="glab">Lien remis au lieu</div>
+          <input type="text" class="url" value="<?= e($urlPortail) ?>" readonly
+                 onclick="this.select()" aria-label="Lien du portail">
+          <p class="sec pt">
+            <?php if ($lien['destinataire']): ?>Remis à <strong><?= e((string)$lien['destinataire']) ?></strong>. <?php endif; ?>
+            <?= (int)$lien['visites'] ?> visite<?= (int)$lien['visites'] > 1 ? 's' : '' ?><?php
+              if ($lien['dernier_acces']): ?>, la dernière le <?= e(date('d.m.Y à H:i', strtotime((string)$lien['dernier_acces']))) ?><?php endif; ?>.
+            <?php if ($lien['expire_a']): ?> Expire le <?= e(date('d.m.Y', strtotime((string)$lien['expire_a']))) ?>.<?php endif; ?>
+          </p>
+          <?php if ($peutEcrire): ?>
+            <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=advancing" class="inline"
+                  onsubmit="return confirm('Révoquer ce lien ? Le lieu ne pourra plus répondre.')">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="adv" value="revoquer">
+              <button type="submit" class="lien-b">révoquer</button>
+            </form>
+            <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=advancing" class="inline"
+                  onsubmit="return confirm('Ouvrir un nouveau lien ? L\'ancien cessera de fonctionner.')">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="adv" value="ouvrir">
+              <button type="submit" class="lien-b">en ouvrir un nouveau</button>
+            </form>
+          <?php endif; ?>
+        <?php elseif ($peutEcrire): ?>
+          <div class="glab">Aucun lien ouvert</div>
+          <p class="sec">Le lieu répond depuis une page qui ne demande ni compte ni mot de passe.
+             Le lien ne vaut que pour cette date, et ne donne accès ni au prix, ni au deal,
+             ni aux notes internes.</p>
+          <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=advancing" class="ajl">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="adv" value="ouvrir">
+            <input type="text" name="destinataire" placeholder="À qui on le remet (facultatif)" size="26">
+            <button type="submit">ouvrir le lien</button>
+          </form>
+        <?php else: ?>
+          <div class="glab">Aucun lien ouvert</div>
+        <?php endif; ?>
+      </div>
+
+      <?php if ($champs): ?>
+        <?php foreach ($sections as $nomSec => $liste): ?>
+          <?php if ($nomSec !== ''): ?><div class="glab sec-t"><?= e($nomSec) ?></div><?php endif; ?>
+          <div class="tbl"><table>
+            <thead><tr><th>Élément</th><th>Réponse</th><th>État</th><th></th></tr></thead>
+            <tbody>
+            <?php foreach ($liste as $c): $cid = (int)$c['id']; ?>
+              <tr>
+                <td>
+                  <?= e((string)$c['libelle']) ?>
+                  <?php if ((int)$c['obligatoire'] === 1): ?><span class="ob" title="nécessaire">·</span><?php endif; ?>
+                  <br><span class="pt"><?= e(Advancing::TYPES[$c['type']] ?? $c['type']) ?></span>
+                  <?php if ($c['note_interne']): ?>
+                    <br><span class="pt ni">interne : <?= e((string)$c['note_interne']) ?></span>
+                  <?php endif; ?>
+                </td>
+                <td class="sec">
+                  <?php if ($c['type'] === 'fichier' && $c['fichier']): ?>
+                    <a href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=advancing&amp;adl=<?= $cid ?>"><?= e((string)$c['fichier']) ?></a>
+                  <?php elseif (trim((string)($c['reponse'] ?? '')) !== ''): ?>
+                    <?= nl2br(e(mb_substr((string)$c['reponse'], 0, 400))) ?>
+                  <?php else: ?><span class="pt">—</span><?php endif; ?>
+                  <?php if ($c['repondu_a']): ?>
+                    <br><span class="pt">le <?= e(date('d.m.Y', strtotime((string)$c['repondu_a']))) ?></span>
+                  <?php endif; ?>
+                </td>
+                <td><span class="et et-a<?= e($c['etat']) ?>"><?= e(Advancing::ETATS[$c['etat']]) ?></span></td>
+                <td class="d">
+                  <?php if ($peutEcrire): ?>
+                    <?php if ($c['etat'] === 'recu'): ?>
+                      <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=advancing" class="inline">
+                        <?= Auth::csrfField() ?>
+                        <input type="hidden" name="adv" value="etat">
+                        <input type="hidden" name="champ" value="<?= $cid ?>">
+                        <button type="submit" name="etat" value="accepte" class="lien-b">valider</button>
+                        <button type="submit" name="etat" value="refuse"  class="lien-b">à refaire</button>
+                      </form>
+                    <?php endif; ?>
+                    <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=advancing" class="inline"
+                          onsubmit="return confirm('Supprimer cet élément ?')">
+                      <?= Auth::csrfField() ?>
+                      <input type="hidden" name="adv" value="supprimer">
+                      <input type="hidden" name="champ" value="<?= $cid ?>">
+                      <button type="submit" class="x">×</button>
+                    </form>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table></div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <p class="sec">Rien de demandé pour l'instant. Chaque élément ajouté ici apparaît
+           sur la page du lieu, dans l'ordre choisi.</p>
+      <?php endif; ?>
+
+      <?php if ($peutEcrire): ?>
+      <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=advancing" class="ajl">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="adv" value="ajouter">
+        <input type="text" name="section" placeholder="Section" size="12">
+        <input type="text" name="libelle" placeholder="Ce qu'on demande" required>
+        <select name="type"><?php foreach (Advancing::TYPES as $k=>$v): ?>
+          <option value="<?= $k ?>"><?= e($v) ?></option><?php endforeach; ?></select>
+        <input type="text" name="ordre" value="100" size="3" title="Ordre">
+        <label class="ck"><input type="checkbox" name="obligatoire" value="1"> nécessaire</label>
+        <input type="text" name="consigne" placeholder="Consigne visible par le lieu" size="24">
+        <button type="submit">ajouter</button>
+      </form>
+      <p class="sec pt">La consigne part avec la demande. La note interne, elle, ne quitte
+         jamais cet écran — c'est là que va « prévoir large, ils sont toujours en retard ».</p>
+      <?php endif; ?>
+
+      <style>
+      .lienbox{border:1px solid var(--trait);border-radius:6px;padding:15px 18px;margin-bottom:22px}
+      .lienbox .url{width:100%;padding:8px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+        font-size:12.5px;border:1px solid var(--trait);border-radius:4px;
+        background:var(--fond2);color:var(--encre)}
+      .lien-b{background:none;border:0;color:var(--doux);text-decoration:underline;
+        cursor:pointer;font:inherit;font-size:12.5px;padding:2px 6px}
+      .lien-b:hover{color:var(--encre)}
+      .sec-t{margin-top:22px}
+      .ob{color:#e2653a;font-weight:700}
+      .pt.ni{color:#9a7a2a}
+      .ck{font-size:13px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+      .et{font-size:12px;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid var(--trait)}
+      .et-aaccepte{border-color:#7bb33a;font-weight:600}
+      .et-arecu{border-color:#d9a800}
+      .et-arefuse{border-color:#e2653a}
+      </style>
+
     <?php elseif ($ong === 'voyage'): ?>
       <?php
       /* VOYAGE. [16.08.2026]
@@ -729,8 +951,6 @@ if ($id > 0) {
       $quoi = [
         'factures'  => ['Générer et télécharger les factures de ce booking.',
                         'Demande la table `invoice` et la liaison bexio par API. Le client bexio actuel vit dans Apps Script: le porter en PHP est chiffré entre 12 h et 20 h pour le seul OAuth2.'],
-        'advancing' => ['Fiches techniques, accueil et logistique du show.',
-                        'C\'est la mécanique la plus intéressante d\'artistu: un formulaire construit champ par champ, envoyé au lieu, avec un état par champ (demandé, reçu, accepté) et un portail où le lieu répond. Rien d\'équivalent n\'existe ici.'],
       ][$ong];
       ?>
       <div class="avis">
