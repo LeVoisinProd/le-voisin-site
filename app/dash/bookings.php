@@ -48,7 +48,8 @@ $id = (int)($_GET['b'] ?? 0);
 // ═══════════════════════════════════════════════════════════════════════════
 
 $CHAMPS = ['projet','artiste','venue','venue_url','ville','pays','date_debut','date_fin',
-           'date_texte','heure','prix_cession','prix_vente','devise','client','statut',
+           'date_texte','heure','prix_cession','prix_vente','frais_booking',
+           'frais_booking_taux','devise','client','statut',
            'representations','notes_artiste','notes_internes'];
 $STATUTS = ['pending' => 'en attente', 'option' => 'option',
             'confirmed' => 'confirmé', 'canceled' => 'annulé'];
@@ -459,6 +460,13 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
             'placeholder' => '12, 13, 14 décembre 2026']);
 
         echo '<div class="titre-bloc">Combien</div>';
+        /* La commission, à côté des prix: on la négocie dans le même souffle.
+           Le taux propose, le montant fait foi — un prix de cession qui change
+           ne doit pas déplacer une commission déjà facturée. [16.08.2026] */
+        ch('frais_booking', 'Frais de booking (montant)', $v('frais_booking'), $err,
+           ['aide' => 'La commission sur cette date. C\'est ce montant qui est facturé.']);
+        ch('frais_booking_taux', 'Frais de booking (%)', $v('frais_booking_taux'), $err,
+           ['aide' => 'Le pourcentage, pour relire d\'où vient le montant. Il ne le recalcule pas.']);
         ch('prix_cession', 'Prix de cession', $v('prix_cession'), $err,
            ['aide' => 'Ce que le lieu paie']);
         ch('prix_vente',   'Prix de vente',   $v('prix_vente'), $err,
@@ -1476,26 +1484,56 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' booking' . ($total>1?'
 <?php else: ?>
 <div class="tw">
 <table>
+  <?php /* ── LES ONZE COLONNES DU MODÈLE D'ANNA ─────────────────────────────
+       [16.08.2026] « copiar tal e qual », d'après l'écran d'agence qu'elle a
+       montré: Venue · Performance name · Date · Artist · Time · Performance Fee
+       · Country · City · Status · Booking Fee · Client.
+
+       Trois changements de fond par rapport à avant:
+
+       LE PAYS SORT DE LA VILLE. Ils étaient empilés dans une seule cellule.
+       Séparés, on trie et on filtre par pays — c'est la première question quand
+       on prépare une tournée, et c'est la colonne qui décide d'une A1.
+
+       L'HEURE SORT DE LA DATE, pour la même raison: elle se compare entre
+       lignes, pas dans un coin sous la date.
+
+       « PERFORMANCE NAME » N'EST PAS LE TITRE DE LA PIÈCE mais « Lieu — Ville »,
+       comme dans le modèle. C'est le nom de l'ÉVÉNEMENT, pas de l'œuvre; les
+       deux cohabitent dans le tableau et c'est voulu. */ ?>
   <thead><tr>
-    <th>Date</th><th>Projet</th><th>Artiste</th><th>Lieu</th><th>Ville</th>
-    <th>Statut</th><th class="d">Cession</th><th class="d">Vente</th><th>Client</th>
+    <th>Venue</th><th>Performance name</th><th>Date</th><th>Artist</th>
+    <th>Time</th><th class="d">Performance Fee</th><th>Country</th><th>City</th>
+    <th>Status</th><th class="d">Booking Fee</th><th>Client</th>
   </tr></thead>
   <tbody>
-  <?php foreach ($lignes as $r): ?>
+  <?php foreach ($lignes as $r):
+    /* « Fri, 24 Jul 26 »: le jour de la semaine en tête, comme dans le modèle.
+       Il n'est pas décoratif — on programme un samedi, pas un 25. */
+    $jour = $r['date_debut']
+        ? date('D, j M y', strtotime((string)$r['date_debut']))
+        : (string)$r['date_texte'];
+    $nomEvt = trim((string)($r['venue'] ?? '')
+              . ((($r['venue'] ?? '') && ($r['ville'] ?? '')) ? ' - ' : '')
+              . (string)($r['ville'] ?? '')); ?>
     <tr>
-      <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$r['id'] ?>"><?=
-        e($r['date_texte'] ?: (string)$r['date_debut']) ?></a>
-        <?php if ($r['heure']): ?><div class="sec"><?= substr((string)$r['heure'],0,5) ?></div><?php endif; ?></td>
-      <td><?= e($r['projet'] ?? '') ?></td>
-      <td class="sec"><?= e($r['artiste'] ?? '') ?></td>
-      <td><?= e($r['venue'] ?? '') ?></td>
-      <td><?= e($r['ville'] ?? '') ?><?php if ($r['pays']): ?>
-        <div class="sec"><?= e($r['pays']) ?></div><?php endif; ?></td>
+      <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$r['id'] ?>"><?= e($r['venue'] ?? '') ?></a></td>
+      <td class="sec"><?= e($nomEvt) ?></td>
+      <td class="nb"><?= e($jour) ?></td>
+      <td><?= e($r['artiste'] ?? '') ?></td>
+      <td class="nb sec"><?= $r['heure'] && $r['heure'] !== '00:00:00'
+            ? e(substr((string)$r['heure'], 0, 5)) : '' ?></td>
+      <td class="d nb"><?= (float)$r['prix_cession'] > 0
+            ? e($r['devise']) . ' ' . number_format((float)$r['prix_cession'], 2, ',', ' ') : '' ?></td>
+      <td class="sec"><?= e($r['pays'] ?? '') ?></td>
+      <td><?= e($r['ville'] ?? '') ?></td>
       <td><span class="et <?= e($r['statut']) ?>"><?= e($ETIQ[$r['statut']] ?? $r['statut']) ?></span></td>
-      <td class="d"><?= $r['prix_cession'] !== null
-            ? number_format((float)$r['prix_cession'],0,',',' ') . ' ' . e($r['devise']) : '' ?></td>
-      <td class="d"><?= $r['prix_vente'] !== null
-            ? number_format((float)$r['prix_vente'],0,',',' ') . ' ' . e($r['devise']) : '' ?></td>
+      <td class="d nb"><?= (float)($r['frais_booking'] ?? 0) > 0
+            ? e($r['devise']) . ' ' . number_format((float)$r['frais_booking'], 2, ',', ' ')
+              . ((float)($r['frais_booking_taux'] ?? 0) > 0
+                 ? '<div class="sec">' . rtrim(rtrim(number_format((float)$r['frais_booking_taux'], 2, ',', ' '), '0'), ',') . ' %</div>'
+                 : '')
+            : '' ?></td>
       <td class="sec"><?= e($r['client'] ?? '') ?></td>
     </tr>
   <?php endforeach; ?>
