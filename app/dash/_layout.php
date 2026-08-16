@@ -167,11 +167,22 @@ nav.pages .mut { border:0; color:var(--doux); }
       }
   };
   foreach (DASH_ECRANS as $clef => [$libelle, $etat, $enfants]) {
+      /* CE QUE LE RÔLE NE PEUT PAS OUVRIR NE FIGURE PAS. [16.08.2026]
+
+         Différence voulue avec les écrans « pas encore écrits », qui restent
+         en gris: ceux-là parlent de l'outil et la carte doit être vraie pour
+         tout le monde. Un écran fermé par le rôle, lui, parle de la personne.
+         L'afficher en gris ne lui apprendrait rien d'utile et transformerait
+         son menu en liste de portes closes. */
+      if (!dash_visible($clef)) continue;
+
       $entree($clef, $libelle, false);
       /* Les sous-écrans ne s'affichent que sous leur branche ouverte: dix-huit
          entrées toutes dépliées font un mur, et le menu cesse d'être lisible. */
       if ($enfants && $branche === $clef) {
-          foreach ($enfants as $c => [$l, $e]) $entree($c, $l, true);
+          foreach ($enfants as $c => [$l, $e]) {
+              if (dash_visible($c)) $entree($c, $l, true);
+          }
       }
   }
   ?>

@@ -35,6 +35,10 @@ $periode = preg_match('/^\d{4}-\d{2}$/', (string)($_GET['m'] ?? '')) ? $_GET['m'
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
+    /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
+       l'écran: `production` lit les Finances sans les modifier. Le routeur
+       ne peut pas le faire à notre place, lui ne voit pas les POST. */
+    dash_exige_ecriture('administration');
     $act = (string)($_POST['action'] ?? '');
 
     if ($act === 'generer') {

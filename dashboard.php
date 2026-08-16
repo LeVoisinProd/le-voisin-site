@@ -49,6 +49,25 @@ $clef = preg_replace('/[^a-z_]/', '', strtolower((string)($_GET['e'] ?? '')));
    que le premier niveau, et « bookings » retombait donc sur les contacts. */
 if ($clef === '' || !isset(dash_clefs()[$clef])) $clef = DASH_DEFAUT;
 
+/* CE QUE CE RÔLE A LE DROIT DE VOIR. [16.08.2026]
+
+   Auth::check() dit seulement « cette personne a un compte du bureau ». Il ne
+   dit pas lesquels des onze écrans la concernent. Sans la vérification qui
+   suit, quelqu'un invité pour tenir le calendrier ouvrait aussi
+   l'Administration et ses AVS, en changeant trois lettres dans l'adresse.
+
+   ELLE EST ICI, À LA PORTE, et pas recopiée dans chaque écran: un écran ajouté
+   demain est protégé sans que personne n'ait à y penser, et DASH_ACCES refuse
+   par défaut ce qu'il ne connaît pas.
+
+   L'écriture, elle, se vérifie dans les écrans: seuls eux savent lequel de
+   leurs POST modifie quelque chose. Ils appellent dash_exige_ecriture(). */
+if (!dash_visible($clef)) {
+    http_response_code(403);
+    require __DIR__ . '/app/dash/_interdit.php';
+    exit;
+}
+
 if (!dash_existe($clef)) {
     dash_a_faire($clef);   // déclaré au menu, pas encore écrit
     exit;

@@ -31,13 +31,16 @@ $ROLES = [
 ];
 
 $moi = Auth::user();
-$monRole = DB::one('SELECT role_dash FROM users WHERE id = ?', [$moi['id'] ?? 0])['role_dash'] ?? 'direction';
+/* dash_role() remplace la requête qui vivait ici. Elle repliait sur
+   « direction » quand le rôle ne se lisait pas — c'est-à-dire qu'un compte
+   introuvable devenait tout-puissant. Le repli est désormais « lecture ». */
+$monRole = dash_role();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
     /* Seule la direction change un rôle. Sans cette ligne, l'écran serait un
        formulaire d'auto-promotion. */
-    if ($monRole !== 'direction') { http_response_code(403); exit('Interdit'); }
+    dash_exige_ecriture('parametres');
 
     $uid = (int)($_POST['id'] ?? 0);
     $r   = (string)($_POST['role'] ?? '');

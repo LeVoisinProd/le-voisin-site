@@ -21,6 +21,10 @@ $PF = ['Instagram','Facebook','LinkedIn','Newsletter','Site','Presse','Autre'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
+    /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
+       l'écran: `production` lit les Finances sans les modifier. Le routeur
+       ne peut pas le faire à notre place, lui ne voit pas les POST. */
+    dash_exige_ecriture('marketing');
     $a = (string)($_POST['action'] ?? '');
     if ($a === 'ajouter') {
         $t = trim((string)($_POST['titre'] ?? ''));

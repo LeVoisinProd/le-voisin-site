@@ -38,6 +38,10 @@ $err = $saisi = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
+    /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
+       l'écran: `production` lit les Finances sans les modifier. Le routeur
+       ne peut pas le faire à notre place, lui ne voit pas les POST. */
+    dash_exige_ecriture('associations');
     foreach ($CHAMPS as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
 
     if (($_POST['action'] ?? '') === 'supprimer' && $id > 0) {

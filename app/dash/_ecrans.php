@@ -64,6 +64,118 @@ const DASH_ECRANS = [
 /** L'écran servi quand aucun n'est demandé. */
 const DASH_DEFAUT = 'accueil';
 
+/**
+ * QUI VOIT QUOI, ET QUI PEUT ÉCRIRE. [grille validée par Anna, 16.08.2026]
+ *
+ * POURQUOI CETTE TABLE EXISTE. Jusqu'au 16.08.2026, dashboard.php vérifiait
+ * Auth::check() et rien d'autre: entrer, c'était tout voir et tout modifier.
+ * Le rôle `role_dash` existait en base et n'était lu que par parametres.php,
+ * pour se protéger lui-même. Mesuré: aucun autre écran ne le consultait.
+ *
+ * C'est le défaut même que la spécification reproche au dashboard actuel —
+ * « la grille de permissions n'est lue par rien » — et il était en train de se
+ * reproduire dans le nouveau. C'est aussi ce qui bloque l'équipe: pour voir une
+ * date de spectacle il fallait tout voir, salaires, AVS et IBAN compris, donc
+ * personne n'entrait.
+ *
+ * LA RÈGLE DE LECTURE:
+ *
+ *     'ecrit'  voit l'écran et peut le modifier
+ *     'lit'    voit l'écran, tout geste d'écriture est refusé
+ *     absent   l'écran n'existe pas pour cette personne: ni au menu, ni à
+ *              l'adresse. Le routeur répond 403.
+ *
+ * UN ÉCRAN SANS LIGNE ICI N'EST OUVERT À PERSONNE SAUF À `direction`. C'est
+ * voulu: on ajoute un écran, on oublie la permission, et il reste fermé au
+ * lieu de s'ouvrir à tout le monde. Ce qui manque doit valoir moins.
+ */
+const DASH_ACCES = [
+    'accueil'        => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+
+    'calendrier'     => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+    'bookings'       => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+    'projets'        => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+
+    'contacts'       => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+    'marketing'      => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+    'documentation'  => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+
+    // Les modèles de contrat et de deal s'y trouvent: la production les
+    // consulte pour préparer une date, elle ne les fixe pas.
+    'associations'   => ['direction'=>'ecrit', 'production'=>'lit',   'lecture'=>'lit'],
+
+    // L'argent se lit par la production, pour chiffrer une date sans avoir à
+    // demander. Il ne s'écrit que par la direction.
+    'finances'       => ['direction'=>'ecrit', 'production'=>'lit'],
+
+    // AVS, impôt à la source, salaires des treize associations. C'est la
+    // raison d'être de toute cette grille.
+    'administration' => ['direction'=>'ecrit'],
+
+    // Qui donne les rôles doit déjà les avoir.
+    'parametres'     => ['direction'=>'ecrit'],
+];
+
+/** Les rôles déclarés, du plus fermé au plus ouvert. */
+const DASH_ROLES = ['lecture', 'production', 'direction'];
+
+/**
+ * Ce que ce rôle peut faire sur cet écran: 'ecrit', 'lit', ou '' pour rien.
+ *
+ * Le défaut est le refus. Un écran non déclaré, un rôle inconnu, une clef qui
+ * n'existe pas: tout cela rend '', et le seul à passer partout est `direction`.
+ */
+function dash_droit(string $clef, string $role): string
+{
+    if (!isset(DASH_ACCES[$clef])) return $role === 'direction' ? 'ecrit' : '';
+    return DASH_ACCES[$clef][$role] ?? '';
+}
+
+/** Le rôle du compte connecté. Interrogé une fois par requête. */
+function dash_role(): string
+{
+    static $role = null;
+    if ($role !== null) return $role;
+
+    $u = Auth::user();
+    $id = (int)($u['id'] ?? 0);
+    if ($id === 0) return $role = 'lecture';
+
+    /* La colonne arrive avec la migration 008. Si elle manque, le dashboard
+       n'est pas déployé au complet: mieux vaut le dire que deviner un rôle. */
+    try {
+        $r = DB::val('SELECT role_dash FROM users WHERE id = ?', [$id]);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        exit('Le dashboard demande la migration 008. Lancer: php db/migrer.php');
+    }
+
+    /* Le repli est « lecture » et non « direction ». Un compte dont le rôle ne
+       se lit pas voit le calendrier, pas les salaires. */
+    return $role = in_array($r, DASH_ROLES, true) ? (string)$r : 'lecture';
+}
+
+/** Vrai si le compte connecté voit cet écran, en lecture ou en écriture. */
+function dash_visible(string $clef): bool
+{
+    return dash_droit($clef, dash_role()) !== '';
+}
+
+/**
+ * À appeler AVANT toute écriture d'un écran: création, modification,
+ * suppression. Coupe net si le rôle n'a que la lecture.
+ *
+ * On coupe plutôt que d'afficher un message, parce qu'un POST refusé à
+ * mi-chemin laisserait la moitié du travail fait.
+ */
+function dash_exige_ecriture(string $clef): void
+{
+    if (dash_droit($clef, dash_role()) !== 'ecrit') {
+        http_response_code(403);
+        exit('Interdit : votre rôle ne permet pas de modifier cet écran.');
+    }
+}
+
 /** Toutes les clefs, sous-écrans compris, à plat. Sert au routeur. */
 function dash_clefs(): array
 {

@@ -46,6 +46,10 @@ $saisi = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
+    /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
+       l'écran: `production` lit les Finances sans les modifier. Le routeur
+       ne peut pas le faire à notre place, lui ne voit pas les POST. */
+    dash_exige_ecriture('bookings');
 
     /* Les lignes de deal se saisissent depuis l'onglet Deal et n'ont rien à voir
        avec le formulaire du booking: on les traite ici et on repart. */

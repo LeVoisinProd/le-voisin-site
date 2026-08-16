@@ -33,6 +33,10 @@ $ETATS_VER = ['attendu'=>'attendu','verse'=>'versé','partiel'=>'partiel','sans_
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
+    /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
+       l'écran: `production` lit les Finances sans les modifier. Le routeur
+       ne peut pas le faire à notre place, lui ne voit pas les POST. */
+    dash_exige_ecriture('finances');
     $bid = (int)($_POST['id'] ?? 0);
     $col = (string)($_POST['col'] ?? '');
     $val = (string)($_POST['val'] ?? '');

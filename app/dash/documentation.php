@@ -17,6 +17,10 @@ $RUB = ['guides'=>'Guides et procédures','contrats'=>'Modèles de contrat',
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
+    /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
+       l'écran: `production` lit les Finances sans les modifier. Le routeur
+       ne peut pas le faire à notre place, lui ne voit pas les POST. */
+    dash_exige_ecriture('documentation');
     $a = (string)($_POST['action'] ?? '');
     if ($a === 'ajouter') {
         $t = trim((string)($_POST['titre'] ?? ''));
