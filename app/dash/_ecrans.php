@@ -39,8 +39,8 @@ const DASH_ECRANS = [
 
     // Le cœur, dans ses mots. Tout ce qui a une date y figure: shows confirmés,
     // en attente, voyages, logistique.
-    'calendrier'   => ['Calendrier', 'a_faire', [
-        'bookings'  => ['Bookings',  'a_faire'],
+    'calendrier'   => ['Calendrier', 'ok', [
+        'bookings'  => ['Bookings',  'ok'],
         'projets'   => ['Projets',   'a_faire'],
     ]],
 
@@ -62,7 +62,7 @@ const DASH_ECRANS = [
 ];
 
 /** L'écran servi quand aucun n'est demandé. */
-const DASH_DEFAUT = 'contacts';
+const DASH_DEFAUT = 'calendrier';
 
 /** Toutes les clefs, sous-écrans compris, à plat. Sert au routeur. */
 function dash_clefs(): array
