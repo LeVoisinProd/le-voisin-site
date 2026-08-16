@@ -88,8 +88,32 @@ foreach (DB::all("SELECT id, source_ref, nom FROM organisation
 $MOIS = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout',
          'septembre','octobre','novembre','decembre'];
 
+/* LES TROIS QUE LE RAPPROCHEMENT AUTOMATIQUE A MANQUÉS, tranchées par Anna le
+   16.08.2026. Elles sont ici en toutes lettres plutôt que dans une règle plus
+   souple, parce qu'une règle plus souple rapproche aussi ce qu'il ne faut pas.
+   Les deux premières EXISTAIENT DÉJÀ dans `projects`: rien n'a été créé, c'est
+   l'orthographe qui différait.
+
+     « Album BUILD + BLUM »  → #8  « Build + Bloom »
+                                BLUM contre BLOOM: une lettre, et le titre porte
+                                « Album » en plus. Aucune normalisation
+                                raisonnable ne les rapproche.
+     « Louis Matute Large Ensemble & Joyce Moreno »
+                             → #28 « LOUIS MATUTE LARGE ENSEMBLE feat. JOYCE MORENO »
+                                le dashboard écrit « & », le site « feat. ».
+     « Kamau »               → rien. Anna: « pode apagar ». Il n'existe ni dans
+                                `projects` ni dans `artists`; il ne vit que dans
+                                le dashboard. On ne le crée pas, et on le dit à
+                                chaque passage pour que le silence ne passe pas
+                                pour un oubli. */
+const CORRESPONDANCES = [
+    'album build blum'                            => 8,
+    'louis matute large ensemble joyce moreno'    => 28,
+];
+const ECARTEES = ['kamau' => 'écarté par Anna le 16.08.2026 — n\'existe nulle part ailleurs'];
+
 $rattaches = $moisVus = 0;
-$sansPiece = $sansPorteur = $estArtiste = [];
+$sansPiece = $sansPorteur = $estArtiste = $ecartees = [];
 $vus = [];
 
 foreach ($lignes as $p) {
@@ -101,9 +125,15 @@ foreach ($lignes as $p) {
     $porteur = $porteurs[$aref] ?? null;
     $k       = $norm($nom);
 
-    /* Une pièce ? Égalité d'abord, puis inclusion. */
+    if (isset(ECARTEES[$k])) { $ecartees[] = "$nom — " . ECARTEES[$k]; continue; }
+
+    /* Une pièce ? La correspondance tranchée à la main d'abord, puis l'égalité,
+       puis l'inclusion. */
     $piece = null;
-    foreach ($pieces as $pc) if ($pc['n'] === $k) { $piece = $pc; break; }
+    if (isset(CORRESPONDANCES[$k])) {
+        foreach ($pieces as $pc) if ($pc['id'] === CORRESPONDANCES[$k]) { $piece = $pc; break; }
+    }
+    if (!$piece) foreach ($pieces as $pc) if ($pc['n'] === $k) { $piece = $pc; break; }
     if (!$piece) foreach ($pieces as $pc) {
         if ($pc['n'] !== '' && (str_contains($k, $pc['n']) || str_contains($pc['n'], $k))) { $piece = $pc; break; }
     }
@@ -186,6 +216,10 @@ if ($estArtiste) {
        . "  Elles sont déjà dans `artists`. Rien à faire, mais c'est la preuve que le\n"
        . "  dashboard mélange les niveaux:\n";
     foreach ($estArtiste as $x) echo "    · $x\n";
+}
+if ($ecartees) {
+    echo "\n  " . count($ecartees) . " lignes écartées volontairement:\n";
+    foreach ($ecartees as $x) echo "    · $x\n";
 }
 if ($sansPiece) {
     echo "\n  " . count($sansPiece) . " lignes sans pièce reconnue. Ni rattachées ni créées —\n"

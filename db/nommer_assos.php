@@ -58,10 +58,12 @@ const ASSOS = [
     'crile'     => ['CRILE',                'TI', 'Suisse',   'LV_CH_TI_CRILE'],
 ];
 
-/* Deux associations existent — Anna les a écrites dans `_contexto/artistes.md`
-   et elles ont chacune leur Shared Drive — mais n'ont AUCUNE fiche dans le
-   dashboard. On les crée vides plutôt que de les taire: une association absente
-   de l'écran est une association qu'on oublie de déclarer. */
+/* DEUX ASSOCIATIONS QUE LE LE VOISIN N'ADMINISTRE PAS. Anna, le 16.08.2026:
+   « sao artistas novos, mas que nao gerenciamos a associacao, so a venda de
+   shows ». Elles n'ont aucune fiche dans le dashboard, et ce n'est pas un
+   oubli — c'est qu'il n'y a rien à y mettre: les statuts, l'AVS, la LPP et
+   l'impôt ne nous regardent pas. Elles sont créées en `gestion = 'diffusion'`
+   pour que les cinq onglets de conformité ne les réclament jamais. */
 const ASSOS_SANS_FICHE = [
     'improvavel' => ['Improvável Produções', '',   'Brésil',   'LV_BR_RJ_Improvável'],
     'taina'      => ['Tainá E I O U',        '',   'Portugal', 'LV_PT_TAINA_E_I_O_U'],
@@ -101,14 +103,25 @@ foreach (ASSOS_SANS_FICHE as $ref => [$nom, $canton, $pays, $drive]) {
     }
     printf("  %-12s → %-22s (%s) — créée, sans fiche dashboard\n", $ref, $nom, $pays);
     if ($ecrire) {
-        DB::run("INSERT INTO organisation (source, source_ref, genre, nom, nom_legal,
+        DB::run("INSERT INTO organisation (source, source_ref, genre, gestion, nom, nom_legal,
                                            canton, pays, statut, notes)
-                 VALUES ('drive', ?, 'association', ?, ?, ?, ?, 'actif', ?)",
+                 VALUES ('drive', ?, 'association', 'diffusion', ?, ?, ?, ?, 'actif', ?)",
                 [$ref, $nom, $nom, $canton ?: null, $pays,
-                 "Créée depuis le Shared Drive $drive et la liste de _contexto/artistes.md. "
-               . "Aucune fiche dans le dashboard: les données légales restent à saisir."]);
+                 "Créée depuis le Shared Drive $drive. Le Voisin n'administre pas cette "
+               . "association — seulement la vente des spectacles. Il n'y a donc ni statuts, "
+               . "ni AVS, ni LPP, ni régime fiscal à saisir: ce n'est pas un dossier en retard."]);
     }
     $crees++;
+}
+
+/* Les deux existantes qu'on n'administre pas non plus, si elles ont été créées
+   avant que la colonne existe. */
+foreach (array_keys(ASSOS_SANS_FICHE) as $r) {
+    $o = DB::one("SELECT id, gestion FROM organisation WHERE source_ref = ?", [$r]);
+    if ($o && $o['gestion'] !== 'diffusion') {
+        printf("  %-12s passe en « diffusion » — Le Voisin ne l'administre pas\n", $r);
+        if ($ecrire) DB::run("UPDATE organisation SET gestion = 'diffusion' WHERE id = ?", [(int)$o['id']]);
+    }
 }
 
 /* `_meta` dehors. */
@@ -120,10 +133,13 @@ if ($m && !$m['supprime_le']) {
 
 /* Ce que le Drive porte et que personne ne réclame. On le dit, on ne le crée
    pas: un dossier n'est pas la preuve qu'une association nous concerne. */
-$orphelins = ['LV_CH_BS_LaSecousse', 'Mandarina & Co Verein'];
-echo "\n  À DÉCIDER — deux Shared Drives sans fiche et absents de artistes.md:\n";
-foreach ($orphelins as $d) echo "    · $d\n";
-echo "    Ils ne sont pas créés. Dis lesquels sont des associations du Le Voisin.\n";
+/* Tranché par Anna le 16.08.2026: « sao assos antigas que paramos de trabalhar ».
+   Leurs Shared Drives restent — on n'efface pas des archives comptables — mais
+   elles n'entrent pas en base. Une association terminée dans la liste des
+   associations actives est une ligne que quelqu'un relancera un jour pour rien. */
+echo "\n  Hors base, et volontairement — anciennes associations, collaboration terminée:\n"
+   . "    · LV_CH_BS_LaSecousse\n    · Mandarina & Co Verein\n"
+   . "    Leurs Drives restent en place. Ne pas les recréer au prochain import.\n";
 
 printf("\n  %d renommées · %d créées · %d inchangées · %d absentes\n",
        $renommes, $crees, $inchanges, $absents);
