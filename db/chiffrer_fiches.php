@@ -57,6 +57,23 @@
  */
 declare(strict_types=1);
 
+/**
+ * EN LIGNE DE COMMANDE, ET NULLE PART AILLEURS.
+ *
+ * db/ n'est pas protégé sur le serveur: mesuré le 16.08.2026, il n'y a pas de
+ * .htaccess dans ce dossier, et la règle du CMS ne renvoie vers index.php que
+ * ce qui n'existe pas sur le disque (RewriteCond !-f). Un fichier .php déposé
+ * ici est donc exécuté par Apache pour qui le demande.
+ *
+ * Sans cette garde, n'importe quel visiteur pourrait appeler ce script et lire
+ * la liste des fiches. Le 404 est volontaire: il ne dit même pas que le
+ * fichier existe.
+ */
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 require __DIR__ . '/../app/bootstrap.php';
 
 const PREFIXE  = 'sb1:';
