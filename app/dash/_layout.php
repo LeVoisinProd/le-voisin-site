@@ -58,7 +58,11 @@ function dash_haut(string $ecranActif, string $sousTitre = ''): void
 :root { --encre:#0d0d0d; --papier:#fff; --doux:#6b6b6b; --trait:#e4e4e4;
         --jaune:#FFD24D; --orange:#FF7142; --fond2:#f7f7f7; --barre:#0a0a0a;
         /* La hauteur de la ligne de titre, sous laquelle les en-têtes de
-           tableau viennent se coller. */
+           tableau viennent se coller. Valeur de repli: le script de bas de page
+           la remplace par la hauteur RÉELLE. Une valeur devinée était fausse dès
+           que le sous-titre passait à la ligne, et les en-têtes se cachaient
+           alors derrière la barre — on voyait le premier contact et plus les
+           noms de colonnes. */
         --h-tete:59px; }
 /* color-scheme:light dit au navigateur de ne pas assombrir de lui-même les
    contrôles de formulaire: sans cette ligne, les `select` et les `input`
@@ -147,8 +151,8 @@ table { border-collapse:collapse; width:100%; font-size:14px; }
 th, td { padding:8px 14px; border-bottom:1px solid var(--trait); text-align:left;
          vertical-align:top; }
 th { background:var(--fond2); font-size:11.5px; text-transform:uppercase;
-     letter-spacing:.04em; color:var(--doux); position:sticky; top:var(--h-tete);
-     z-index:10; }
+     letter-spacing:.04em; color:var(--encre); font-weight:700;
+     position:sticky; top:var(--h-tete); z-index:10; }
 tbody tr:hover { background:var(--fond2); }
 td .sec { color:var(--doux); font-size:12.5px; }
 form.filtres { padding:14px 26px; border-bottom:1px solid var(--trait); display:flex;
@@ -300,6 +304,30 @@ function dash_bas(): void
     ?>
 </main>
 </div>
+<?php /* ── LA HAUTEUR RÉELLE DE LA BARRE DE TITRE ───────────────────── [16.08.2026]
+     `--h-tete` était une valeur devinée — 59 px — et elle était fausse dès que le
+     sous-titre passait à la ligne ou que la police rendait un peu plus haut. Les
+     en-têtes de tableau se collaient alors DERRIÈRE la barre: on voyait le premier
+     contact et plus les noms de colonnes, ce qu'Anna a vu tout de suite.
+
+     On mesure donc, au lieu de supposer. Au chargement et à chaque
+     redimensionnement, parce que c'est en changeant la largeur que le sous-titre
+     passe à la ligne. Sans JavaScript la valeur de repli tient: elle est juste
+     dans le cas courant, et le défaut redevient cosmétique. */ ?>
+<script>
+(function () {
+  var t = document.querySelector('.tete');
+  if (!t) return;
+  function mesurer() {
+    document.documentElement.style.setProperty('--h-tete', t.offsetHeight + 'px');
+  }
+  mesurer();
+  addEventListener('resize', mesurer);
+  /* La police se charge après le premier rendu et change la hauteur d'un ou deux
+     pixels: on remesure quand elle est prête. */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(mesurer);
+})();
+</script>
 </body>
 </html>
 <?php
