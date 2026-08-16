@@ -48,17 +48,21 @@ $a1Retard = DB::all(
         AND b.statut IN ('confirmed','option')
       HAVING ok = 0 ORDER BY b.date_debut");
 
-/* Les obligations administratives dépassées ce mois. */
-$adminTard = DB::all(
-    "SELECT t.id, m.libelle, t.territoire, o.nom org, t.echeance
-       FROM admin_tache t
-       LEFT JOIN admin_modele m ON m.id = t.modele_id
-       LEFT JOIN organisation o ON o.id = t.organisation_id
-      WHERE t.etat = 'a_faire' AND t.echeance IS NOT NULL AND t.echeance < CURDATE()
-      ORDER BY t.echeance LIMIT 12");
-$adminTardN = (int)DB::pdo()->query(
-    "SELECT COUNT(*) FROM admin_tache
-      WHERE etat = 'a_faire' AND echeance IS NOT NULL AND echeance < CURDATE()")->fetchColumn();
+/* ── LES OBLIGATIONS ADMINISTRATIVES NE SONT PLUS ICI ───────────────────────
+   [16.08.2026] Retiré à la demande d'Anna. Elles n'ont pas disparu: depuis que
+   l'agenda des rappels existe, elles y sont — il lit `admin_tache` là où elle
+   vit, avec les délais de subvention, les encaissements et les échéances du
+   pipeline, dans une seule liste rangée par urgence.
+
+   Les garder aussi ici faisait deux endroits pour la même alerte, et deux
+   endroits pour la même alerte veulent dire qu'on coche dans l'un et qu'elle
+   reste rouge dans l'autre. Le compte des retards est sur le lien « Les
+   rappels » du Calendrier.
+
+   La requête est supprimée et pas seulement le bloc: une requête qui tourne à
+   chaque ouverture du tableau de bord pour un affichage qui n'existe plus est
+   le genre de chose qu'on retrouve deux ans après en se demandant à quoi elle
+   sert. */
 
 /* L'argent qui n'est pas rentré alors que la date est passée. */
 $impayes = DB::all(
@@ -161,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['kb'] ?? '') !== '') {
     redirect('/dashboard.php?e=accueil');
 }
 
-$urgent = count($a1Retard) + $adminTardN + (int)$impayesTot['n'];
+$urgent = count($a1Retard) + (int)$impayesTot['n'];
 $fmt = fn($v) => number_format((float)$v, 0, ',', ' ');
 
 dash_haut('accueil', $urgent
@@ -192,20 +196,6 @@ dash_haut('accueil', $urgent
 </section>
 <?php endif; ?>
 
-<?php if ($adminTardN): ?>
-<section class="bloc rouge">
-  <h2>Obligations administratives dépassées <span class="n"><?= $adminTardN ?></span></h2>
-  <?php foreach ($adminTard as $t): ?>
-    <a class="lg" href="/dashboard.php?e=administration&amp;m=<?= e(substr((string)$t['echeance'],0,7)) ?>">
-      <span class="q"><?= e(substr((string)$t['echeance'], 8, 2)) ?>.<?= e(substr((string)$t['echeance'], 5, 2)) ?></span>
-      <span><?php if ($t['territoire']): ?><span class="tg"><?= e($t['territoire']) ?></span> <?php endif; ?>
-        <?= e($t['libelle'] ?? '') ?> <span class="sec"><?= e($t['org'] ?? '') ?></span></span>
-    </a>
-  <?php endforeach; ?>
-  <?php if ($adminTardN > count($adminTard)): ?>
-    <p class="ex">et <?= $adminTardN - count($adminTard) ?> autres.</p><?php endif; ?>
-</section>
-<?php endif; ?>
 
 <?php if ((int)$impayesTot['n']): ?>
 <section class="bloc orange">
@@ -287,7 +277,6 @@ dash_haut('accueil', $urgent
       . ", contacts: " . (int)DB::pdo()->query(
       "SELECT COUNT(*) FROM contact WHERE supprime_le IS NULL")->fetchColumn();
   if ($a1Retard)   $ctx[] = "URGENT: " . count($a1Retard) . " attestations A1 hors délai";
-  if ($adminTardN) $ctx[] = "URGENT: $adminTardN obligations administratives dépassées";
   if ((int)$impayesTot['n']) $ctx[] = "URGENT: " . (int)$impayesTot['n']
       . " dates jouées non encaissées, " . $fmt($impayesTot['t']);
   $ctx[] = "";
