@@ -50,6 +50,11 @@ declare(strict_types=1);
        ['placeholder'=>'48.26.xxxxxx.xxxxxxxx']);
     ch('siret', 'SIRET', $v('siret'), $err, ['aide'=>'Les entités françaises']);
 
+    ch('chez', 'Chez (c/o)', $v('chez'), $err,
+
+
+       ['placeholder'=>'Le nom sur la boîte aux lettres, s\'il n\'est pas celui de l\'association']);
+
     ch('adresse', 'Adresse', $v('adresse'), $err, ['large'=>true]);
     ch('cp', 'Code postal', $v('cp'), $err, ['placeholder'=>'1205, 75009…']);
     ch('ville', 'Ville', $v('ville'), $err, ['placeholder'=>'Genève, Paris…']);
@@ -124,6 +129,12 @@ declare(strict_types=1);
     ch('assureur_lpp', 'Assureur LPP', $v('assureur_lpp'), $err, ['placeholder'=>'Artes e Comoedia, Publica…']);
     ch('trianon', 'N° Trianon (LAA/LPP)', $v('trianon'), $err, ['placeholder'=>'Numéro gestionnaire Trianon']);
     ?>
+    <?php /* Une zone de notes ici aussi. [16.08.2026] Anna: « em cada sous
+         page deixar um campo para notes ». Une note rangée loin de ce qu'elle
+         explique n'est pas relue au moment où elle servirait. */ ?>
+    <?php ch('notes_laa', 'Notes sur les assurances', $v('notes_laa'), $err,
+           ['type'=>'textarea','large'=>true,'rows'=>3,
+            'placeholder'=>'Échéances, courtier, sinistres, ce qui reste à souscrire…']); ?>
   </div>
 </div>
 
@@ -138,6 +149,9 @@ declare(strict_types=1);
     ch('convention_coll', 'Convention collective', $v('convention_coll'), $err,
        ['placeholder'=>'CCT danse suisse, CCNT…']);
     ?>
+    <?php ch('notes_avs', 'Notes sur l\'AVS', $v('notes_avs'), $err,
+           ['type'=>'textarea','large'=>true,'rows'=>3,
+            'placeholder'=>'Caisse, numéro d\'affilié, changements, décomptes en cours…']); ?>
   </div>
 </div>
 

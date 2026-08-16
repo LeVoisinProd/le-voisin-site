@@ -200,6 +200,21 @@ select { padding:8px 10px; border:1px solid var(--trait); border-radius:4px;
 button { padding:8px 18px; border:0; background:var(--encre); color:var(--papier);
         border-radius:4px; font-size:14px; cursor:pointer; }
 a.vider { color:var(--doux); font-size:13px; }
+
+/* ── LES BOUTONS D'ENREGISTREMENT, TOUJOURS À DROITE ───────────────── [16.08.2026]
+   Demandé par Anna pour tout le dashboard. C'est le geste qui termine: on lit le
+   formulaire de haut en bas et de gauche à droite, et le bouton se trouve au
+   bout du chemin, pas au début. À gauche il se lit avant d'avoir rempli.
+
+   `.act` et `.actions` sont les deux conteneurs déjà employés — le second garde
+   son lien « supprimer » collé à gauche par son propre `margin-left:auto` sur
+   `.sup`, qui continue de fonctionner puisqu'on ne change que l'alignement du
+   conteneur. */
+.act { display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-top:22px; }
+.actions { justify-content:flex-end; }
+/* Le lien de suppression reste à l'opposé des boutons: il ne doit jamais se
+   trouver sous le doigt qui vise « Enregistrer ». */
+.actions .sup { margin-right:auto; margin-left:0; }
 nav.pages { padding:16px 26px; display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
 nav.pages a, nav.pages span { padding:5px 11px; border:1px solid var(--trait);
         border-radius:4px; text-decoration:none; font-size:13px; }

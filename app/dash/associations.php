@@ -34,6 +34,7 @@ $CHAMPS = ['genre','nom','nom_legal','ide','registre','avs_employeur','ree','sir
            'pays','canton','adresse','email','telephone','site','instagram',
            'banque_nom','banque_iban','banque_bic','devise_defaut','frais_booking',
            'marge_defaut','discipline','direction','debut_collab','statut','comite','notes',
+           'chez','notes_laa','notes_avs',
     /* Ajoutés le 16.08.2026, migration 019: la conformité suisse des quatre
        onglets que la table ne portait pas. */
     'forme_juridique','date_creation','reference_poste','cp','ville',
@@ -241,11 +242,6 @@ if ($id > 0) {
     $st->execute([$id]);
     $datesN = (int)$st->fetchColumn();
 
-    /* La même entité vue par l'autre bout: association et artiste à la fois. */
-    $st = DB::pdo()->prepare('SELECT id, genre, source FROM organisation
-                               WHERE nom = ? AND id <> ? AND supprime_le IS NULL');
-    $st->execute([$o['nom'], $id]);
-    $jumelles = $st->fetchAll();
 
     dash_haut('associations', e($GENRES[$o['genre']]) . ' · ' . e($STATUTS[$o['statut']] ?? ''));
     ?>
@@ -255,15 +251,11 @@ if ($id > 0) {
     <div class="zone">
       <h2 class="gros"><?= e($o['nom']) ?></h2>
 
-      <?php if ($jumelles): ?>
-      <div class="alerte">Cette entité existe aussi comme
-        <?php foreach ($jumelles as $j): ?>
-          <a href="/dashboard.php?e=associations&amp;o=<?= (int)$j['id'] ?>"><?= e($GENRES[$j['genre']]) ?></a>
-        <?php endforeach; ?>.
-        Ce n'est pas un doublon: la compagnie a monté sa propre association, et les
-        deux fiches ne portent pas la même chose. Les rapprocher est une décision,
-        pas un nettoyage.</div>
-      <?php endif; ?>
+      <?php /* L'alerte « existe aussi comme artiste » est retirée. [16.08.2026]
+           Anna: « porque crile tem a fiche artiste nas associacoes ? nao precisa
+           ter ». Depuis que les artistes ne sont plus listés sur cet écran, elle
+           renvoyait vers une fiche qu'on ne peut plus atteindre — un avertissement
+           dont le lien mène nulle part est pire que pas d'avertissement. */ ?>
 
       <div class="fiche">
       <?php
@@ -282,7 +274,14 @@ if ($id > 0) {
       $l('REE', $o['ree']);
       $l('SIRET', $o['siret']);
       $l('Pays', trim(($o['pays'] ?? '') . ' ' . ($o['canton'] ? '· ' . $o['canton'] : '')));
+      /* Quatre champs et non un. [16.08.2026] L'adresse arrivait de la reprise
+         en un bloc multi-ligne et s'empilait dans une cellule prévue pour une
+         ligne. Le « chez » est à part parce qu'il va sur l'enveloppe et jamais
+         sur un devis. */
+      $l('Chez', $o['chez']);
       $l('Adresse', $o['adresse']);
+      $l('Code postal', $o['cp']);
+      $l('Ville', $o['ville']);
       $l('Courriel', $o['email']);
       $l('Téléphone', $o['telephone']);
       $l('Site', $o['site']);
@@ -329,7 +328,15 @@ if ($id > 0) {
     h3.sect{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
       margin:30px 0 8px;border-bottom:1px solid var(--trait);padding-bottom:5px}
     h3.sect .n{font-weight:400}
-    .fiche{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 32px;max-width:940px}
+    /* Deux colonnes larges au lieu de trois étroites. [16.08.2026] Anna: « alargar
+       as colunas, esta uma em cima da outra ». Avec `minmax(280px,1fr)` un écran
+       large fabriquait une troisième colonne, et un IBAN ou une adresse s'y
+       cassait sur quatre lignes. Deux colonnes de 420 px laissent passer la
+       plupart des valeurs d'un trait. */
+    .fiche{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));
+      gap:0 40px;max-width:1240px}
+    .fiche .k{min-width:150px}
+    .fiche .v{overflow-wrap:anywhere}
     .fiche .l{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--trait)}
     .fiche .k{color:var(--doux);font-size:12.5px;min-width:150px}
     .fiche .v{font-size:14px}
