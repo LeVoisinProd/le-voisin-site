@@ -410,6 +410,18 @@ foreach (DB::all("SELECT directions FROM contact
         if ($x !== '') $lesDirs[$x] = ($lesDirs[$x] ?? 0) + 1;
 arsort($lesParts); arsort($lesDirs);
 
+/* LES ASSOCIATIONS SONT PROPOSÉES MÊME QUAND AUCUN CONTACT N'EN PORTE ENCORE.
+   Les deux autres filtres se déduisent des fiches, et c'est juste pour eux: une
+   participation qui n'existe sur personne n'est pas un filtre. Une association,
+   si — elle existe indépendamment du carnet, et le filtre construit à partir
+   des seules fiches disparaissait entièrement tant que personne n'avait coché,
+   ce qui donne à l'écran l'air de n'avoir pas changé. On ajoute donc les
+   associations connues à zéro, et le compte ne s'affiche que s'il y en a un. */
+foreach (DB::all("SELECT nom FROM organisation
+                   WHERE supprime_le IS NULL AND genre = 'association' AND nom <> ''
+                   ORDER BY nom") as $r)
+    $lesDirs[(string)$r['nom']] ??= 0;
+
 $sqlWhere = implode(' AND ', $where);
 $t0 = microtime(true);
 
@@ -481,10 +493,10 @@ dash_haut('contacts', e($sst));
   </select>
   <?php if ($lesDirs): ?>
   <select name="dir">
-    <option value="">Toutes les directions</option>
+    <option value="">Toutes les associations</option>
     <?php foreach ($lesDirs as $x => $n): ?>
       <option value="<?= e((string)$x) ?>"<?= $dir === (string)$x ? ' selected' : '' ?>><?=
-        e((string)$x) ?> (<?= (int)$n ?>)</option>
+        e((string)$x) ?><?= $n ? ' (' . (int)$n . ')' : '' ?></option>
     <?php endforeach; ?>
   </select>
   <?php endif; ?>

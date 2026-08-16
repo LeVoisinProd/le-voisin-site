@@ -45,26 +45,46 @@ $pCoches = $coches('participations');
 $mCoches = $coches('date_mois');
 $dCoches = $coches('directions');
 
-/* Les directions artistiques du roster. Lues des dates déjà saisies plutôt que
-   d'une liste écrite en dur: le roster bouge, et une liste en dur vieillit
-   sans que personne ne s'en aperçoive. */
-$directions = DB::all("SELECT DISTINCT artiste FROM booking
-                       WHERE supprime_le IS NULL AND artiste IS NOT NULL AND artiste <> ''
-                       ORDER BY artiste");
-$dNoms = array_values(array_unique(array_merge(
-    array_map(fn($r) => (string)$r['artiste'], $directions), $dCoches)));
+/* LES ASSOCIATIONS, ET PLUS LES NOMS D'ARTISTES DES DATES. Choisi par Anna le
+   16.08.2026, et le modèle qu'elle a dicté explique pourquoi c'est le bon
+   niveau: « cada asso pode portar varios projetos de varios artistas ». Une
+   association est stable, un nom d'artiste sur une date ne l'est pas — la même
+   personne y apparaissait sous trois graphies, et `watering` portait à elle
+   seule quatre artistes différents.
+
+   ON GARDE LA DIRECTION ARTISTIQUE À CÔTÉ DU NOM. C'est la demande d'Anna, et
+   elle tient: « Tympan » ne dit rien à qui prépare un envoi, « Tympan · Marc
+   Crofts » se reconnaît. La direction est affichée, jamais enregistrée — ce
+   qui part dans la colonne reste le seul titre, sinon le jour où une direction
+   change, toutes les fiches deviennent fausses. */
+$assos = DB::all("SELECT nom, direction FROM organisation
+                   WHERE supprime_le IS NULL AND genre = 'association' AND nom <> ''
+                   ORDER BY nom");
+$dNoms = array_map(fn($r) => (string)$r['nom'], $assos);
+$dSous = [];
+foreach ($assos as $r) {
+    if (trim((string)$r['direction']) !== '') $dSous[(string)$r['nom']] = (string)$r['direction'];
+}
+
+/* Ce qui était coché avant et qui n'est plus proposé — les anciens noms
+   d'artistes — reste en fin de liste et reste cochable. On ne décoche jamais
+   personne en changeant la liste: la fiche appartient à qui l'a remplie. */
+$ancien = array_values(array_diff($dCoches, $dNoms));
+$dNoms  = array_merge($dNoms, $ancien);
 
 /** Un groupe de boutons à cocher, qui écrit une chaîne à virgules. */
-$groupe = function (string $champ, string $titre, string $aide, array $choix, array $actifs)
-                    use (&$groupe): void { ?>
+$groupe = function (string $champ, string $titre, string $aide, array $choix,
+                    array $actifs, array $sous = []) use (&$groupe): void { ?>
   <div class="lb">
     <div class="lb-t"><?= e($titre) ?></div>
     <p class="lb-a"><?= e($aide) ?></p>
     <div class="lb-g" data-champ="<?= e($champ) ?>">
       <?php foreach ($choix as $c): $on = in_array($c, $actifs, true); ?>
-        <label class="pil <?= $on ? 'on' : '' ?>">
+        <label class="pil <?= $on ? 'on' : '' ?><?= isset($sous[$c]) ? ' pil-d' : '' ?>"
+               <?= isset($sous[$c]) ? 'title="Direction artistique : ' . e($sous[$c]) . '"' : '' ?>>
           <input type="checkbox" name="<?= e($champ) ?>_c[]" value="<?= e($c) ?>" <?= $on ? 'checked' : '' ?>>
-          <?= e($c) ?>
+          <span class="pil-n"><?= e($c) ?><?php if (isset($sous[$c])): ?>
+            <span class="pil-da"><?= e($sous[$c]) ?></span><?php endif; ?></span>
         </label>
       <?php endforeach; ?>
     </div>
@@ -99,11 +119,11 @@ $groupe = function (string $champ, string $titre, string $aide, array $choix, ar
   </div>
 
   <?php
-  $groupe('directions', 'Directions artistiques liées',
-          'Ce contact peut être intéressé par ces spectacles. C\'est le champ qui transforme '
-        . 'un carnet d\'adresses en outil de diffusion: on cherche à qui proposer une pièce, '
-        . 'pas qui est programmateur.',
-          $dNoms, $dCoches);
+  $groupe('directions', 'Associations liées',
+          'Ce contact peut être intéressé par ce que portent ces associations. C\'est le champ '
+        . 'qui transforme un carnet d\'adresses en outil de diffusion: on cherche à qui proposer '
+        . 'une pièce, pas qui est programmateur. Le nom en dessous est la direction artistique.',
+          $dNoms, $dCoches, $dSous);
   ?>
 </div>
 
@@ -117,6 +137,12 @@ $groupe = function (string $champ, string $titre, string $aide, array $choix, ar
   border:1px solid var(--trait);border-radius:14px;cursor:pointer;background:var(--papier);
   color:var(--doux);user-select:none}
 .pil input{margin:0;width:13px;height:13px;cursor:pointer}
+/* Les associations portent leur direction artistique sous le titre. Coin carré
+   plutôt qu'arrondi: elles ne se cochent pas comme un mois, et l'œil doit voir
+   d'un coup qu'il change de nature de liste. */
+.pil-d{border-radius:6px;padding:4px 12px 5px}
+.pil-n{display:flex;flex-direction:column;line-height:1.25}
+.pil-da{font-size:11px;font-weight:400;opacity:.72;letter-spacing:.01em}
 .pil.on,.pil:has(input:checked){border-color:var(--encre);color:var(--encre);font-weight:600}
 .pil:hover{border-color:var(--encre)}
 .lb-plus{margin-top:-8px}
