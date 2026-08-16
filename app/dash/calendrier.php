@@ -40,13 +40,47 @@ $statut = trim((string)($_GET['st'] ?? ''));
 $debut = sprintf('%04d-%02d-01', $saison, MOIS_SAISON);
 $fin   = sprintf('%04d-%02d-01', $saison + 1, MOIS_SAISON);
 
-$where = ['supprime_le IS NULL', 'date_debut >= ?', 'date_debut < ?'];
+/* ── L'AGENDA PAR ASSOCIATION ───────────────────────────────────────────────
+   [16.08.2026] Anna: « que eu possa ver as agendas de cada asso separadamente,
+   hj em dia eu vejo tudo misturado no meu google calendar ».
+
+   L'association d'une date ne se lit pas sur la date: `booking` ne porte que le
+   titre du spectacle. Elle se déduit — spectacle → `projet_prod.organisation_id`
+   → association. Ajouter une colonne `organisation_id` sur `booking` aurait fait
+   une seconde vérité qui se tromperait le jour où une pièce change de porteur;
+   la déduction, elle, suit toute seule. */
+$asso = (int)($_GET['a'] ?? 0);
+
+$ASSOS = DB::all(
+    "SELECT o.id, o.nom, COUNT(*) n
+       FROM booking b
+       JOIN projects p     ON p.title_fr = b.projet
+       JOIN projet_prod pp ON pp.project_id = p.id
+       JOIN organisation o ON o.id = pp.organisation_id AND o.supprime_le IS NULL
+      WHERE b.supprime_le IS NULL AND b.date_debut >= ? AND b.date_debut < ?
+      GROUP BY o.id ORDER BY o.nom", [$debut, $fin]);
+
+$where = ['b.supprime_le IS NULL', 'b.date_debut >= ?', 'b.date_debut < ?'];
 $args  = [$debut, $fin];
-if (isset($ETIQ[$statut])) { $where[] = 'statut = ?'; $args[] = $statut; }
+if (isset($ETIQ[$statut])) { $where[] = 'b.statut = ?'; $args[] = $statut; }
+if ($asso > 0) {
+    $where[] = 'EXISTS (SELECT 1 FROM projects p2
+                          JOIN projet_prod pp2 ON pp2.project_id = p2.id
+                         WHERE p2.title_fr = b.projet AND pp2.organisation_id = ?)';
+    $args[] = $asso;
+}
 
 $t0 = microtime(true);
-$st = DB::pdo()->prepare('SELECT * FROM booking WHERE ' . implode(' AND ', $where)
-                       . ' ORDER BY date_debut, heure, id');
+/* Le nom de l'association vient avec la ligne: une requête par date pour aller
+   le chercher ferait cinquante requêtes sur une page qu'on ouvre tous les jours. */
+$st = DB::pdo()->prepare(
+    'SELECT b.*, o.nom AS asso_nom, o.id AS asso_id
+       FROM booking b
+       LEFT JOIN projects p     ON p.title_fr = b.projet
+       LEFT JOIN projet_prod pp ON pp.project_id = p.id
+       LEFT JOIN organisation o ON o.id = pp.organisation_id AND o.supprime_le IS NULL
+      WHERE ' . implode(' AND ', $where)
+    . ' ORDER BY b.date_debut, b.heure, b.id');
 $st->execute($args);
 $lignes = $st->fetchAll();
 $ms = (int)round((microtime(true) - $t0) * 1000);
@@ -151,6 +185,16 @@ dash_haut('calendrier',
         Saison <?= $x['s'] ?>-<?= $x['s'] + 1 ?> (<?= $x['n'] ?>)</option>
     <?php endforeach; ?>
   </select>
+  <?php /* Le filtre par association, celui qu'Anna demande. Il est en premier
+       après la saison: c'est la question posée en ouvrant l'écran — « qu'est-ce
+       que porte Encontro cette saison ». */ ?>
+  <select name="a" onchange="this.form.submit()">
+    <option value="">Toutes les associations</option>
+    <?php foreach ($ASSOS as $a): ?>
+      <option value="<?= (int)$a['id'] ?>"<?= $asso === (int)$a['id'] ? ' selected' : '' ?>><?=
+        e((string)$a['nom']) ?> (<?= (int)$a['n'] ?>)</option>
+    <?php endforeach; ?>
+  </select>
   <select name="st" onchange="this.form.submit()">
     <option value="">Tous les statuts</option>
     <?php foreach ($ETIQ as $k => $v): ?>
@@ -166,6 +210,40 @@ dash_haut('calendrier',
   </span>
   <a class="neuf" href="/dashboard.php?e=bookings&amp;mod=1">+ nouvelle date</a>
 </form>
+
+<?php /* ── LES ABONNEMENTS ────────────────────────────────────────────────────
+     [16.08.2026] C'est la moitié de la demande d'Anna, et celle qui règle sa
+     plainte: filtrer ici range le dashboard, pas son Google Calendar. Un flux
+     par association s'abonne dans Google et devient un calendrier de plus, avec
+     sa couleur, décochable — sans toucher à ce qui existe.
+
+     Aucune autorisation OAuth: l'abonnement marche aujourd'hui. En lecture
+     seule, ce qui est de toute façon le bon sens — les dates se saisissent
+     ici. */ ?>
+<details class="ics">
+  <summary>S'abonner depuis Google Calendar, une association à la fois</summary>
+  <div class="ics-c">
+    <p>Dans Google Agenda: <strong>Autres agendas → + → À partir de l'URL</strong>, puis collez
+       l'adresse. L'agenda se met à jour tout seul, en lecture seule, et se décoche comme
+       n'importe quel autre.</p>
+    <?php $jeton = trim(setting('agenda_token'));
+      if ($jeton === '') { $jeton = bin2hex(random_bytes(16)); Settings::set('agenda_token', $jeton); }
+      $base = rtrim((string)cfg('base_url', ''), '/') . '/agenda.php?t=' . $jeton; ?>
+    <ul class="ics-l">
+      <li><strong>Toutes les associations</strong>
+        <input type="text" readonly value="<?= e($base) ?>" onclick="this.select()"></li>
+      <?php foreach ($ASSOS as $a): ?>
+        <li><strong><?= e((string)$a['nom']) ?></strong> <span class="sec"><?= (int)$a['n'] ?> dates</span>
+          <input type="text" readonly value="<?= e($base . '&a=' . (int)$a['id']) ?>" onclick="this.select()"></li>
+      <?php endforeach; ?>
+    </ul>
+    <p class="ics-av"><strong>Ces adresses sont des clefs.</strong> Qui les a voit les dates,
+       sans mot de passe — c'est ainsi que Google les lit. Elles ne portent ni prix, ni client,
+       ni note interne, seulement la date, le spectacle et le lieu. Si l'une fuite, changez le
+       jeton dans Paramètres: tous les abonnements se coupent d'un coup et se recollent avec
+       la nouvelle adresse.</p>
+  </div>
+</details>
 
 <?php if (!$parMois): ?>
   <p class="vide">Aucune date sur cette saison.</p>
@@ -184,6 +262,10 @@ dash_haut('calendrier',
         <span class="jour"><?= $d->format('d') ?><em><?= ['dim','lun','mar','mer','jeu','ven','sam'][(int)$d->format('w')] ?></em></span>
         <span class="corps">
           <strong><?= e($r['projet'] ?: '(sans projet)') ?></strong>
+          <?php /* L'association en pastille: c'est ce qui permet de lire un mois
+               mélangé sans le filtrer, et de voir d'un coup si une semaine est
+               à Encontro ou à Hibiscus. */ ?>
+          <?php if ($r['asso_nom']): ?><span class="past-asso"><?= e((string)$r['asso_nom']) ?></span><?php endif; ?>
           <?php if ($r['artiste']): ?><span class="sec"> · <?= e($r['artiste']) ?></span><?php endif; ?>
           <span class="lieu"><?= e($r['venue'] ?? '') ?><?php
             if ($r['ville']): ?>, <?= e($r['ville']) ?><?php endif; ?><?php
@@ -242,6 +324,20 @@ a.date.passe { opacity:.5; }
   .fin { width:100%; justify-content:flex-start; padding-left:54px; }
   a.date { flex-wrap:wrap; }
 }
+.past-asso{display:inline-block;margin-left:7px;padding:1px 8px;border:1px solid var(--trait);
+  border-radius:9px;font-size:11px;color:var(--doux);font-weight:400;vertical-align:1px}
+.ics{margin:0 0 18px;border:1px solid var(--trait);border-radius:6px;background:var(--fond2)}
+.ics>summary{padding:10px 14px;cursor:pointer;font-size:13.5px;font-weight:600}
+.ics[open]>summary{border-bottom:1px solid var(--trait)}
+.ics-c{padding:14px;font-size:13px}
+.ics-c>p{margin:0 0 12px;max-width:84ch}
+.ics-l{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:9px}
+.ics-l li{display:flex;flex-direction:column;gap:3px}
+.ics-l input{width:100%;max-width:720px;padding:6px 9px;font:inherit;font-size:12px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--trait);
+  border-radius:4px;background:var(--papier);color:var(--doux)}
+.ics-av{margin:0;padding:9px 12px;border-left:3px solid #d9a800;background:#fdf7e3;
+  color:#4a3d00;max-width:84ch}
 </style>
 
 <?php dash_bas(); ?>
