@@ -174,8 +174,6 @@ a.date.passe { opacity:.5; }
 .et.pending   { background:var(--fond2); }
 .et.canceled  { background:#fbe9e7; border-color:#f0c3bb; color:#7a2b1e; }
 .et.hors      { background:var(--fond2); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .et {
-      background:transparent !important; color:inherit !important; } }
 @media (max-width:640px) {
   .fin { width:100%; justify-content:flex-start; padding-left:54px; }
   a.date { flex-wrap:wrap; }

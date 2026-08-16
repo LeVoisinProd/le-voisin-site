@@ -40,11 +40,27 @@ function dash_haut(string $ecranActif, string $sousTitre = ''): void
       as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="<?= e(url('/assets/css/fonts.css')) ?>">
 <style>
+/* LE DASHBOARD NE SUIT PLUS LE THÈME DU SYSTÈME. Choisi par Anna le 16.08.2026:
+   « menu fundo preto e a parte da direita fundo branco e police preta ». Il
+   suivait `prefers-color-scheme`, si bien que le contenu passait au gris foncé
+   chez qui a son Mac en thème sombre — et le même écran n'avait pas la même
+   tête d'une personne à l'autre du bureau.
+
+   ON ASSUME DONC UN SEUL LOOK: rail noir à gauche, papier blanc à droite,
+   encre noire. C'est aussi ce qui est imprimé — les relevés, la feuille de
+   route et le devis sortent sur du papier blanc — et un écran qui ressemble à
+   ce qui sort de l'imprimante fait gagner la relecture d'avant envoi.
+
+   Le bloc `prefers-color-scheme` a été retiré, pas commenté: une variante
+   sombre laissée en place se réveille toute seule à la prochaine modification
+   de ces variables. Le site public, lui, garde son propre thème — ceci ne
+   concerne que `/dashboard.php`. */
 :root { --encre:#0d0d0d; --papier:#fff; --doux:#6b6b6b; --trait:#e4e4e4;
-        --jaune:#FFD24D; --orange:#FF7142; --fond2:#f7f7f7; --barre:#111; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) {
-        --encre:#f0f0f0; --papier:#151515; --doux:#9a9a9a; --trait:#2c2c2c;
-        --fond2:#1d1d1d; --barre:#0a0a0a; } }
+        --jaune:#FFD24D; --orange:#FF7142; --fond2:#f7f7f7; --barre:#0a0a0a; }
+/* color-scheme:light dit au navigateur de ne pas assombrir de lui-même les
+   contrôles de formulaire: sans cette ligne, les `select` et les `input`
+   restent sombres sous un système en thème sombre, sur fond blanc. */
+:root { color-scheme:light; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--papier); color:var(--encre); font-size:15px;
        font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;

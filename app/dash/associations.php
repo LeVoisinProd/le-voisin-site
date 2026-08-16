@@ -408,7 +408,5 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 .et.s-actif{background:#e7f6ea;border-color:#bfe3c8;color:#1c5c2e}
 .et.s-pause{background:#fff6d9;border-color:#f0dfa3;color:#6b5312}
 .et.s-termine{background:var(--fond2);color:var(--doux)}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .et{
-  background:transparent!important;color:inherit!important}}
 </style>
 <?php dash_bas(); ?>

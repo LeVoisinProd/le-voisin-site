@@ -370,7 +370,5 @@ tr.passe{opacity:.55}
 .ph.cloture{background:var(--fond2);color:var(--doux)}
 .alerte{margin:16px 26px 0;padding:11px 16px;background:var(--fond2);
   border-left:4px solid var(--orange);font-size:13.5px;max-width:82ch}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .ph{
-  background:transparent!important;color:inherit!important}}
 </style>
 <?php dash_bas(); ?>

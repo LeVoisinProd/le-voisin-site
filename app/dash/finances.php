@@ -390,8 +390,6 @@ table.rel select{font-size:12px;padding:2px 5px;border:1px solid var(--trait);
   border-radius:3px;background:var(--papier);color:var(--encre)}
 table.rel select.p-recu,table.rel select.p-verse{background:#e7f6ea;border-color:#bfe3c8}
 table.rel select.p-partiel{background:#fff6d9;border-color:#f0dfa3}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) table.rel select{
-  background:var(--papier)!important}}
 </style>
 <?php dash_bas(); return; ?>
 <?php endif; ?>
@@ -512,7 +510,5 @@ tr.s-canceled td,tr.c-lieu td,tr.c-nous td{opacity:.6}
 .alerte{margin:16px 0;padding:11px 15px;background:var(--fond2);
   border-left:4px solid var(--orange);font-size:13.5px;max-width:78ch}
 .pt{margin:0 0 10px;max-width:76ch}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .et{
-  background:transparent!important;color:inherit!important}}
 </style>
 <?php dash_bas(); ?>

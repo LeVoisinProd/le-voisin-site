@@ -1454,9 +1454,6 @@ td.d, th.d { text-align:right; white-space:nowrap; }
 .et.option    { background:#fff6d9; border-color:#f0dfa3; color:#6b5312; }
 .et.pending   { background:var(--fond2); }
 .et.canceled  { background:#fbe9e7; border-color:#f0c3bb; color:#7a2b1e; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .et.confirmed,
-  :root:not([data-theme=light]) .et.option, :root:not([data-theme=light]) .et.canceled {
-  background:transparent; color:inherit; } }
 .neuf { margin-left:auto; padding:8px 16px; background:var(--jaune); color:#0d0d0d;
         border-radius:4px; text-decoration:none; font-size:13.5px; font-weight:600; }
 .alerte { margin:16px 26px 0; padding:12px 16px; background:var(--fond2);
