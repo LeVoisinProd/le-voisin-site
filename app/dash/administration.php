@@ -46,32 +46,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            la génération d'un mois déjà généré n'ajoute rien et n'efface rien: ce
            qui est déjà coché le reste. C'est ce qui permet de la relancer après
            avoir ajouté une association, sans peur. */
-        $orgs = DB::all("SELECT id, pays FROM organisation
-                          WHERE genre = 'association' AND supprime_le IS NULL AND statut = 'actif'");
+        /* `gestion = 'diffusion'` EST EXCLU, et ce n'est pas un détail. Improvável
+           Produções et Tainá E I O U sont des associations dont le Le Voisin vend
+           les spectacles sans les administrer — Anna, 16.08.2026. Leur générer
+           seize obligations par mois fabriquerait trente-deux lignes « à faire »
+           que personne ne peut faire, parce qu'elles ne nous reviennent pas. Et
+           une liste dont un cinquième est faux cesse d'être lue: la panne serait
+           celle d'Alessandra, pas celle du logiciel. */
+        $orgs = DB::all("SELECT id, pays, canton, canton_fiscal FROM organisation
+                          WHERE genre = 'association' AND supprime_le IS NULL
+                            AND statut = 'actif' AND gestion = 'complete'");
         $mods = DB::all("SELECT * FROM admin_modele WHERE actif = 1");
         $st = DB::pdo()->prepare(
             'INSERT IGNORE INTO admin_tache (modele_id, organisation_id, periode, territoire, echeance)
              VALUES (?,?,?,?,?)');
         $n = 0;
+        /* `pays` est écrit tantôt « CH » tantôt « Suisse », tantôt « FR » tantôt
+           « France », selon la source qui a rempli la fiche. On normalise ici
+           plutôt que de nettoyer la colonne: la reprise depuis le dashboard doit
+           rester sans perte, et deux graphies ne sont pas une erreur de saisie. */
+        $pays = static function (?string $p): string {
+            $p = strtoupper(trim((string)$p));
+            if ($p === '' ) return 'CH';
+            if (str_starts_with($p, 'FR')) return 'FR';
+            if (str_starts_with($p, 'CH') || str_starts_with($p, 'SUISSE')) return 'CH';
+            return substr($p, 0, 2);
+        };
+
+        $sansCanton = [];
         foreach ($orgs as $o) {
-            $paysOrg = strtoupper(substr((string)($o['pays'] ?? 'CH'), 0, 2));
+            $paysOrg   = $pays($o['pays'] ?? null);
+            /* Le canton fiscal l'emporte quand il est renseigné: c'est celui où
+               l'association déclare, et il ne coïncide pas toujours avec son
+               siège. À défaut, le canton du siège. */
+            $cantonOrg = strtoupper(trim((string)($o['canton_fiscal'] ?: $o['canton'] ?: '')));
+
             foreach ($mods as $m) {
-                /* Une obligation française ne concerne pas une association
-                   suisse, et l'inverse. Générer les deux pour tout le monde
-                   ferait une liste que personne ne lit. */
-                $t = (string)$m['territoire'];
-                $estFr = $t === 'FR';
-                $orgFr = in_array($paysOrg, ['FR'], true);
-                if ($estFr !== $orgFr && $t !== '') continue;
+                $t = strtoupper(trim((string)$m['territoire']));
+
+                /* LE TERRITOIRE SE LIT À TROIS NIVEAUX, et les confondre était un
+                   vrai défaut: la version précédente ne séparait que la France de
+                   la Suisse, si bien qu'une association bernoise recevait CINQ
+                   impôts à la source — Genève, Vaud, Berne, Valais et Zurich. On
+                   ne remarque pas l'erreur en lisant le code; on la remarque le
+                   mois où quelqu'un cherche pourquoi rien ne correspond. */
+                if ($t === '') {
+                    // sans territoire: tout le monde
+                } elseif ($t === 'FR' || $t === 'CH') {
+                    if ($paysOrg !== $t) continue;                 // le pays
+                } else {
+                    if ($paysOrg !== 'CH' || $cantonOrg !== $t) continue;   // le canton
+                }
 
                 $ech = $m['jour_echeance']
                      ? sprintf('%s-%02d', $periode, min(28, (int)$m['jour_echeance'])) : null;
                 $st->execute([$m['id'], $o['id'], $periode, $m['territoire'], $ech]);
                 $n += $st->rowCount();
             }
+
+            /* UNE ASSOCIATION SUISSE SANS AUCUN MODÈLE CANTONAL EST UN TROU, PAS
+               UNE ABSENCE D'OBLIGATION. CRILE est au Tessin et DieselReclame dans
+               le Jura; ces deux cantons prélèvent l'impôt à la source comme les
+               autres, seulement aucun modèle ne les couvre. Se taire ici ferait
+               croire qu'il n'y a rien à déclarer. */
+            if ($paysOrg === 'CH' && $cantonOrg !== ''
+                && !array_filter($mods, fn($m) => strtoupper(trim((string)$m['territoire'])) === $cantonOrg)) {
+                $sansCanton[$cantonOrg] = true;
+            }
         }
-        dash_flash($n > 0 ? "$n obligation(s) ajoutée(s) pour $periode."
-                          : "Rien à ajouter: le mois était déjà généré.");
+
+        $avis = $n > 0 ? "$n obligation(s) ajoutée(s) pour $periode."
+                       : "Rien à ajouter: le mois était déjà généré.";
+        if ($sansCanton) {
+            $avis .= ' Aucun modèle pour ' . implode(', ', array_keys($sansCanton))
+                   . ' — les obligations cantonales de ces cantons ne sont donc pas suivies ici.';
+        }
+        dash_flash($avis);
         redirect('/dashboard.php?e=administration&m=' . $periode);
     }
 
