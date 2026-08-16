@@ -29,7 +29,12 @@ $cid = (int)($_GET['c'] ?? 0);
 $CH_CONTACT = ['nom','prenom','nom_famille','fonction','structure','categorie',
                'ville_struct','pays_struct','region','adresse','cp','ville','dept','pays',
                'email1','email2','email_pro1','tel1','tel_pro1','site',
-               'mots_cles','description','participations','notes'];
+               'mots_cles','description','participations','notes',
+               /* Ajoutées le 16.08.2026, migration 018. `pronom` et `adresse2`
+                  existaient dans le dashboard et se perdaient en silence à
+                  l'enregistrement, faute de colonne. */
+               'pronom','adresse2','instagram','linkedin','directions',
+               'date_mois','date_notes'];
 $err = $saisi = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,6 +44,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('contacts');
     foreach ($CH_CONTACT as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
+
+    /* LES TROIS LISTES À COCHER. Elles arrivent en tableau et repartent en
+       chaîne à virgules — le format du dashboard, pour que la reprise depuis
+       lv-contacts reste sans perte et qu'un import relise ce que l'écran écrit.
+
+       `participations_libre` permet d'en ajouter une qui n'est pas dans les
+       douze proposées: une liste fermée demanderait une migration à chaque
+       nouveau festival, et le prochain arrive toujours. */
+    foreach (['participations', 'date_mois', 'directions'] as $liste) {
+        $c = array_filter(array_map('trim', (array)($_POST[$liste . '_c'] ?? [])),
+                          fn($x) => $x !== '');
+        if ($liste === 'participations') {
+            foreach (explode(',', (string)($_POST['participations_libre'] ?? '')) as $x) {
+                $x = trim($x);
+                if ($x !== '' && !in_array($x, $c, true)) $c[] = $x;
+            }
+        }
+        /* Le champ n'est écrasé que si le formulaire portait bien ses cases:
+           sans cela, un POST qui ne les contient pas viderait la liste. */
+        if (isset($_POST[$liste . '_c']) || ($liste === 'participations' && isset($_POST['participations_libre']))) {
+            $saisi[$liste] = mb_substr(implode(', ', array_unique($c)), 0, 500);
+        }
+    }
 
     if (($_POST['action'] ?? '') === 'supprimer' && $cid > 0) {
         DB::pdo()->prepare('UPDATE contact SET supprime_le = NOW() WHERE id = ?')->execute([$cid]);
@@ -104,6 +132,10 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
            'aide'=>'Ce qui apparaît dans les listes. Souvent le nom de la structure']);
         ch('prenom', 'Prénom', $v('prenom'), $err);
         ch('nom_famille', 'Nom de famille', $v('nom_famille'), $err);
+        /* Le pronom n'est pas un ornement: écrire à un programmateur en se
+           trompant est le genre de faute qui ferme une porte avant la première
+           phrase. 236 fiches le portent déjà. */
+        ch('pronom', 'Pronom', $v('pronom'), $err, ['aide'=>'elle, il, iel, Mme, M.']);
         ch('fonction', 'Fonction', $v('fonction'), $err);
         ch('categorie', 'Catégorie', $v('categorie'), $err, ['type'=>'select','choix'=>$choixCat]);
 
@@ -113,6 +145,8 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         ch('pays_struct', 'Pays', $v('pays_struct'), $err);
         ch('region', 'Région', $v('region'), $err);
         ch('site', 'Site', $v('site'), $err, ['large'=>true]);
+        ch('instagram', 'Instagram', $v('instagram'), $err);
+        ch('linkedin', 'LinkedIn', $v('linkedin'), $err);
 
         echo '<div class="titre-bloc">Joindre</div>';
         ch('email_pro1', 'Courriel professionnel', $v('email_pro1'), $err, ['type'=>'email']);
@@ -123,6 +157,7 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         echo '<div class="titre-bloc">Adresse postale</div>';
         ch('adresse', 'Adresse', $v('adresse'), $err, ['large'=>true]);
+        ch('adresse2', 'Adresse (suite)', $v('adresse2'), $err, ['large'=>true]);
         ch('cp', 'Code postal', $v('cp'), $err);
         ch('ville', 'Ville', $v('ville'), $err);
         ch('dept', 'Département', $v('dept'), $err);
@@ -132,11 +167,12 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         ch('mots_cles', 'Mots-clefs', $v('mots_cles'), $err, ['large'=>true,
            'aide'=>'Ils entrent dans la recherche par index']);
         ch('description', 'Description', $v('description'), $err, ['large'=>true]);
-        ch('participations', 'Participations', $v('participations'), $err);
         ch('notes', 'Notes', $v('notes'), $err, ['type'=>'textarea','large'=>true,'rows'=>5,
            'aide'=>'Elles entrent aussi dans la recherche']);
         ?>
       </div>
+
+      <?php require __DIR__ . '/_contact_listes.php'; ?>
       <div class="actions">
         <button type="submit"><?= $cid > 0 ? 'Enregistrer' : 'Créer' ?></button>
         <a class="sec2" href="/dashboard.php?e=contacts<?= $cid > 0 ? '&amp;c=' . $cid : '' ?>">annuler</a>
