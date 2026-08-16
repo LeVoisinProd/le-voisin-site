@@ -42,6 +42,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        formulaire d'auto-promotion. */
     dash_exige_ecriture('parametres');
 
+    /* ── LES CLEFS DE TRADUCTION ─────────────────────────────────────────────
+       [16.08.2026] Elles vivent dans `settings` et non dans `config.php`, comme
+       celles de Skribble: Anna les colle elle-même, sans passer par un fichier
+       du serveur.
+
+       UNE CLEF VIDE NE VIDE RIEN. Le champ est affiché masqué — on ne réaffiche
+       jamais une clef d'API en clair — donc « vide » veut dire « je n'y touche
+       pas », pas « efface ». Pour retirer une clef il y a une case dédiée.
+       C'est la même règle que pour les mots de passe des associations, et pour
+       la même raison: sinon un enregistrement distrait coupe le service. */
+    if (($_POST['act'] ?? '') === 'traduction') {
+        foreach (['deepl_key', 'anthropic_key'] as $k) {
+            if (($_POST['vider_' . $k] ?? '') === '1') { Settings::set($k, ''); continue; }
+            $v = trim((string)($_POST[$k] ?? ''));
+            if ($v !== '') Settings::set($k, $v);
+        }
+        Settings::set('anthropic_model', trim((string)($_POST['anthropic_model'] ?? '')));
+        dash_flash(Traduction::configured()
+            ? 'Traduction active, moteur: ' . Traduction::moteur() . '.'
+            : 'Aucune clef enregistrée: les documents anglais garderont leur texte français.');
+        redirect('/dashboard.php?e=parametres');
+    }
+
     $uid = (int)($_POST['id'] ?? 0);
     $r   = (string)($_POST['role'] ?? '');
     if ($uid && isset($ROLES[$r])) {
@@ -146,6 +169,67 @@ dash_haut('parametres', count($gens) . ' personne' . (count($gens) > 1 ? 's' : '
   <?php endforeach; ?>
   </tbody>
 </table></div>
+
+<?php /* ── LA TRADUCTION AUTOMATIQUE ─────────────────────────────────────────
+     [16.08.2026] Les quatre documents qui sortent — devis, feuille de route,
+     dossier, fiche technique — s'impriment en anglais. Les intitulés viennent
+     du dictionnaire et sont sûrs; le texte rédigé passe par un moteur, une
+     seule fois, puis reste en base et se corrige à la main. */ ?>
+<h3 class="sect">La traduction des documents</h3>
+<?php $mot = Traduction::moteur(); $aRelire = Traduction::aRelire(); ?>
+<p class="aide" style="max-width:80ch">
+  <?php if ($mot === ''): ?>
+    Aucun moteur configuré. Les documents en anglais sortent avec leurs intitulés traduits
+    et <strong>leur texte rédigé en français</strong>, et le document le dit lui-même —
+    on ne fait jamais passer du français pour de l'anglais en silence.
+  <?php else: ?>
+    Moteur actif: <strong><?= e($mot) ?></strong>. Chaque texte n'est traduit
+    <strong>qu'une fois</strong> et gardé. Si vous corrigez le français, l'ancienne traduction
+    cesse d'être servie d'elle-même.
+    <?php if ($aRelire): ?><br><strong><?= $aRelire ?></strong> traduction(s) jamais relue(s):
+      les documents qui les portent sortent avec un avertissement imprimé.<?php endif; ?>
+  <?php endif; ?>
+</p>
+<?php if (dash_droit('parametres', dash_role()) === 'ecrit'): ?>
+<form method="post" action="/dashboard.php?e=parametres" class="ftrad">
+  <?= Auth::csrfField() ?>
+  <input type="hidden" name="act" value="traduction">
+  <?php foreach ([
+      ['deepl_key', 'Clef DeepL', 'La plus juste sur le français↔anglais courant. Une clef gratuite finit par « :fx » et le code s\'en aperçoit tout seul.'],
+      ['anthropic_key', 'Clef Anthropic', 'Plus lente, mais elle tient le registre d\'un dossier de subvention. Utilisée seulement si DeepL n\'est pas renseignée.'],
+    ] as [$k, $lib, $aide]): $pose = trim(setting($k)) !== ''; ?>
+    <div class="ch">
+      <label for="c-<?= $k ?>"><?= e($lib) ?>
+        <?php if ($pose): ?><span class="pose">enregistrée</span><?php endif; ?></label>
+      <p class="aide"><?= $aide ?></p>
+      <input type="password" id="c-<?= $k ?>" name="<?= $k ?>" autocomplete="new-password"
+             placeholder="<?= $pose ? 'Laissez vide pour ne pas y toucher' : 'Collez la clef ici' ?>">
+      <?php if ($pose): ?>
+        <label class="vider"><input type="checkbox" name="vider_<?= $k ?>" value="1"> retirer cette clef</label>
+      <?php endif; ?>
+    </div>
+  <?php endforeach; ?>
+  <div class="ch">
+    <label for="c-mod">Modèle Anthropic</label>
+    <p class="aide">Laissez vide pour <code>claude-sonnet-5</code>.</p>
+    <input type="text" id="c-mod" name="anthropic_model" value="<?= e(setting('anthropic_model')) ?>">
+  </div>
+  <div class="act"><button type="submit">Enregistrer</button></div>
+</form>
+<style>
+.ftrad{max-width:640px;margin:0 0 26px}
+.ftrad .ch{margin-bottom:16px}
+.ftrad label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--doux);margin-bottom:3px}
+.ftrad .pose{margin-left:8px;padding:1px 8px;border:1px solid var(--trait);border-radius:9px;
+  font-size:10px;color:var(--doux);text-transform:none;letter-spacing:0}
+.ftrad input[type=password],.ftrad input[type=text]{width:100%;padding:8px 10px;font:inherit;
+  font-size:14px;border:1px solid var(--trait);border-radius:5px;box-sizing:border-box}
+.ftrad .vider{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;
+  text-transform:none;letter-spacing:0;font-weight:400;color:var(--doux)}
+.ftrad .vider input{width:auto}
+</style>
+<?php endif; ?>
 
 <h3 class="sect">Ailleurs</h3>
 <div class="liens">

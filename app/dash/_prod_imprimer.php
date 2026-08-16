@@ -301,8 +301,62 @@ case 'droits':
     $ajout('Notes',                'texte', (string)($d['droits']['notes'] ?? ''));
     break;
 }
+/* ── LA TRADUCTION DES TEXTES LIBRES ────────────────────────────────────────
+   [16.08.2026] Anna: « eu nao quero escrever o segundo campo, quero que a
+   traducao seja automatica ». Les intitulés viennent du dictionnaire; ce qui
+   est écrit à la main — lettre de motivation, note d'intention, feuille de
+   route, adaptations — passe ici.
+
+   UN SEUL ENDROIT POUR LES QUATRE DOCUMENTS, et après que les blocs sont
+   construits: chaque `case` du switch au-dessus ignore donc complètement la
+   langue, et un onglet ajouté demain est traduit sans qu'on y pense.
+
+   UN SEUL APPEL RÉSEAU pour tout le document. Neuf blocs traduits un par un
+   feraient une page de vingt secondes, et vingt secondes se lisent comme une
+   panne.
+
+   CE QUI N'EST PAS TRADUIT ICI, et c'est voulu: les valeurs des tableaux —
+   dates, villes, prix, dimensions. Traduire « Lausanne » ou « 9 m » n'apporte
+   rien et fait courir le risque qu'un nom propre soit réécrit.
+
+   SI LA TRADUCTION ÉCHOUE, le français reste et le bandeau le dit. Jamais un
+   trou, jamais du français présenté comme de l'anglais. */
+$autoNonRelue = false;
+$resteFr      = false;   // au moins un texte est sorti en français
+if ($bil && $L !== 'fr') {
+    $rangs = [];
+    foreach ($blocs as $i => $b) if ($b['type'] === 'texte' && trim((string)$b['d']) !== '') $rangs[] = $i;
+
+    if ($rangs) {
+        $sources = array_map(fn($i) => (string)$blocs[$i]['d'], $rangs);
+        $trads   = Traduction::plusieurs($sources, $L, true);
+        foreach ($rangs as $rang => $i) {
+            $v = $trads[$rang] ?? null;
+            if ($v !== null && trim($v) !== '' && $v !== $sources[$rang]) $blocs[$i]['d'] = $v;
+            else $resteFr = true;
+        }
+        /* Le bandeau ne s'affiche que s'il reste au moins une traduction
+           produite par la machine et pas encore relue. Une fois tout relu, le
+           document sort net. */
+        /* `$marq` et non `$tr`: `$tr` est la fonction de traduction des
+           intitulés, définie en haut de ce fichier. L'écraser ici faisait
+           « Call to undefined function ?() » au premier libellé suivant —
+           trouvé au test, jamais en relisant. */
+        $emps = array_map(fn($t) => hash('sha256', preg_replace('/[ \t]+/', ' ', trim($t)) ?? trim($t)), $sources);
+        $marq = implode(',', array_fill(0, count($emps), '?'));
+        $autoNonRelue = (bool)DB::val(
+            "SELECT COUNT(*) FROM traduction
+              WHERE vers_langue = ? AND revise = 0 AND empreinte IN ($marq)", [$L, ...$emps]);
+    }
+}
+
+/* LE BANDEAU « pas de clef » NE SE DÉCLENCHE QUE S'IL RESTE VRAIMENT DU
+   FRANÇAIS. Sans cette condition il s'affichait même quand tout le document
+   était déjà traduit et relu depuis le cache — un avertissement faux, imprimé
+   sur un document qui part, et qui aurait fini par ne plus être lu du tout. */
+$sansMoteur = $resteFr && !Traduction::configured();
 ?><!doctype html>
-<html lang="fr"><head>
+<html lang="<?= e($L) ?>"><head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
 <title><?= e($quoi) ?> — <?= e($titre) ?></title>
@@ -326,6 +380,11 @@ case 'droits':
     display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   .imp .lg{display:flex;gap:10px} .imp .lg a{color:#444}
   .vide{color:#888;font-style:italic}
+  /* L'avertissement S'IMPRIME, contrairement au bandeau du haut. Un document
+     traduit par une machine et envoyé sans relecture doit le dire sur le
+     papier: c'est le seul endroit où le destinataire le verra. */
+  .avert{margin:0 0 18px;padding:9px 13px;border-left:3px solid #d9a800;
+    background:#fdf7e3;font-size:12.5px;color:#4a3d00}
   .sign{margin-top:34px;padding-top:12px;border-top:1px solid #ddd;display:grid;
     grid-template-columns:1fr 1fr;gap:30px;font-size:12px;color:#555}
   .sign .l{margin-top:34px;border-top:1px solid #999;padding-top:4px}
@@ -346,6 +405,16 @@ case 'droits':
       <?php endforeach; ?>
     </span>
   <?php endif; ?></p>
+
+<?php if ($bil && $L !== 'fr' && $sansMoteur): ?>
+  <p class="avert">Les intitulés sont traduits, <strong>le texte rédigé ne l'est pas</strong>:
+     aucune clef de traduction n'est configurée. Elle se pose dans Paramètres, et ce document
+     sortira alors entièrement en anglais.</p>
+<?php elseif ($autoNonRelue): ?>
+  <p class="avert">Traduction automatique, <strong>non relue</strong>. Les intitulés sont sûrs;
+     le texte rédigé a été traduit par une machine. Relisez-le avant d'envoyer ce document —
+     une fois corrigé, il ne sera plus jamais réécrit.</p>
+<?php endif; ?>
 
 <h1><?= e($titre) ?></h1>
 <p class="st"><?= e($quoi) ?><?= $porteur !== '' ? ' · ' . e($porteur) : '' ?>
