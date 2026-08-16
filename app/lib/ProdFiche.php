@@ -32,7 +32,45 @@ class ProdFiche
         'demontage'   => 'Démontage',
     ];
 
-    /** Les natures d'une ligne de budget, dépenses puis recettes. */
+    /**
+     * LES QUATRE POSTES DE CHARGES D'UN BUDGET DE PRODUCTION. [16.08.2026]
+     *
+     * Ce sont ceux qu'Anna utilise et qu'un financeur attend — pas une liste
+     * de natures à plat. Un dossier de subvention se lit poste par poste, et
+     * « Hébergement » n'est pas un poste: c'est une ligne DANS les frais de
+     * production. Regrouper à l'affichage ce que la saisie a éclaté obligeait
+     * à additionner de tête, ce qu'on ne fait pas devant un jury.
+     *
+     * L'ORDRE COMPTE et il est celui du formulaire: le personnel d'abord, parce
+     * que c'est toujours le plus gros et le premier regardé.
+     */
+    public const BUDGET_POSTES = [
+        'personnel'     => 'Frais de personnel — salaires & honoraires',
+        'production'    => 'Frais de production',
+        'communication' => 'Communication',
+        'administration'=> 'Administration',
+    ];
+
+    /**
+     * Les natures de produit, côté recettes.
+     *
+     * Un produit porte un PARTENAIRE et non un libellé libre: « Coproduction »
+     * seule ne dit pas qui coproduit, et c'est la première question posée.
+     */
+    public const BUDGET_PRODUITS = [
+        'coproduction' => 'Coproduction',
+        'subvention'   => 'Subvention',
+        'residence'    => 'Résidence',
+        'fondation'    => 'Fondation',
+        'prive'        => 'Don privé',
+        'cession'      => 'Cession',
+        'billetterie'  => 'Billetterie',
+        'autre'        => 'Autre',
+    ];
+
+    /* Conservées pour lire les lignes saisies avant le 16.08.2026: une reprise
+       ne doit pas rendre illisible ce qui est déjà en base. Les anciennes
+       natures se rangent dans le poste correspondant, ci-dessous. */
     public const BUDGET_DEPENSE = [
         'salaires'    => 'Salaires équipe',
         'hebergement' => 'Hébergement',
@@ -52,6 +90,14 @@ class ProdFiche
         'prive'        => 'Don privé',
         'billetterie'  => 'Billetterie',
         'autre_r'      => 'Autre recette',
+    ];
+
+    /** Où se range une ancienne nature dans les quatre postes. */
+    public const BUDGET_ANCIEN = [
+        'salaires' => 'personnel',   'hebergement' => 'production',
+        'repas'    => 'production',  'transport'   => 'production',
+        'technique'=> 'production',  'droits'      => 'administration',
+        'communication' => 'communication', 'autre_d' => 'production',
     ];
 
     /** Les quatre volets de la logistique. */
@@ -329,6 +375,74 @@ class ProdFiche
             if (($l['sens'] ?? 'depense') === 'recette') $rec += $m; else $dep += $m;
         }
         return ['depenses' => $dep, 'recettes' => $rec, 'solde' => $rec - $dep];
+    }
+
+    /**
+     * LA MASSE SALARIALE, CALCULÉE ET NON SAISIE. [16.08.2026]
+     *
+     * L'écran d'Anna la marque « auto »: c'est la somme de l'onglet
+     * Rémunération, pas une ligne qu'on retape. Une somme retapée diverge à la
+     * première rémunération modifiée — et c'est le poste le plus gros d'un
+     * budget, celui dont l'erreur se voit le moins et coûte le plus.
+     *
+     * Elle n'est donc JAMAIS une ligne de `budget`: elle s'ajoute au total à
+     * l'affichage. Sans quoi il faudrait la supprimer et la recréer à chaque
+     * changement, et deux lignes « salaires » finiraient par cohabiter.
+     */
+    public static function masseSalariale(array $d): float
+    {
+        $t = 0.0;
+        foreach ($d['remuneration'] ?? [] as $l) {
+            $t += (float)str_replace([' ', "'", ',', ' '], ['', '', '.', ''], (string)($l['montant'] ?? 0));
+        }
+        return $t;
+    }
+
+    /**
+     * Le budget rangé en quatre postes, plus les produits et le solde.
+     *
+     * UNE LIGNE SANS POSTE — saisie avant le 16.08 — EST RECLASSÉE d'après son
+     * ancienne nature, et aucune ne tombe hors des quatre: « production » sert
+     * de recours. Une ligne invisible dans un budget est pire qu'une ligne mal
+     * rangée: la seconde se corrige, la première fausse le total sans qu'on
+     * sache pourquoi.
+     */
+    public static function budgetParPoste(array $d): array
+    {
+        $postes = [];
+        foreach (array_keys(self::BUDGET_POSTES) as $k) {
+            $postes[$k] = ['lignes' => [], 'total' => 0.0, 'auto' => 0.0];
+        }
+        $mt = static fn($x): float
+            => (float)str_replace([' ', "'", ',', ' '], ['', '', '.', ''], (string)($x ?? 0));
+
+        $produits = []; $totProd = 0.0;
+        foreach ($d['budget'] ?? [] as $l) {
+            $m = $mt($l['montant'] ?? 0);
+            if (($l['sens'] ?? 'depense') === 'recette') {
+                $produits[] = $l + ['_m' => $m];
+                $totProd += $m;
+                continue;
+            }
+            $p = (string)($l['poste'] ?? '');
+            if (!isset($postes[$p])) {
+                $p = self::BUDGET_ANCIEN[(string)($l['nature'] ?? '')] ?? 'production';
+            }
+            $postes[$p]['lignes'][] = $l + ['_m' => $m];
+            $postes[$p]['total'] += $m;
+        }
+
+        /* La masse salariale entre dans le poste personnel, en tête et marquée. */
+        $sal = self::masseSalariale($d);
+        $postes['personnel']['auto']   = $sal;
+        $postes['personnel']['total'] += $sal;
+
+        $totCharges = 0.0;
+        foreach ($postes as $p) $totCharges += $p['total'];
+
+        return ['postes' => $postes, 'produits' => $produits,
+                'charges' => $totCharges, 'recettes' => $totProd,
+                'solde'   => $totProd - $totCharges];
     }
 
     /** La somme des parts de droits, qui doit faire 100. */

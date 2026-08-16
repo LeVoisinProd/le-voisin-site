@@ -212,23 +212,34 @@ case 'remuneration':
     break;
 
 case 'budget':
-    $tx = ProdFiche::budgetTotaux($d);
-    foreach ([['Dépenses', 'depense', ProdFiche::BUDGET_DEPENSE],
-              ['Recettes', 'recette', ProdFiche::BUDGET_RECETTE]] as [$lib, $sens, $natures]) {
-        $lignes = []; $s = 0.0; $dev = '';
-        foreach ($d['budget'] ?? [] as $l) {
-            if ((string)($l['sens'] ?? '') !== $sens) continue;
-            $s += (float)($l['montant'] ?? 0); $dev = $dev ?: (string)($l['devise'] ?? '');
-            $lignes[] = [(string)($natures[$l['nature'] ?? ''] ?? ($l['nature'] ?? '')),
-                         (string)($l['libelle'] ?? ''), $mt($l['montant'] ?? '', (string)($l['devise'] ?? ''))];
+    /* Les mêmes quatre postes qu'à l'écran, et la même masse salariale
+       calculée. Un budget imprimé qui ne dit pas la même chose que l'écran est
+       pire qu'un budget non imprimé: on l'envoie sans relire. */
+    $B = ProdFiche::budgetParPoste($d);
+    foreach (ProdFiche::BUDGET_POSTES as $cle => $lib) {
+        $p2 = $B['postes'][$cle];
+        $lignes = [];
+        if ($cle === 'personnel' && $p2['auto'] > 0) {
+            $lignes[] = ['Salaires équipe (rémunération TTC)', $mt($p2['auto'], 'CHF')];
         }
-        $ajout($lib, 'table', ['entete' => ['Nature', 'Libellé', 'Montant'],
-                               'lignes' => $lignes,
-                               'total'  => $lignes ? ['Total ' . mb_strtolower($lib), $mt($s, $dev)] : null]);
+        foreach ($p2['lignes'] as $l) $lignes[] = [(string)($l['libelle'] ?? ''), $mt($l['_m'], 'CHF')];
+        $ajout($lib, 'table', ['entete' => ['Libellé', 'Montant'], 'lignes' => $lignes,
+                               'total'  => $lignes ? ['Total ' . mb_strtolower($lib), $mt($p2['total'], 'CHF')] : null]);
     }
-    if (isset($tx['solde'])) {
-        $ajout('Solde', 'defs', ['Recettes moins dépenses' => $mt($tx['solde'] ?? 0)]);
-    }
+    $ajout('Produits', 'table', [
+        'entete' => ['Partenaire', 'Nature', 'Montant'],
+        'lignes' => array_map(fn($l) => [
+            (string)($l['libelle'] ?? ''),
+            (string)(ProdFiche::BUDGET_PRODUITS[(string)($l['nature'] ?? '')] ?? ''),
+            $mt($l['_m'], 'CHF'),
+        ], $B['produits']),
+        'total'  => $B['produits'] ? ['Total produits', $mt($B['recettes'], 'CHF')] : null,
+    ]);
+    $ajout('Solde', 'defs', [
+        'Total charges'           => $mt($B['charges'], 'CHF'),
+        'Total produits'          => $mt($B['recettes'], 'CHF'),
+        'Solde du projet'         => $mt($B['solde'], 'CHF'),
+    ]);
     break;
 
 case 'devis':
