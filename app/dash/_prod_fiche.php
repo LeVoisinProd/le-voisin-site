@@ -66,23 +66,48 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   <?php foreach ($ONGLETS as $k => $lib): ?>
     <a href="<?= e($lien($k)) ?>" class="<?= $onglet === $k ? 'ici' : '' ?>"><?= e($lib) ?></a>
   <?php endforeach; ?>
-  <?php /* Le lien d'impression suit l'onglet ouvert. Un seul lien plutôt qu'un
-       bouton dans chaque onglet: on le cherche toujours au même endroit, et
-       les dix onglets n'ont pas à se souvenir qu'ils sont imprimables. */ ?>
-  <a class="impr" href="<?= e($lien($onglet)) ?>&amp;imprimer=1" target="_blank"
-     rel="noopener" title="Ouvre une page nue, prête à imprimer ou à enregistrer en PDF">Imprimer</a>
-  <?php /* Les quatre documents qui sortent de la maison s'impriment aussi en
-       anglais. Le lien est ici, à côté de l'autre, plutôt que caché dans la
-       page imprimable: on choisit la langue avant d'ouvrir, pas après. */ ?>
+</div>
+
+<?php /* ── LE BOUTON PDF, VISIBLE ─────────────────────────────────────────────
+     [16.08.2026] Il était un lien discret au bout de la barre d'onglets, et
+     Anna ne l'a pas trouvé: « ainda nao vejo a parte de imprimir em formato
+     pdf ». Un lien gris de la taille d'un onglet, au bout d'une rangée de dix,
+     n'existe pas — le dashboard qu'elle quitte avait un vrai bouton, et c'est
+     ce qu'on cherche des yeux.
+
+     « PDF » ET NON « Imprimer », parce que c'est le résultat voulu et non le
+     geste. Le navigateur ouvre sa fenêtre d'impression et « Enregistrer au
+     format PDF » y est le premier choix; l'infobulle le dit pour qui hésite.
+     Le site n'a aucune bibliothèque PDF — vérifié le 16.08, ni FPDF, ni TCPDF,
+     ni Dompdf — et le PDF du navigateur est un vrai PDF, sélectionnable et
+     cherchable, pas une image. */ ?>
+<div class="barre-doc">
+  <a class="bt-pdf" href="<?= e($lien($onglet)) ?>&amp;imprimer=1" target="_blank" rel="noopener"
+     title="Ouvre une page nue. Dans la fenêtre qui s'ouvre: Imprimer, puis « Enregistrer au format PDF »">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+      <path d="M6 14h12v8H6z"></path>
+    </svg>
+    PDF — <?= e($ONGLETS[$onglet]) ?>
+  </a>
+  <?php /* Les quatre qui sortent de la maison s'impriment aussi en anglais. La
+       langue se choisit AVANT d'ouvrir: rouvrir la page pour changer de langue
+       fait perdre le réglage d'impression déjà posé. */ ?>
   <?php if (in_array($onglet, ['dossier','fdr','technique','devis'], true)): ?>
-    <a class="impr impr-en" href="<?= e($lien($onglet)) ?>&amp;imprimer=1&amp;lang=en"
-       target="_blank" rel="noopener" title="Same document, English labels">EN</a>
+    <a class="bt-pdf bt-pdf-en" href="<?= e($lien($onglet)) ?>&amp;imprimer=1&amp;lang=en"
+       target="_blank" rel="noopener" title="Same document, English labels">PDF — English</a>
   <?php endif; ?>
 </div>
 <style>
-.onglets.pf .impr{margin-left:auto;border-bottom-color:transparent;color:var(--doux)}
-.onglets.pf .impr:hover{color:var(--encre)}
-.onglets.pf .impr-en{margin-left:0;padding-left:10px;font-size:12px;letter-spacing:.04em}
+.barre-doc{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 -4px}
+.bt-pdf{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;
+  border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier);
+  text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
+.bt-pdf:hover{opacity:.86}
+/* La version anglaise en contour et non en plein: c'est la même action, pas une
+   action plus importante. Deux boutons pleins côte à côte se disputent l'œil. */
+.bt-pdf-en{background:transparent;color:var(--encre)}
 </style>
 
 <div class="zone">
