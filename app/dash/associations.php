@@ -33,8 +33,58 @@ $id = (int)($_GET['o'] ?? 0);
 $CHAMPS = ['genre','nom','nom_legal','ide','registre','avs_employeur','ree','siret',
            'pays','canton','adresse','email','telephone','site','instagram',
            'banque_nom','banque_iban','banque_bic','devise_defaut','frais_booking',
-           'marge_defaut','discipline','direction','debut_collab','statut','comite','notes'];
+           'marge_defaut','discipline','direction','debut_collab','statut','comite','notes',
+    /* Ajoutés le 16.08.2026, migration 019: la conformité suisse des quatre
+       onglets que la table ne portait pas. */
+    'forme_juridique','date_creation','reference_poste','cp','ville',
+    'contact_prenom','contact_nom',
+    'rc_pro','rc_police','laa','lpp','ampg','assureur_laa','assureur_lpp','trianon',
+    'avs_inscription','caisse_avs','convention_coll',
+    'canton_fiscal','contribuable_cant','tva_ch','tva_ch_num','notes_fisc_ch',
+    'rna','urssaf','audiens','tva_fr','tva_fr_num','notes_fisc_fr',
+    'email_mdp','instagram_mdp'];
 $err = $saisi = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['decl'] ?? '') !== '' || ($_POST['is_act'] ?? '') !== '')) {
+    Auth::requireCsrf();
+    dash_exige_ecriture('associations');
+    $an = (int)($_POST['annee'] ?? date('Y'));
+
+    if (($_POST['decl'] ?? '') !== '') {
+        /* Une ligne n'existe que si l'on a cliqué: ON DUPLICATE la crée au
+           premier clic et la fait tourner aux suivants. */
+        $t = (string)($_POST['type'] ?? ''); $pe = (string)($_POST['periode'] ?? '');
+        $st = (string)($_POST['statut'] ?? 'a_faire');
+        if (in_array($t, ['laa','avs'], true)
+            && in_array($pe, ['T1','T2','T3','T4','annuel'], true)
+            && in_array($st, ['a_faire','envoye','paye','sans_objet'], true)
+            && $id > 0 && $an >= 2000 && $an <= 2100) {
+            DB::pdo()->prepare(
+                'INSERT INTO organisation_declaration (organisation_id,type,annee,periode,statut)
+                 VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE statut=VALUES(statut)')
+              ->execute([$id, $t, $an, $pe, $st]);
+        }
+    } elseif (($_POST['is_act'] ?? '') === 'ajouter' && $id > 0) {
+        $c = strtoupper(trim((string)($_POST['canton'] ?? '')));
+        if (preg_match('/^[A-Z]{2}$/', $c)) {
+            try {
+                DB::insert('organisation_is', ['organisation_id'=>$id, 'canton'=>$c,
+                    'compte'=>trim((string)($_POST['compte'] ?? '')) ?: null,
+                    'notes'=>trim((string)($_POST['notes'] ?? '')) ?: null]);
+                dash_flash('Compte cantonal ajouté.');
+            } catch (Throwable $e) {
+                /* La clef unique (association, canton) empêche deux comptes pour
+                   le même canton: c'est voulu, il n'y en a qu'un. */
+                dash_flash('Ce canton a déjà un compte pour cette association.', 'err');
+            }
+        }
+    } elseif (($_POST['is_act'] ?? '') === 'retirer' && $id > 0) {
+        DB::delete('organisation_is', 'id = ? AND organisation_id = ?',
+                   [(int)($_POST['ligne'] ?? 0), $id]);
+        dash_flash('Compte cantonal retiré.');
+    }
+    redirect('/dashboard.php?e=associations&o=' . $id . '&mod=1&an=' . $an);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
@@ -43,6 +93,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('associations');
     foreach ($CHAMPS as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
+
+    /* LES DEUX MOTS DE PASSE. Chiffrés par le même Crypto.php qui protège les
+       IBAN et les AVS des fiches personnelles — un dump de cette base se lit
+       sans clé, et l'on en produit un par jour qui part dans le Drive.
+
+       Un champ laissé vide NE VIDE PAS le mot de passe enregistré: l'écran ne
+       renvoie jamais le secret au navigateur, donc vide veut dire « je n'y ai
+       pas touché » et non « efface ». Pour effacer, on écrit un espace. */
+    $MDP = ['email_mdp', 'instagram_mdp'];
+    foreach ($MDP as $m) {
+        $brut = (string)($_POST[$m] ?? '');
+        if ($brut === '') { unset($saisi[$m]); continue; }
+        $saisi[$m] = trim($brut) === '' ? '' : Crypto::chiffrer(trim($brut));
+    }
 
     if (($_POST['action'] ?? '') === 'supprimer' && $id > 0) {
         DB::pdo()->prepare('UPDATE organisation SET supprime_le = NOW() WHERE id = ?')->execute([$id]);
@@ -73,14 +137,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$err) {
-        $vals = array_map(fn($c) => $saisi[$c] === '' ? null : $saisi[$c], $CHAMPS);
+        /* Les champs que le POST n'a pas apportés — les mots de passe laissés
+           vides — sortent de la mise à jour au lieu d'y entrer à NULL. Sans
+           cela, ouvrir la fiche et enregistrer effacerait le mot de passe sans
+           que personne ne l'ait demandé. */
+        $cols = array_values(array_filter($CHAMPS, fn($c) => array_key_exists($c, $saisi)));
+        $vals = array_map(fn($c) => $saisi[$c] === '' ? null : $saisi[$c], $cols);
         if ($id > 0) {
-            $set = implode(',', array_map(fn($c) => "$c=?", $CHAMPS));
+            $set = implode(',', array_map(fn($c) => "$c=?", $cols));
             DB::pdo()->prepare("UPDATE organisation SET $set WHERE id = ?")->execute([...$vals, $id]);
             dash_flash('Fiche enregistrée.');
         } else {
-            $q = implode(',', array_fill(0, count($CHAMPS), '?'));
-            DB::pdo()->prepare('INSERT INTO organisation (' . implode(',', $CHAMPS) . ") VALUES ($q)")
+            $q = implode(',', array_fill(0, count($cols), '?'));
+            DB::pdo()->prepare('INSERT INTO organisation (' . implode(',', $cols) . ") VALUES ($q)")
                      ->execute($vals);
             $id = (int)DB::pdo()->lastInsertId();
             dash_flash('Fiche créée.');
@@ -104,57 +173,17 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
                  . ' champ(s) à corriger. Ce que vous aviez saisi est conservé.</div>';
     ?>
     <div class="fil"><a href="/dashboard.php?e=associations<?= $id > 0 ? '&amp;o=' . $id : '' ?>">← retour</a></div>
+    <?php /* Les boutons radio sont ici, AVANT le formulaire, pour que le CSS
+             atteigne aussi les panneaux des grilles, qui sont des formulaires
+             à part — le HTML interdit de les imbriquer. */
+    $annee = (int)($_GET['an'] ?? date('Y'));
+    if ($annee < 2000 || $annee > 2100) $annee = (int)date('Y');
+    $ecrit = dash_droit('associations', dash_role()) === 'ecrit';
+    require __DIR__ . '/_assoc_barre.php'; ?>
     <form class="saisie" method="post"
-          action="/dashboard.php?e=associations<?= $id > 0 ? '&amp;o=' . $id : '' ?>&amp;mod=1">
+          action="/dashboard.php?e=associations<?= $id > 0 ? '&amp;o=' . $id : '' ?>&amp;mod=1&amp;an=<?= $annee ?>">
       <?= Auth::csrfField() ?>
-      <div class="grille">
-        <div class="titre-bloc">Identité</div>
-        <?php
-        ch('genre', 'Nature', $v('genre') ?: 'artiste', $err, ['type'=>'select','choix'=>$GENRES,
-           'aide' => 'Association: une entité juridique de la maison']);
-        ch('nom', 'Nom', $v('nom'), $err, ['requis'=>true]);
-        ch('nom_legal', 'Nom légal', $v('nom_legal'), $err, ['aide'=>'S\'il diffère du nom d\'usage']);
-        ch('statut', 'Statut', $v('statut') ?: 'actif', $err, ['type'=>'select','choix'=>$STATUTS]);
-        ch('discipline', 'Discipline', $v('discipline'), $err);
-        ch('direction', 'Direction artistique', $v('direction'), $err);
-        ch('debut_collab', 'Début de collaboration', $v('debut_collab'), $err, ['type'=>'date']);
-
-        echo '<div class="titre-bloc">Administration</div>';
-        ch('ide', 'IDE', $v('ide'), $err, ['placeholder'=>'CHE-123.456.789',
-           'aide'=>'Avec ou sans les points, il est remis en forme']);
-        ch('registre', 'Registre', $v('registre'), $err);
-        ch('avs_employeur', 'AVS employeur', $v('avs_employeur'), $err);
-        ch('ree', 'REE', $v('ree'), $err);
-        ch('siret', 'SIRET', $v('siret'), $err, ['aide'=>'Les entités françaises']);
-        ch('pays', 'Pays', $v('pays'), $err, ['aide'=>'Décide des obligations sociales et du A1']);
-        ch('canton', 'Canton', $v('canton'), $err);
-        ch('adresse', 'Adresse', $v('adresse'), $err, ['large'=>true]);
-
-        echo '<div class="titre-bloc">Contact</div>';
-        ch('email', 'Courriel', $v('email'), $err, ['type'=>'email']);
-        ch('telephone', 'Téléphone', $v('telephone'), $err);
-        ch('site', 'Site', $v('site'), $err);
-        ch('instagram', 'Instagram', $v('instagram'), $err);
-
-        echo '<div class="titre-bloc">Banque</div>';
-        ch('banque_nom', 'Banque', $v('banque_nom'), $err);
-        ch('banque_iban', 'IBAN', $v('banque_iban'), $err,
-           ['aide'=>'Figure sur chaque devis et chaque contrat']);
-        ch('banque_bic', 'BIC', $v('banque_bic'), $err);
-
-        echo '<div class="titre-bloc">Ce qui se répète entre les shows</div>';
-        ch('devise_defaut', 'Devise', $v('devise_defaut') ?: 'CHF', $err,
-           ['type'=>'select','choix'=>['CHF'=>'CHF','EUR'=>'EUR']]);
-        ch('frais_booking', 'Frais de booking', $v('frais_booking'), $err,
-           ['aide'=>'En pourcentage du cachet']);
-        ch('marge_defaut', 'Marge', $v('marge_defaut'), $err,
-           ['aide'=>'10 % dans la maison depuis le 14.08.2026']);
-
-        echo '<div class="titre-bloc">Le reste</div>';
-        ch('comite', 'Comité', $v('comite'), $err, ['type'=>'textarea','large'=>true,'rows'=>2]);
-        ch('notes', 'Notes', $v('notes'), $err, ['type'=>'textarea','large'=>true]);
-        ?>
-      </div>
+      <?php require __DIR__ . '/_assoc_onglets.php'; ?>
       <div class="actions">
         <button type="submit"><?= $id > 0 ? 'Enregistrer' : 'Créer' ?></button>
         <a class="sec2" href="/dashboard.php?e=associations<?= $id > 0 ? '&amp;o=' . $id : '' ?>">annuler</a>
@@ -167,6 +196,7 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
       </div>
     </form>
+    <?php require __DIR__ . '/_assoc_grilles.php'; ?>
     <style>.fil{padding:12px 26px 0;font-size:13px}.fil a{color:var(--doux);text-decoration:none}</style>
     <?php dash_bas(); return;
 }
