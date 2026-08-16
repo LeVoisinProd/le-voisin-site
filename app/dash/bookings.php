@@ -44,12 +44,75 @@ $STATUTS = ['pending' => 'en attente', 'option' => 'option',
 $err = [];
 $saisi = [];
 
+/* TÉLÉCHARGER UN CONTRAT. [16.08.2026]
+
+   Avant toute sortie, parce que cela répond un PDF et non une page.
+
+   Il passe par ici et non par un lien direct: les contrats vivent dans
+   uploads/private/, qu'Apache refuse de servir depuis le 27.07.2026, et c'est
+   voulu — un contrat de cession porte des montants négociés. Le dashboard a
+   déjà vérifié le rôle à la porte, donc arriver ici c'est avoir le droit de
+   voir cet écran. La LECTURE suffit: on ne demande pas dash_exige_ecriture,
+   télécharger n'est pas modifier. */
+$dl = (int)($_GET['dl'] ?? 0);
+if ($dl > 0) {
+    $c = Contracts::un($dl);
+    /* Le contrat doit appartenir AU booking demandé. Sans cette égalité,
+       changer `dl` dans l'adresse servirait n'importe quel contrat du site. */
+    if (!$c || (int)$c['booking_id'] !== $id) { http_response_code(404); exit('Introuvable'); }
+
+    $signe = ((string)($_GET['v'] ?? '')) === 'signe' && trim((string)$c['fichier_signe']) !== '';
+    $f = Contracts::chemin($c, $signe);
+    if (!is_file($f)) { http_response_code(404); exit('Fichier introuvable'); }
+
+    header('Content-Type: application/pdf');
+    header('Content-Length: ' . filesize($f));
+    header('Content-Disposition: inline; filename="' . basename($f) . '"');
+    header('X-Content-Type-Options: nosniff');
+    readfile($f);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
     /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
        l'écran: `production` lit les Finances sans les modifier. Le routeur
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('bookings');
+
+    /* Les contrats: déposer, envoyer à la signature, supprimer. Comme les
+       lignes de deal, ils n'ont rien à voir avec le formulaire du booking, et
+       on repart aussitôt. */
+    $actC = (string)($_POST['contrat'] ?? '');
+    if ($actC !== '' && $id > 0) {
+        $retour = '/dashboard.php?e=bookings&b=' . $id . '&o=contrats';
+        try {
+            if ($actC === 'deposer') {
+                Contracts::deposer($id, (string)($_POST['type'] ?? 'cession'),
+                                   (string)($_POST['titre'] ?? ''), $_FILES['pdf'] ?? []);
+                dash_flash('Contrat déposé.');
+
+            } elseif ($actC === 'envoyer') {
+                $c = Contracts::un((int)($_POST['ligne'] ?? 0));
+                if (!$c || (int)$c['booking_id'] !== $id) throw new RuntimeException('Contrat introuvable.');
+                Contracts::envoyer((int)$c['id'], (string)($_POST['email'] ?? ''),
+                                   (string)($_POST['mobile'] ?? ''), (string)($_POST['nom'] ?? ''));
+                dash_flash('Envoyé à la signature.');
+
+            } elseif ($actC === 'supprimer') {
+                $c = Contracts::un((int)($_POST['ligne'] ?? 0));
+                if (!$c || (int)$c['booking_id'] !== $id) throw new RuntimeException('Contrat introuvable.');
+                Contracts::supprimer((int)$c['id']);
+                dash_flash('Contrat supprimé.');
+            }
+        } catch (Throwable $ex) {
+            /* Le message de l'exception est écrit pour être lu par la personne:
+               « seuls les PDF sont acceptés », « il faut une adresse valide ».
+               Le masquer derrière un « erreur » obligerait à ouvrir le journal. */
+            dash_flash($ex->getMessage(), 'err');
+        }
+        redirect($retour);
+    }
 
     /* Les lignes de deal se saisissent depuis l'onglet Deal et n'ont rien à voir
        avec le formulaire du booking: on les traite ici et on repart. */
@@ -224,6 +287,19 @@ if ($id > 0) {
     $ong = (string)($_GET['o'] ?? 'apercu');
     if (!isset(ONGLETS[$ong])) $ong = 'apercu';
 
+    /* L'état des signatures se lit en ouvrant l'onglet, et pas sur un bouton.
+       Même raison que dans l'espace collaborateur: personne ne pense à cliquer
+       sur « rafraîchir », et un contrat déjà signé qui s'affiche « en attente »
+       fait relancer quelqu'un pour rien.
+
+       L'appel ne concerne que les contrats encore en attente, et il est enfermé
+       dans un try: Skribble injoignable ne doit pas emporter la page. Le
+       journal du Skribble garde la trace. */
+    if ($ong === 'contrats') {
+        try { Contracts::rafraichirBooking($id); }
+        catch (Throwable $ex) { Skribble::journal('CONTRATS booking ' . $id . ' | ' . $ex->getMessage()); }
+    }
+
     $titre = trim(($b['projet'] ?? '') . ' · ' . ($b['venue'] ?? ''));
     dash_haut('bookings', e($b['date_texte'] ?: (string)$b['date_debut']) . ' · ' . e($b['ville'] ?? ''));
     ?>
@@ -382,6 +458,123 @@ if ($id > 0) {
       .pt{margin-top:8px;font-size:12.5px;max-width:70ch}
       </style>
 
+    <?php elseif ($ong === 'contrats'): ?>
+      <?php
+      /* CONTRATS. [16.08.2026]
+
+         LE PDF SE DÉPOSE, IL NE SE GÉNÈRE PAS. Le site n'a aucune bibliothèque
+         de génération — vérifié ce jour: ni FPDF, ni TCPDF, ni Dompdf — et
+         Skribble::send() attend un fichier qui existe déjà. Le contrat se
+         rédige donc là où il se rédige aujourd'hui, et se dépose ici. C'est
+         aussi ce que fait l'espace collaborateur, et c'est éprouvé.
+
+         L'ÉTAT SE LIT À L'OUVERTURE, pas sur un bouton « rafraîchir »:
+         personne ne pense à cliquer, et un contrat signé qui s'affiche « en
+         attente » fait relancer quelqu'un pour rien. */
+      $contrats   = Contracts::duBooking($id);
+      $peutEcrire = dash_droit('bookings', dash_role()) === 'ecrit';
+      $TYPES = ['cession'=>'Cession','coproduction'=>'Coproduction',
+                'engagement'=>'Engagement','avenant'=>'Avenant','autre'=>'Autre'];
+      $ETAT  = ['depose'=>'déposé','envoye'=>'envoyé, en attente',
+                'signe'=>'signé','refuse'=>'refusé'];
+      ?>
+
+      <?php if (!Skribble::configured()): ?>
+        <div class="rap ecart">La signature en ligne n'est pas configurée sur ce site.
+          Les contrats se déposent et se téléchargent quand même: seul l'envoi à la
+          signature est indisponible.</div>
+      <?php endif; ?>
+
+      <?php if ($contrats): ?>
+        <div class="tbl"><table>
+          <thead><tr>
+            <th>Titre</th><th>Nature</th><th>Signataire</th><th>État</th><th>Fichiers</th><th></th>
+          </tr></thead>
+          <tbody>
+          <?php foreach ($contrats as $c): $cid = (int)$c['id']; ?>
+            <tr>
+              <td><?= e($c['titre']) ?></td>
+              <td class="sec"><?= e($TYPES[$c['type']] ?? $c['type']) ?></td>
+              <td class="sec">
+                <?= e($c['signataire_nom'] ?: ($c['signataire_email'] ?: '')) ?>
+                <?php if ($c['signataire_nom'] && $c['signataire_email']): ?>
+                  <br><span class="pt"><?= e($c['signataire_email']) ?></span>
+                <?php endif; ?>
+              </td>
+              <td><span class="et et-<?= e($c['statut']) ?>"><?= e($ETAT[$c['statut']] ?? $c['statut']) ?></span>
+                <?php if ($c['statut'] === 'envoye' && $c['envoye_a']): ?>
+                  <br><span class="pt">depuis le <?= e(date('d.m.Y', strtotime((string)$c['envoye_a']))) ?></span>
+                <?php elseif ($c['statut'] === 'signe' && $c['signe_a']): ?>
+                  <br><span class="pt">le <?= e(date('d.m.Y', strtotime((string)$c['signe_a']))) ?></span>
+                <?php endif; ?>
+              </td>
+              <td class="sec">
+                <a href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=contrats&amp;dl=<?= $cid ?>&amp;v=depose">déposé</a>
+                <?php if ($c['fichier_signe']): ?>
+                  · <a href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=contrats&amp;dl=<?= $cid ?>&amp;v=signe"><strong>signé</strong></a>
+                <?php endif; ?>
+                <?php if ($c['statut'] === 'envoye' && $c['signing_url']): ?>
+                  · <a href="<?= e($c['signing_url']) ?>" target="_blank" rel="noopener">lien de signature</a>
+                <?php endif; ?>
+              </td>
+              <td class="d">
+                <?php if ($peutEcrire): ?>
+                  <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=contrats" class="inline"
+                        onsubmit="return confirm('Supprimer ce contrat et ses fichiers ?')">
+                    <?= Auth::csrfField() ?>
+                    <input type="hidden" name="contrat" value="supprimer">
+                    <input type="hidden" name="ligne" value="<?= $cid ?>">
+                    <button type="submit" class="x">×</button>
+                  </form>
+                <?php endif; ?>
+              </td>
+            </tr>
+            <?php if ($peutEcrire && in_array($c['statut'], ['depose','refuse'], true) && Skribble::configured()): ?>
+            <tr class="env"><td colspan="6">
+              <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=contrats" class="ajl">
+                <?= Auth::csrfField() ?>
+                <input type="hidden" name="contrat" value="envoyer">
+                <input type="hidden" name="ligne" value="<?= $cid ?>">
+                <input type="text"  name="nom"    placeholder="Nom du signataire" size="18">
+                <input type="email" name="email"  placeholder="e-mail du signataire" required size="22">
+                <input type="text"  name="mobile" placeholder="mobile (facultatif)" size="14">
+                <button type="submit">envoyer à la signature</button>
+              </form>
+            </td></tr>
+            <?php endif; ?>
+          <?php endforeach; ?>
+          </tbody>
+        </table></div>
+      <?php else: ?>
+        <p class="sec">Aucun contrat sur cette date.</p>
+      <?php endif; ?>
+
+      <?php if ($peutEcrire): ?>
+      <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=contrats"
+            class="ajl" enctype="multipart/form-data">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="contrat" value="deposer">
+        <select name="type"><?php foreach ($TYPES as $k=>$v): ?>
+          <option value="<?= $k ?>"><?= e($v) ?></option><?php endforeach; ?></select>
+        <input type="text" name="titre" placeholder="Titre du contrat">
+        <input type="file" name="pdf" accept="application/pdf" required>
+        <button type="submit">déposer</button>
+      </form>
+      <p class="sec pt">Le PDF se rédige ailleurs et se dépose ici: le site ne sait pas
+         encore produire un contrat depuis les données du booking. Laisser le titre vide
+         reprend le nom du fichier.</p>
+      <?php endif; ?>
+
+      <style>
+      .et{font-size:12px;padding:2px 7px;border-radius:3px;white-space:nowrap;
+        border:1px solid var(--trait)}
+      .et-signe{border-color:#7bb33a;font-weight:600}
+      .et-envoye{border-color:#d9a800}
+      .et-refuse{border-color:#e2653a}
+      tr.env td{background:var(--fond2);padding-top:2px;padding-bottom:10px}
+      tr.env form.ajl{margin-top:0;padding-top:0;border-top:0}
+      </style>
+
     <?php else: ?>
       <?php
       /* Chaque onglet dit ce qu'il portera ET ce qui lui manque comme table.
@@ -389,8 +582,6 @@ if ($id > 0) {
       $quoi = [
         'factures'  => ['Générer et télécharger les factures de ce booking.',
                         'Demande la table `invoice` et la liaison bexio par API. Le client bexio actuel vit dans Apps Script: le porter en PHP est chiffré entre 12 h et 20 h pour le seul OAuth2.'],
-        'contrats'  => ['Contrats, avec signature en ligne.',
-                        'Le site sait déjà signer: `app/lib/Skribble.php` fonctionne et l\'espace collaborateur s\'en sert. Il manque la table `contract` et le lien vers ce booking.'],
         'advancing' => ['Fiches techniques, accueil et logistique du show.',
                         'C\'est la mécanique la plus intéressante d\'artistu: un formulaire construit champ par champ, envoyé au lieu, avec un état par champ (demandé, reçu, accepté) et un portail où le lieu répond. Rien d\'équivalent n\'existe ici.'],
         'voyage'    => ['Vols, transferts, hôtels.',
