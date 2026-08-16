@@ -71,10 +71,18 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
        les dix onglets n'ont pas à se souvenir qu'ils sont imprimables. */ ?>
   <a class="impr" href="<?= e($lien($onglet)) ?>&amp;imprimer=1" target="_blank"
      rel="noopener" title="Ouvre une page nue, prête à imprimer ou à enregistrer en PDF">Imprimer</a>
+  <?php /* Les quatre documents qui sortent de la maison s'impriment aussi en
+       anglais. Le lien est ici, à côté de l'autre, plutôt que caché dans la
+       page imprimable: on choisit la langue avant d'ouvrir, pas après. */ ?>
+  <?php if (in_array($onglet, ['dossier','fdr','technique','devis'], true)): ?>
+    <a class="impr impr-en" href="<?= e($lien($onglet)) ?>&amp;imprimer=1&amp;lang=en"
+       target="_blank" rel="noopener" title="Same document, English labels">EN</a>
+  <?php endif; ?>
 </div>
 <style>
 .onglets.pf .impr{margin-left:auto;border-bottom-color:transparent;color:var(--doux)}
 .onglets.pf .impr:hover{color:var(--encre)}
+.onglets.pf .impr-en{margin-left:0;padding-left:10px;font-size:12px;letter-spacing:.04em}
 </style>
 
 <div class="zone">

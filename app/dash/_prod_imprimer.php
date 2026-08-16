@@ -28,23 +28,44 @@
 declare(strict_types=1);
 /** @var array $p */ /** @var string $onglet */ /** @var int $pcms */
 
+/* ── LA LANGUE DU DOCUMENT, ET NON CELLE DE LA PERSONNE ─────────────────────
+   [16.08.2026] Anna: « os devis sao em ingles tb (…) o que precisa ser bilingue
+   é, devis, feuille de route, dossier, fiche technique ». Ces quatre-là sortent
+   de la maison; les six autres restent des écrans de travail.
+
+   La langue se choisit À CHAQUE IMPRESSION et ne se retient pas. C'est pour
+   cela qu'on n'appelle pas `I18n::initAdmin()`, qui poserait un cookie d'un an:
+   imprimer un devis pour un lieu anglophone ne doit pas basculer tout le
+   dashboard en anglais jusqu'à l'été prochain. On passe donc la langue en
+   argument à chaque libellé.
+
+   CE QUI EST TRADUIT ET CE QUI NE PEUT PAS L'ÊTRE. Les intitulés, les colonnes,
+   les en-têtes: oui. Le texte écrit à la main dans le Dossier et la Feuille de
+   route sort tel qu'il a été saisi, parce qu'il n'en existe qu'une version en
+   base. Pour la Fiche technique et le Devis, qui sont surtout des valeurs —
+   des mètres, des heures, des prix —, la traduction des intitulés suffit à
+   rendre le document lisible tel quel. */
+$L  = ($_GET['lang'] ?? '') === 'en' ? 'en' : 'fr';
+$tr = static fn(string $cle, ...$a): string => I18n::ta($cle, $L) === $cle
+        ? $cle : ($a ? vsprintf(I18n::ta($cle, $L), $a) : I18n::ta($cle, $L));
+
 $d     = ProdFiche::donnees($pcms);
 $prod  = ProdFiche::ligne($pcms);
 $titre = trim((string)($p['title_fr'] ?: $p['title_en'])) ?: 'Spectacle';
 
+/** Les quatre bilingues passent par le dictionnaire; les autres restent en français. */
+const DOC_BILINGUE = ['dossier' => 'doc_t_dossier', 'fdr' => 'doc_t_fdr',
+                      'technique' => 'doc_t_technique', 'devis' => 'doc_t_devis'];
 $NOMS = [
     'synthese'     => 'Synthèse',
-    'dossier'      => 'Dossier de demande de fonds',
     'planning'     => 'Planning',
     'logistique'   => 'Logistique',
-    'technique'    => 'Fiche technique',
-    'fdr'          => 'Feuille de route',
     'remuneration' => 'Rémunération',
     'budget'       => 'Budget',
-    'devis'        => 'Devis et dates vendues',
     'droits'       => 'Déclaration de droits d\'auteur',
 ];
-$quoi = $NOMS[$onglet] ?? 'Fiche de production';
+$bil  = isset(DOC_BILINGUE[$onglet]);
+$quoi = $bil ? $tr(DOC_BILINGUE[$onglet]) : ($NOMS[$onglet] ?? 'Fiche de production');
 
 /* Le porteur, imprimé sous le titre: un document qui part sans dire quelle
    association le porte oblige le destinataire à demander. */
@@ -90,17 +111,17 @@ case 'synthese':
     break;
 
 case 'dossier':
-    foreach (['lettre' => 'Lettre de motivation', 'description' => 'Description du projet',
-              'intention' => 'Note d\'intention'] as $k => $t)
-        $ajout($t, 'texte', (string)($d['dossier'][$k] ?? ''));
+    foreach (['lettre' => 'doc_lettre', 'description' => 'doc_description',
+              'intention' => 'doc_intention'] as $k => $t)
+        $ajout($tr($t), 'texte', (string)($d['dossier'][$k] ?? ''));
     $cal = trim((string)($d['dossier']['calendrier'] ?? ''));
     if ($cal === '') $cal = ProdFiche::calendrierDepuisPlanning($d);
-    $ajout('Calendrier', 'texte', $cal);
-    foreach (['publicCible' => 'Public cible', 'benefice' => 'Bénéfice pour la ville'] as $k => $t)
-        $ajout($t, 'texte', (string)($d['dossier'][$k] ?? ''));
-    $ajout('Résumé',        'texte', (string)$d['resume']);
-    $ajout('Coproductions', 'texte', (string)$d['coproductions']);
-    $ajout('Soutiens',      'texte', (string)$d['soutiens']);
+    $ajout($tr('doc_calendrier'), 'texte', $cal);
+    foreach (['publicCible' => 'doc_public', 'benefice' => 'doc_benefice'] as $k => $t)
+        $ajout($tr($t), 'texte', (string)($d['dossier'][$k] ?? ''));
+    $ajout($tr('doc_resume'),   'texte', (string)$d['resume']);
+    $ajout($tr('doc_copro'),    'texte', (string)$d['coproductions']);
+    $ajout($tr('doc_soutiens'), 'texte', (string)$d['soutiens']);
     break;
 
 case 'planning':
@@ -137,26 +158,31 @@ case 'logistique':
 
 case 'technique':
     $t = $d['technique'] ?? [];
-    foreach ([['Le plateau', 'plateau', ProdFiche::TECH_PLATEAU],
-              ['Les temps',  'temps',   ProdFiche::TECH_TEMPS],
-              ['Les besoins','besoins', ProdFiche::TECH_BESOINS]] as [$lib, $grp, $champs]) {
+    /* L'intitulé traduit d'abord, l'intitulé français de la constante en
+       dernier recours: une clef oubliée fait sortir le mot français, jamais un
+       code de clef au milieu d'un document qui part à un lieu. */
+    foreach ([['doc_tech_plateau', 'plateau', ProdFiche::TECH_PLATEAU],
+              ['doc_tech_temps',   'temps',   ProdFiche::TECH_TEMPS],
+              ['doc_tech_besoins', 'besoins', ProdFiche::TECH_BESOINS]] as [$lib, $grp, $champs]) {
         $paires = [];
         foreach ($champs as $k => [$l, $_]) {
             $v = trim((string)($t[$grp][$k] ?? ''));
-            if ($v !== '') $paires[$l] = $v;
+            if ($v === '') continue;
+            $trad = I18n::ta('doc_tech_' . $k, $L);
+            $paires[$trad === 'doc_tech_' . $k ? $l : $trad] = $v;
         }
-        $ajout($lib, 'defs', $paires);
+        $ajout($tr($lib), 'defs', $paires);
     }
-    $ajout('Adaptations possibles', 'texte', (string)($t['adaptations'] ?? ''));
+    $ajout($tr('doc_tech_adapt'), 'texte', (string)($t['adaptations'] ?? ''));
     $c = $t['contact'] ?? [];
-    $ajout('Contact technique', 'defs', array_filter([
-        'Nom' => (string)($c['nom'] ?? ''), 'Rôle' => (string)($c['role'] ?? ''),
-        'Courriel' => (string)($c['email'] ?? ''), 'Téléphone' => (string)($c['tel'] ?? ''),
+    $ajout($tr('doc_tech_contact'), 'defs', array_filter([
+        $tr('doc_c_nom')   => (string)($c['nom'] ?? ''), $tr('doc_c_role') => (string)($c['role'] ?? ''),
+        $tr('doc_c_email') => (string)($c['email'] ?? ''), $tr('doc_c_tel') => (string)($c['tel'] ?? ''),
     ], fn($v) => trim($v) !== ''));
     $vs = $t['versions'] ?? [];
     usort($vs, fn($a, $b) => strcmp((string)($b['date'] ?? ''), (string)($a['date'] ?? '')));
-    $ajout('Versions du document', 'table', [
-        'entete' => ['Version', 'Date', 'Configuration'],
+    $ajout($tr('doc_tech_versions'), 'table', [
+        'entete' => [$tr('doc_col_version'), $tr('doc_col_date'), $tr('doc_col_config')],
         'lignes' => array_map(fn($v) => [
             (string)($v['version'] ?? ''), (string)($v['date'] ?? ''), (string)($v['config'] ?? ''),
         ], $vs),
@@ -212,15 +238,16 @@ case 'devis':
           ORDER BY COALESCE(date_debut,'9999-12-31')", [$titre]);
     $s = 0.0; $dev = '';
     foreach ($dates as $x) { $s += (float)$x['prix_cession']; $dev = $dev ?: (string)$x['devise']; }
-    $ajout('Dates vendues', 'table', [
-        'entete' => ['Date', 'Lieu', 'Ville', 'Pays', 'Repr.', 'État', 'Cession'],
+    $ajout($tr('doc_dates_vendues'), 'table', [
+        'entete' => [$tr('doc_col_date'), $tr('doc_col_lieu'), $tr('doc_col_ville'),
+                     $tr('doc_col_pays'), $tr('doc_col_repr'), $tr('doc_col_etat'), $tr('doc_col_cession')],
         'lignes' => array_map(fn($x) => [
             $x['date_debut'] ? date('d.m.Y', strtotime((string)$x['date_debut'])) : (string)$x['date_texte'],
             (string)$x['venue'], (string)$x['ville'], (string)$x['pays'],
             (string)($x['representations'] ?: ''), (string)$x['statut'],
             $mt($x['prix_cession'], (string)$x['devise']),
         ], $dates),
-        'total' => $dates ? ['Total des cessions', $mt($s, $dev)] : null,
+        'total' => $dates ? [$tr('doc_total_cessions'), $mt($s, $dev)] : null,
     ]);
     break;
 
@@ -295,7 +322,9 @@ case 'droits':
     border-bottom:1px solid #bbb;padding:4px 8px 4px 0;font-weight:700}
   td{padding:4px 8px 4px 0;border-bottom:1px solid #eee;vertical-align:top}
   tr.tot td{border-top:1px solid #bbb;border-bottom:0;font-weight:700}
-  .imp{margin:0 0 20px;padding:8px 12px;background:#f3f3f1;font-size:12px}
+  .imp{margin:0 0 20px;padding:8px 12px;background:#f3f3f1;font-size:12px;
+    display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .imp .lg{display:flex;gap:10px} .imp .lg a{color:#444}
   .vide{color:#888;font-style:italic}
   .sign{margin-top:34px;padding-top:12px;border-top:1px solid #ddd;display:grid;
     grid-template-columns:1fr 1fr;gap:30px;font-size:12px;color:#555}
@@ -304,14 +333,26 @@ case 'droits':
     h2{break-after:avoid} table{break-inside:auto} tr{break-inside:avoid} }
 </style>
 </head><body>
-<p class="imp">Faites « Imprimer », puis « Enregistrer au format PDF ». Ce bandeau ne s'imprime pas.</p>
+<p class="imp"><?= e($tr('doc_imprimer_aide')) ?>
+  <?php if ($bil): ?>
+    <span class="lg">
+      <?php /* `$dlg` et non `$lg`: cette vue est incluse dans la portée de
+           `projets.php`, donc toute variable posée ici y reste. Un nom court et
+           courant finit par écraser celui de quelqu'un d'autre. */ ?>
+      <?php foreach (['fr' => 'doc_langue_fr', 'en' => 'doc_langue_en'] as $dlg => $dcle): ?>
+        <?php if ($dlg === $L): ?><strong><?= e($tr($dcle)) ?></strong><?php else: ?>
+          <a href="?e=projets&amp;p=<?= (int)$pcms ?>&amp;o=<?= e($onglet) ?>&amp;imprimer=1&amp;lang=<?= $dlg ?>"><?= e($tr($dcle)) ?></a>
+        <?php endif; ?>
+      <?php endforeach; ?>
+    </span>
+  <?php endif; ?></p>
 
 <h1><?= e($titre) ?></h1>
 <p class="st"><?= e($quoi) ?><?= $porteur !== '' ? ' · ' . e($porteur) : '' ?>
-   · Le Voisin · établi le <?= date('d.m.Y') ?></p>
+   · Le Voisin · <?= e($tr('doc_etabli_le', date('d.m.Y'))) ?></p>
 
 <?php if (!$blocs): ?>
-  <p class="vide">Cet onglet est encore vide. Ce qui y sera saisi s'imprimera ici.</p>
+  <p class="vide"><?= e($tr('doc_vide')) ?></p>
 <?php endif; ?>
 
 <?php foreach ($blocs as $b): ?>
