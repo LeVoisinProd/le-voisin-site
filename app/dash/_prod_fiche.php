@@ -66,7 +66,16 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   <?php foreach ($ONGLETS as $k => $lib): ?>
     <a href="<?= e($lien($k)) ?>" class="<?= $onglet === $k ? 'ici' : '' ?>"><?= e($lib) ?></a>
   <?php endforeach; ?>
+  <?php /* Le lien d'impression suit l'onglet ouvert. Un seul lien plutôt qu'un
+       bouton dans chaque onglet: on le cherche toujours au même endroit, et
+       les dix onglets n'ont pas à se souvenir qu'ils sont imprimables. */ ?>
+  <a class="impr" href="<?= e($lien($onglet)) ?>&amp;imprimer=1" target="_blank"
+     rel="noopener" title="Ouvre une page nue, prête à imprimer ou à enregistrer en PDF">Imprimer</a>
 </div>
+<style>
+.onglets.pf .impr{margin-left:auto;border-bottom-color:transparent;color:var(--doux)}
+.onglets.pf .impr:hover{color:var(--encre)}
+</style>
 
 <div class="zone">
 <?php /* ══════════════════════════ SYNTHÈSE ══════════════════════════ */ ?>

@@ -109,7 +109,13 @@ if ($pcms > 0) {
     }
 
     /* Les deux vues imprimables: le dossier et la feuille de route. */
-    if (($_GET['imprimer'] ?? '') === '1' && in_array($onglet, ['dossier','fdr'], true)) {
+    /* LES DIX ONGLETS S'IMPRIMENT, et non plus deux. Anna, 16.08.2026: « todas
+       as etapas (…) tem que poder imprimir ». La liste fermée reste une liste
+       fermée — `$onglet` vient de l'URL, et on n'inclut pas un fichier d'après
+       une chaîne qu'un visiteur choisit. */
+    if (($_GET['imprimer'] ?? '') === '1' && in_array($onglet,
+        ['synthese','dossier','planning','logistique','technique','fdr',
+         'remuneration','budget','devis','droits'], true)) {
         require __DIR__ . '/_prod_imprimer.php';
         return;
     }
