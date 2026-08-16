@@ -14,7 +14,9 @@
  *   2. ce qui arrive et demande un geste
  *   3. ce qui manque dans les données et fausse tout le reste
  *
- * IRIS EST EN BAS et non en haut. Aujourd'hui, dans le dashboard Apps Script,
+ * IRIS EST AU-DESSUS DES SKILLS depuis le 16.08.2026, à la demande d'Anna: dans
+ * l'ordre de la page elles font la même chose — demander à la machine — et les
+ * skills tournent avec ce qu'IRIS aide à formuler. Aujourd'hui, dans le dashboard Apps Script,
  * elle assemble un rôle, un extrait de données et une question, copie le tout
  * dans le presse-papier et ouvre claude.ai: aucun appel d'API. Le même
  * mécanisme est repris ici, en disant ce qu'il est. Le jour où l'on branche une
@@ -176,8 +178,55 @@ dash_haut('accueil', $urgent
 
 <?php require __DIR__ . '/_kanban.php'; ?>
 
-<?php /* Les skills viennent après le pipeline: le pipeline dit où en sont les
-     choses, les skills disent avec quoi les faire avancer. [16.08.2026] */ ?>
+<?php /* ── IRIS, AU-DESSUS DES SKILLS ────────────────────────────────────────
+     [16.08.2026] Anna: « colcoar a iris em cima da parte das skils ». Elle était
+     tout en bas, et j'avais écrit pourquoi: elle ne fait qu'assembler un texte à
+     coller, elle ne décide de rien.
+
+     Le raisonnement était celui de la MÉCANIQUE, pas celui de l'usage. Dans
+     l'ordre de la page, IRIS et les skills sont la même chose — deux façons de
+     demander à la machine de faire quelque chose — et les skills tournent avec
+     ce qu'IRIS aide à formuler. L'une avant l'autre, elles se lisent comme un
+     enchaînement; séparées par toute la page, comme deux outils sans rapport. */ ?>
+<section class="bloc iris">
+  <h2>IRIS</h2>
+  <p class="ex">IRIS assemble un rôle, un extrait de vos données réelles et votre
+     question, et vous rend le tout à coller dans une conversation. <strong>Elle
+     n'appelle aucune API et n'envoie rien toute seule</strong>: c'est vous qui
+     décidez ce qui sort d'ici. C'est déjà ainsi qu'elle fonctionne dans le
+     dashboard actuel, et le dire évite de croire à une magie qui n'existe pas.</p>
+  <?php
+  /* Le contexte est monté ici et non côté navigateur: il vient de la base, il
+     est donc exact au moment où on le copie. */
+  $ctx = [];
+  $ctx[] = "CONTEXTE LE VOISIN, au " . $auj->format('d.m.Y');
+  $ctx[] = "";
+  $ctx[] = "Saison $saison-" . ($saison + 1) . ": " . (int)DB::pdo()->query(
+      "SELECT COUNT(*) FROM booking WHERE supprime_le IS NULL
+        AND date_debut >= '$debut' AND date_debut < '$fin'")->fetchColumn() . " dates";
+  $ctx[] = "Organisations: " . (int)DB::pdo()->query(
+      "SELECT COUNT(*) FROM organisation WHERE supprime_le IS NULL")->fetchColumn()
+      . ", contacts: " . (int)DB::pdo()->query(
+      "SELECT COUNT(*) FROM contact WHERE supprime_le IS NULL")->fetchColumn();
+  if ($a1Retard)   $ctx[] = "URGENT: " . count($a1Retard) . " attestations A1 hors délai";
+  if ((int)$impayesTot['n']) $ctx[] = "URGENT: " . (int)$impayesTot['n']
+      . " dates jouées non encaissées, " . $fmt($impayesTot['t']);
+  $ctx[] = "";
+  $ctx[] = "Prochaines dates:";
+  foreach (array_slice($prochaines, 0, 6) as $d) {
+      $ctx[] = "  " . ($d['date_debut'] ?? '') . "  " . ($d['projet'] ?? '')
+             . "  " . ($d['venue'] ?? '') . ", " . ($d['ville'] ?? '') . "  [" . $d['statut'] . "]";
+  }
+  ?>
+  <textarea id="iris" rows="9" readonly><?= e(implode("\n", $ctx)) ?></textarea>
+  <div class="irisbt">
+    <button type="button" onclick="var t=document.getElementById('iris');t.select();
+      document.execCommand('copy');this.textContent='copié';">Copier le contexte</button>
+    <a class="bt" href="https://claude.ai" target="_blank" rel="noopener">Ouvrir Claude</a>
+  </div>
+</section>
+
+<?php /* Les skills viennent ensuite: IRIS aide à formuler, les skills exécutent. */ ?>
 <?php require __DIR__ . '/_skills.php'; ?>
 
 <?php if (!$urgent): ?>
@@ -258,44 +307,6 @@ dash_haut('accueil', $urgent
   <?php endforeach; ?>
   <?php if (!array_filter(array_column($trous, 1))): ?>
     <p class="ex">Aucun trou connu.</p><?php endif; ?>
-</section>
-
-<section class="bloc iris">
-  <h2>IRIS</h2>
-  <p class="ex">IRIS assemble un rôle, un extrait de vos données réelles et votre
-     question, et vous rend le tout à coller dans une conversation. <strong>Elle
-     n'appelle aucune API et n'envoie rien toute seule</strong>: c'est vous qui
-     décidez ce qui sort d'ici. C'est déjà ainsi qu'elle fonctionne dans le
-     dashboard actuel, et le dire évite de croire à une magie qui n'existe pas.</p>
-  <?php
-  /* Le contexte est monté ici et non côté navigateur: il vient de la base, il
-     est donc exact au moment où on le copie. */
-  $ctx = [];
-  $ctx[] = "CONTEXTE LE VOISIN, au " . $auj->format('d.m.Y');
-  $ctx[] = "";
-  $ctx[] = "Saison $saison-" . ($saison + 1) . ": " . (int)DB::pdo()->query(
-      "SELECT COUNT(*) FROM booking WHERE supprime_le IS NULL
-        AND date_debut >= '$debut' AND date_debut < '$fin'")->fetchColumn() . " dates";
-  $ctx[] = "Organisations: " . (int)DB::pdo()->query(
-      "SELECT COUNT(*) FROM organisation WHERE supprime_le IS NULL")->fetchColumn()
-      . ", contacts: " . (int)DB::pdo()->query(
-      "SELECT COUNT(*) FROM contact WHERE supprime_le IS NULL")->fetchColumn();
-  if ($a1Retard)   $ctx[] = "URGENT: " . count($a1Retard) . " attestations A1 hors délai";
-  if ((int)$impayesTot['n']) $ctx[] = "URGENT: " . (int)$impayesTot['n']
-      . " dates jouées non encaissées, " . $fmt($impayesTot['t']);
-  $ctx[] = "";
-  $ctx[] = "Prochaines dates:";
-  foreach (array_slice($prochaines, 0, 6) as $d) {
-      $ctx[] = "  " . ($d['date_debut'] ?? '') . "  " . ($d['projet'] ?? '')
-             . "  " . ($d['venue'] ?? '') . ", " . ($d['ville'] ?? '') . "  [" . $d['statut'] . "]";
-  }
-  ?>
-  <textarea id="iris" rows="9" readonly><?= e(implode("\n", $ctx)) ?></textarea>
-  <div class="irisbt">
-    <button type="button" onclick="var t=document.getElementById('iris');t.select();
-      document.execCommand('copy');this.textContent='copié';">Copier le contexte</button>
-    <a class="bt" href="https://claude.ai" target="_blank" rel="noopener">Ouvrir Claude</a>
-  </div>
 </section>
 
 </div>
