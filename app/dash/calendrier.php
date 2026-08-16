@@ -75,9 +75,73 @@ foreach ($lignes as $r) {
 $total = count($lignes);
 $horsCH = count(array_filter($lignes, fn($r) => $r['pays'] && !in_array($r['pays'], ['CH', 'Suisse'], true)));
 
+/* ── DEUX AGENDAS, ET NON UN ────────────────────────────────────────────────
+   [16.08.2026] Anna: « separar agenda projets et agenda rappels (é o to do do
+   voisin) ». Le Calendrier montre les DATES — ce qui se joue, où, quand.
+   L'agenda des rappels montre ce qu'il faut FAIRE. On ouvre l'un pour savoir
+   où l'on sera en mars, l'autre pour savoir quoi faire ce matin; les mêler
+   donnait une liste où l'on cherchait l'un en lisant l'autre. */
+$rEcrit = dash_droit('calendrier', dash_role()) === 'ecrit';
+
+if (($_GET['v'] ?? '') === 'rappels') {
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['rp'] ?? '') !== '') {
+        Auth::requireCsrf();
+        dash_exige_ecriture('calendrier');
+        $qui = (string)(Auth::user()['name'] ?? '');
+        $act = (string)$_POST['rp'];
+        $j   = (int)($_GET['j'] ?? 30);
+
+        if ($act === 'creer') {
+            /* Le contact se choisit dans une liste qui finit par « #12 ». On ne
+               lit que ce numéro: le texte devant peut être n'importe quoi, y
+               compris une saisie libre qui ne correspond à personne. */
+            $cid = 0;
+            if (preg_match('/#(\d+)\s*$/', (string)($_POST['contact_q'] ?? ''), $mm)) $cid = (int)$mm[1];
+            $id = Rappels::creer([
+                'quand'    => (string)($_POST['quand'] ?? ''),
+                'texte'    => (string)($_POST['texte'] ?? ''),
+                'note'     => (string)($_POST['note'] ?? ''),
+                'pour_qui' => (string)($_POST['pour_qui'] ?? ''),
+                'contact_id' => $cid,
+            ], $qui);
+            dash_flash($id ? 'Rappel ajouté.' : 'Il faut au moins une date et un texte.', $id ? '' : 'err');
+        } elseif ($act === 'fait') {
+            Rappels::fait((int)($_POST['id'] ?? 0), $qui);
+            dash_flash('Fait.');
+        } elseif ($act === 'reporter') {
+            Rappels::reporter((int)($_POST['id'] ?? 0), (int)($_POST['jours'] ?? 7));
+            dash_flash('Repoussé.');
+        }
+        redirect('/dashboard.php?e=calendrier&v=rappels&j=' . $j);
+    }
+
+    $enRetard = Rappels::enRetard();
+    dash_haut('calendrier', '<a href="/dashboard.php?e=calendrier" class="ret">les dates</a> · <strong>les rappels</strong>'
+        . ($enRetard ? ' · <strong>' . $enRetard . '</strong> en retard' : ''));
+    dash_flash_html();
+    require __DIR__ . '/_rappels.php';
+    dash_bas();
+    return;
+}
+
 dash_haut('calendrier',
     $total . ' date' . ($total > 1 ? 's' : '') . ' · saison ' . $saison . '-' . ($saison + 1) . ' · ' . $ms . ' ms');
 ?>
+
+<?php /* Le chemin vers l'autre agenda. Le compte des retards est dessus: sans
+     lui, « les rappels » ne donne aucune raison de cliquer aujourd'hui. */ ?>
+<?php $enRet = Rappels::enRetard(); ?>
+<p class="ag-bascule"><strong>Les dates</strong>
+  <a href="/dashboard.php?e=calendrier&amp;v=rappels">Les rappels<?php
+    if ($enRet): ?> <span class="cpt"><?= $enRet ?></span><?php endif; ?></a></p>
+<style>
+.ag-bascule{display:flex;gap:16px;align-items:center;margin:0 0 12px;font-size:13.5px}
+.ag-bascule a{color:var(--doux);text-decoration:none}
+.ag-bascule a:hover{color:var(--encre)}
+.ag-bascule .cpt{padding:1px 8px;border-radius:9px;background:#c8452f;color:#fff;
+  font-size:11.5px;font-weight:600}
+</style>
 
 <form class="filtres" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="calendrier">
