@@ -17,15 +17,20 @@
  * efface ce qui manque transforme un export partiel en perte de données, et un
  * export partiel est exactement ce qui arrive quand on se trompe de filtre.
  *
- * TROIS COLONNES DU DASHBOARD NE SONT PAS REPRISES: pronom, instagram et
- * linkedin. Mesuré le 16.08.2026: zéro fiche remplie sur 7 841. Elles sont
- * listées ici pour que leur absence soit une décision lisible et non un oubli.
+ * DEUX COLONNES NE SONT PAS REPRISES: instagram et linkedin. Recompté le
+ * 16.08.2026 sur les 8432 fiches — et pas sur 7841, ce qui était le compte
+ * d'un export partiel: elles sont vides toutes les deux.
+ *
+ * `pronom` et `adresse2` L'ÉTAIENT AUSSI DANS CETTE LISTE, à tort. Le recompte
+ * donne 236 pronoms et 27 secondes lignes d'adresse. Elles étaient perdues à
+ * chaque reprise, et personne ne l'aurait vu: une colonne qu'on n'importe pas
+ * ne laisse pas de trace, elle laisse un vide qui ressemble à la réalité.
  */
 declare(strict_types=1);
 
 require __DIR__ . '/../app/bootstrap.php';
 
-const IGNORE = ['pronom', 'instagram', 'linkedin', 'adresse2'];
+const IGNORE = ['instagram', 'linkedin'];
 
 $source = $argv[1] ?? '';
 if ($source === '' || !is_file($source)) {
