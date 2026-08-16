@@ -65,6 +65,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('/dashboard.php?e=parametres');
     }
 
+    /* ── L'ESSAI ────────────────────────────────────────────────────────────
+       Une clef qui ne marche pas ne se découvre autrement qu'au moment
+       d'imprimer un document, c'est-à-dire au pire moment. Un aller-retour
+       réel, sur une phrase, dit tout de suite si la clef, le modèle et la
+       sortie réseau du serveur fonctionnent ensemble. */
+    if (($_POST['act'] ?? '') === 'traduction_essai') {
+        [$ok, $msg] = Traduction::essai();
+        dash_flash($ok ? 'La clef répond. « Le spectacle dure quarante minutes… » → « ' . $msg . ' »'
+                       : $msg, $ok ? '' : 'err');
+        redirect('/dashboard.php?e=parametres');
+    }
+
     $uid = (int)($_POST['id'] ?? 0);
     $r   = (string)($_POST['role'] ?? '');
     if ($uid && isset($ROLES[$r])) {
@@ -216,7 +228,19 @@ dash_haut('parametres', count($gens) . ' personne' . (count($gens) > 1 ? 's' : '
   </div>
   <div class="act"><button type="submit">Enregistrer</button></div>
 </form>
+<?php if (Traduction::configured()): ?>
+  <form method="post" action="/dashboard.php?e=parametres" class="fessai">
+    <?= Auth::csrfField() ?>
+    <input type="hidden" name="act" value="traduction_essai">
+    <button type="submit">Essayer la clef</button>
+    <span>Traduit une phrase pour de vrai et montre le résultat. Rien n'est enregistré.</span>
+  </form>
+<?php endif; ?>
 <style>
+.fessai{display:flex;align-items:center;gap:12px;max-width:640px;margin:-14px 0 26px}
+.fessai button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
+.fessai span{font-size:12.5px;color:var(--doux)}
 .ftrad{max-width:640px;margin:0 0 26px}
 .ftrad .ch{margin-bottom:16px}
 .ftrad label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;

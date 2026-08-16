@@ -141,7 +141,7 @@ final class Traduction
         $suite  = array_values($manquants);
         $traduits = self::moteur() === 'deepl'
             ? self::deeplLot($suite, $vers, $de)
-            : array_map(fn($t) => self::appeler($t, $vers, $de), $suite);
+            : self::anthropicLot($suite, $vers, $de);
 
         foreach ($index as $rang => $i) {
             $v = $traduits[$rang] ?? null;
@@ -184,6 +184,94 @@ final class Traduction
             return [];
         }
         return array_map(fn($x) => (string)($x['text'] ?? ''), $t);
+    }
+
+    /**
+     * Anthropic, plusieurs textes en un seul appel.
+     *
+     * POURQUOI ON NE SE CONTENTE PAS D'ENCHAÎNER LES APPELS. Un dossier porte
+     * neuf blocs; neuf allers-retours font vingt à trente secondes, et une page
+     * qui met trente secondes est une page qu'on recharge — ce qui relance les
+     * neuf.
+     *
+     * ON DÉCOUPE SUR UN MARQUEUR ET ON COMPTE CE QUI REVIENT. Un modèle de
+     * langue peut fusionner deux blocs, en oublier un, ou commenter son
+     * travail. Si le compte ne tombe pas juste, on ne garde RIEN de la réponse
+     * groupée et l'on refait bloc par bloc: des traductions décalées colleraient
+     * le texte d'une note d'intention sous le titre d'un calendrier, en
+     * silence, dans un document qui part à un financeur.
+     *
+     * Le marqueur porte une part tirée au sort, pour qu'un texte qui
+     * contiendrait « ---8<--- » ne casse pas le découpage.
+     */
+    private static function anthropicLot(array $textes, string $vers, string $de): array
+    {
+        if (count($textes) === 1) return [self::appeler($textes[0], $vers, $de)];
+
+        $marque = '<<<LV-' . bin2hex(random_bytes(4)) . '>>>';
+        $langue = $vers === 'en' ? 'English' : $vers;
+        $source = $de === 'fr' ? 'French' : $de;
+
+        $corps = '';
+        foreach ($textes as $i => $t) $corps .= ($i ? "\n" . $marque . "\n" : '') . $t;
+
+        $consigne =
+            "Translate from $source into $langue.\n" .
+            "Context: performing-arts touring documents — a funding application, a tour " .
+            "sheet, a technical rider or a quotation. Keep the register formal and " .
+            "professional.\n\n" .
+            "The input contains " . count($textes) . " separate blocks, separated by the " .
+            "exact line $marque.\n" .
+            "Return exactly " . count($textes) . " translated blocks, separated by that same " .
+            "line, in the same order. Never merge, split, reorder or drop a block; a block " .
+            "that needs no translation is returned unchanged.\n" .
+            "Keep line breaks and paragraph structure inside each block. Do not translate " .
+            "proper nouns, show titles, venue names or people's names. Do not add any " .
+            "comment, preamble, numbering or quotation marks.";
+
+        [$code, $rep] = self::http('https://api.anthropic.com/v1/messages', [
+            'x-api-key: ' . trim(setting('anthropic_key')),
+            'anthropic-version: 2023-06-01',
+            'Content-Type: application/json',
+        ], json_encode([
+            'model'      => trim(setting('anthropic_model')) ?: 'claude-sonnet-5',
+            'max_tokens' => 16000,
+            'system'     => $consigne,
+            'messages'   => [['role' => 'user', 'content' => $corps]],
+        ], JSON_UNESCAPED_UNICODE));
+
+        if ($code !== 200) {
+            self::journal("anthropic lot HTTP $code: " . mb_substr($rep, 0, 300));
+            return array_map(fn($t) => self::appeler($t, $vers, $de), $textes);
+        }
+
+        $j = json_decode($rep, true);
+        $out = '';
+        foreach ($j['content'] ?? [] as $bloc) if (($bloc['type'] ?? '') === 'text') $out .= $bloc['text'];
+
+        $bouts = array_map('trim', explode($marque, $out));
+        if (count($bouts) !== count($textes)) {
+            self::journal('anthropic lot: ' . count($bouts) . ' blocs pour ' . count($textes)
+                        . ' envoyés — on refait un par un');
+            return array_map(fn($t) => self::appeler($t, $vers, $de), $textes);
+        }
+        return $bouts;
+    }
+
+    /**
+     * Un appel d'essai, pour vérifier une clef au moment où on la colle.
+     *
+     * @return array{0:bool,1:string} vrai/faux, et ce qu'on a obtenu ou l'erreur.
+     */
+    public static function essai(): array
+    {
+        if (!self::configured()) return [false, 'Aucune clef enregistrée.'];
+        $src = 'Le spectacle dure quarante minutes et se joue en salle ou en extérieur.';
+        $out = self::appeler($src, 'en', 'fr');
+        if ($out === null || trim($out) === '') {
+            return [false, 'La clef n\'a pas répondu. Le détail est dans app/logs/traduction.log.'];
+        }
+        return [true, trim($out)];
     }
 
     /** Le nombre de traductions non relues, pour l'écran qui les propose. */
