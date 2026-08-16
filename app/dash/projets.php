@@ -168,9 +168,28 @@ $phase = trim((string)($_GET['ph'] ?? ''));
 $etat  = trim((string)($_GET['st'] ?? ''));
 if ($etat === '' && !isset($_GET['st'])) $etat = 'current';
 
+/* LE TYPE VIENT DU SITE, il n'est pas ressaisi ici. Anna, 16.08.2026: « vc pode
+   puxar a classificacao de tipo de projeto do nosso site ». Les six catégories
+   — Danse, Musique, Théâtre, Arts visuels, Performance, Marionnettes — vivent
+   dans `categories` et se rattachent par `project_categories`, qui est une
+   table de liaison: une pièce peut en porter deux, et « Danse · Marionnettes »
+   est une information, pas une hésitation. Les recopier dans le dashboard
+   ferait deux vérités qui divergeraient à la première correction faite côté
+   site. */
+$typeId = (int)($_GET['ty'] ?? 0);
+$TYPES  = [];
+foreach (DB::all("SELECT c.id, c.name_fr,
+                    (SELECT COUNT(*) FROM project_categories pc WHERE pc.category_id = c.id) n
+                  FROM categories c ORDER BY c.sort, c.name_fr") as $c)
+    if ((int)$c['n'] > 0) $TYPES[(int)$c['id']] = ['nom' => (string)$c['name_fr'], 'n' => (int)$c['n']];
+
 $where = ['1=1']; $args = [];
 if (isset($PHASES[$phase])) { $where[] = 'pp.phase = ?'; $args[] = $phase; }
 if ($etat === 'current' || $etat === 'former') { $where[] = 'pr.status = ?'; $args[] = $etat; }
+if (isset($TYPES[$typeId])) {
+    $where[] = 'EXISTS (SELECT 1 FROM project_categories pc WHERE pc.project_id = pr.id AND pc.category_id = ?)';
+    $args[] = $typeId;
+}
 if ($q !== '') {
     $like = '%' . str_replace(['%','_'], ['\%','\_'], $q) . '%';
     $where[] = '(pr.title_fr LIKE ? OR pr.title_en LIKE ? OR pp.responsable LIKE ?)';
@@ -182,6 +201,9 @@ $st = DB::pdo()->prepare(
     "SELECT pr.id, pr.title_fr, pr.title_en, pr.status, pr.visible, pr.year_creation,
             pr.duration_min, pp.phase, pp.responsable, pp.budget, pp.devise,
             o.nom AS organisation,
+            (SELECT GROUP_CONCAT(c.name_fr ORDER BY c.sort SEPARATOR ' · ')
+               FROM project_categories pc JOIN categories c ON c.id = pc.category_id
+              WHERE pc.project_id = pr.id) AS types,
             (SELECT COUNT(*) FROM booking b
               WHERE b.supprime_le IS NULL AND b.projet = COALESCE(pr.title_fr, pr.title_en)) AS n_dates
        FROM projects pr
@@ -210,13 +232,20 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
         e($v) ?> (<?= $parPhase[$k] ?? 0 ?>)</option>
     <?php endforeach; ?>
   </select>
+  <select name="ty">
+    <option value="">Tous les types</option>
+    <?php foreach ($TYPES as $id => $t): ?>
+      <option value="<?= $id ?>"<?= $typeId === $id ? ' selected' : '' ?>><?=
+        e($t['nom']) ?> (<?= $t['n'] ?>)</option>
+    <?php endforeach; ?>
+  </select>
   <select name="st">
     <option value="tous"<?= $etat==='tous'?' selected':'' ?>>tous, y compris les passés</option>
     <option value="current"<?= $etat==='current'?' selected':'' ?>>en cours</option>
     <option value="former"<?= $etat==='former'?' selected':'' ?>>passés</option>
   </select>
   <button type="submit">Chercher</button>
-  <?php if ($q!==''||$phase!==''||$etat!=='current'): ?>
+  <?php if ($q!==''||$phase!==''||$etat!=='current'||$typeId): ?>
     <a class="vider" href="/dashboard.php?e=projets">tout effacer</a><?php endif; ?>
 </form>
 <?php dash_flash_html(); ?>
@@ -228,7 +257,7 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
 <?php endif; ?>
 
 <div class="tw"><table>
-  <thead><tr><th>Projet</th><th>Phase</th><th>Porteur</th>
+  <thead><tr><th>Projet</th><th>Type</th><th>Phase</th><th>Porteur</th>
     <th class="d">Année</th><th class="d">Durée</th><th class="d">Budget</th><th class="d">Dates</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
@@ -236,6 +265,7 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
       <td><a href="/dashboard.php?e=projets&amp;p=<?= (int)$r['id'] ?>"><?=
         e($r['title_fr'] ?: $r['title_en']) ?></a>
         <?php if (!$r['visible']): ?><span class="np">non publié</span><?php endif; ?></td>
+      <td class="sec"><?= $r['types'] ? e((string)$r['types']) : '<span class="sec">—</span>' ?></td>
       <td><?php if ($r['phase']): ?><span class="ph <?= e($r['phase']) ?>"><?=
         e($PHASES[$r['phase']]) ?></span><?php else: ?><span class="sec">—</span><?php endif; ?></td>
       <td class="sec"><?= e($r['organisation'] ?? '') ?></td>

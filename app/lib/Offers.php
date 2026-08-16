@@ -137,6 +137,105 @@ class Offers
 
     /* ── Côté bureau ────────────────────────────────────────────────────── */
 
+    /**
+     * Une demande saisie au bureau. [16.08.2026]
+     *
+     * POURQUOI ELLE EXISTE. Le pipeline ne se remplissait que par le formulaire
+     * public, et les demandes réelles n'y passent pas: elles arrivent par
+     * courriel, au téléphone, dans un couloir de festival. Anna, le 16.08.2026:
+     * « todas as offres de bestiarium deveriam estar ali ». Sans cette porte,
+     * l'écran reste vide en permanence tout en prétendant être le pipeline —
+     * c'est-à-dire qu'il ment, et qu'on retourne dans la boîte de réception.
+     *
+     * ELLE NE PASSE AUCUN DES TROIS FILTRES ANTI-ROBOT, et c'est correct: le
+     * piège, le délai minimal et le plafond par adresse protègent d'un
+     * formulaire ouvert au public. Ici la personne est authentifiée et l'écran
+     * a déjà exigé le droit d'écriture. Les rejouer ferait échouer une saisie
+     * légitime parce qu'elle a été tapée trop vite.
+     *
+     * Le seul contrôle gardé est le nom: une demande sans personne à qui
+     * répondre n'est pas une demande. L'adresse, elle, devient facultative —
+     * on connaît des programmateurs qu'on n'appelle qu'au téléphone.
+     */
+    public static function creerAuBureau(array $p): int
+    {
+        $nom = trim((string)($p['contact_nom'] ?? ''));
+        if ($nom === '') return 0;
+
+        $c = static fn(string $k, int $max = 190): ?string
+            => trim((string)($p[$k] ?? '')) !== '' ? mb_substr(trim((string)$p[$k]), 0, $max) : null;
+
+        $date  = trim((string)($p['date_souhaitee'] ?? ''));
+        $bud   = trim((string)($p['budget'] ?? ''));
+        $email = trim((string)($p['contact_email'] ?? ''));
+
+        return DB::insert('offer', [
+            'projet'          => $c('projet'),
+            'venue'           => $c('venue'),
+            'venue_url'       => $c('venue_url', 400),
+            'ville'           => $c('ville', 96),
+            'pays'            => $c('pays', 64),
+            'date_souhaitee'  => $date !== '' && strtotime($date) ? date('Y-m-d', strtotime($date)) : null,
+            'date_texte'      => $c('date_texte'),
+            'representations' => (int)($p['representations'] ?? 0) ?: null,
+            'budget'          => $bud !== '' ? (float)str_replace(',', '.', $bud) : null,
+            'devise'          => in_array($p['devise'] ?? '', ['CHF','EUR'], true) ? $p['devise'] : 'CHF',
+            'contact_nom'     => mb_substr($nom, 0, 190),
+            'contact_role'    => $c('contact_role', 120),
+            'contact_email'   => $email !== '' ? mb_substr($email, 0, 190) : null,
+            'contact_tel'     => $c('contact_tel', 40),
+            'structure'       => $c('structure'),
+            'message'         => mb_substr(trim((string)($p['message'] ?? '')), 0, 8000) ?: null,
+            'notes_internes'  => $c('notes_internes', 1000),
+            /* `ip` dit d'où vient la demande. « bureau » plutôt qu'une adresse:
+               la distinction sert le jour où l'on se demande si une ligne a été
+               remplie par le lieu lui-même ou recopiée par nous. */
+            'ip'              => 'bureau',
+        ]);
+    }
+
+    /**
+     * Le porteur de chaque spectacle, par titre normalisé.
+     *
+     * L'offre ne porte que le titre en texte — c'est ce que le lieu écrit dans
+     * le formulaire, et lui demander de choisir dans une liste fermée ferait
+     * abandonner. On rapproche donc ici, à la lecture, plutôt que d'imposer un
+     * identifiant à la saisie: le rapprochement qui échoue laisse simplement la
+     * colonne vide, là où une clef étrangère aurait refusé la demande.
+     */
+    public static function porteurs(): array
+    {
+        $n = static function (string $s): string {
+            $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
+            return trim(preg_replace('/[^a-z0-9]+/', ' ', mb_strtolower($s)) ?? '');
+        };
+        $m = [];
+        foreach (DB::all("SELECT p.title_fr, p.title_en, o.nom
+                            FROM projects p
+                            JOIN projet_prod pp ON pp.project_id = p.id
+                            JOIN organisation o ON o.id = pp.organisation_id
+                           WHERE o.supprime_le IS NULL") as $r) {
+            foreach ([$r['title_fr'], $r['title_en']] as $t) {
+                $k = $n((string)$t);
+                if ($k !== '') $m[$k] ??= (string)$r['nom'];
+            }
+        }
+        return $m;
+    }
+
+    /** Le porteur d'un titre libre, ou une chaîne vide. */
+    public static function porteurDe(string $titre, array $carte): string
+    {
+        $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $titre) ?: $titre;
+        $k = trim(preg_replace('/[^a-z0-9]+/', ' ', mb_strtolower($s)) ?? '');
+        if ($k === '') return '';
+        if (isset($carte[$k])) return $carte[$k];
+        foreach ($carte as $cle => $nom) {
+            if ($cle !== '' && (str_contains($k, $cle) || str_contains($cle, $k))) return $nom;
+        }
+        return '';
+    }
+
     public static function liste(string $statut = ''): array
     {
         if ($statut !== '' && isset(self::STATUTS[$statut])) {

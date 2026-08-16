@@ -33,6 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        isset($_POST['notes']) ? (string)$_POST['notes'] : null);
         dash_flash('Demande mise à jour.');
 
+    } elseif ($act === 'creer') {
+        $id = Offers::creerAuBureau($_POST);
+        dash_flash($id > 0
+            ? 'Demande ajoutée. Elle entre dans le pipeline comme une demande reçue.'
+            : 'Il faut au moins le nom de la personne qui demande.', $id > 0 ? '' : 'err');
+
     } elseif ($act === 'convertir' && $oid > 0) {
         $bid = Offers::convertir($oid);
         if ($bid > 0) {
@@ -47,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $filtre = (string)($_GET['f'] ?? '');
 $offres = Offers::liste($filtre);
 $n      = Offers::compter();
+$porteurs = Offers::porteurs();
 $total  = array_sum($n);
 
 $sousTitre = $n['nouvelle'] > 0
@@ -70,8 +77,49 @@ dash_haut('offres', $sousTitre);
      sur le site, ou dans un dossier de diffusion.</span><?php endif; ?></p>
 <?php else: ?>
 
+<?php /* ── LE TABLEAU ────────────────────────────────────────────────────
+     [16.08.2026] Demandé par Anna: « fazer lista com colunas de assos, prix,
+     ville pays ». Les fiches en dessous servent à AGIR sur une demande; le
+     tableau sert à les VOIR TOUTES — combien, où, à quel prix, dans quel état.
+     Ce sont deux gestes différents et un seul affichage ne fait bien ni l'un
+     ni l'autre: la fiche est trop haute pour comparer dix lignes, le tableau
+     trop étroit pour contre-proposer.
+
+     La colonne Association n'est pas dans la table `offer`: elle se déduit du
+     spectacle, dont le porteur vit dans `projet_prod`. La stocker en ferait
+     une deuxième vérité, qui se tromperait le jour où une pièce change de
+     porteur. */ ?>
+<div class="tw"><table class="tofr">
+  <thead><tr>
+    <th>Reçue</th><th>Spectacle</th><th>Association</th><th>Lieu</th>
+    <th>Ville, pays</th><th>Quand</th><th class="d">Prix</th><th>État</th>
+  </tr></thead>
+  <tbody>
+  <?php foreach ($offres as $o): ?>
+    <tr>
+      <td class="sec"><?= e(date('d.m.y', strtotime((string)$o['cree_a']))) ?></td>
+      <td><a href="#o-<?= (int)$o['id'] ?>"><?= e($o['projet'] ?: '—') ?></a></td>
+      <td class="sec"><?php $as = Offers::porteurDe((string)($o['projet'] ?? ''), $porteurs); ?>
+        <?= $as !== '' ? e($as) : '<span class="sec">—</span>' ?></td>
+      <td><?= e((string)($o['venue'] ?? '')) ?></td>
+      <td class="sec"><?= e(trim(((string)$o['ville']) . (($o['ville'] && $o['pays']) ? ', ' : '') . (string)$o['pays'])) ?></td>
+      <td class="sec"><?= $o['date_souhaitee']
+            ? e(date('d.m.Y', strtotime((string)$o['date_souhaitee'])))
+            : e((string)($o['date_texte'] ?? '')) ?>
+        <?php if ($o['representations']): ?> · <?= (int)$o['representations'] ?>×<?php endif; ?></td>
+      <td class="d"><?php if ($o['budget'] !== null): ?>
+          <?= number_format((float)$o['budget'], 0, ',', ' ') ?> <?= e($o['devise']) ?>
+          <?php if ($o['contre_prix'] !== null): ?><br><span class="cp">contre
+            <?= number_format((float)$o['contre_prix'], 0, ',', ' ') ?></span><?php endif; ?>
+        <?php else: ?><span class="sec">—</span><?php endif; ?></td>
+      <td><span class="et et-o<?= e($o['statut']) ?>"><?= e($STATUTS[$o['statut']]) ?></span></td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table></div>
+
 <?php foreach ($offres as $o): $oid = (int)$o['id']; ?>
-  <div class="offre st-<?= e($o['statut']) ?>">
+  <div class="offre st-<?= e($o['statut']) ?>" id="o-<?= $oid ?>">
     <div class="tete-o">
       <div>
         <span class="quand"><?= e(date('d.m.Y', strtotime((string)$o['cree_a']))) ?></span>
@@ -155,7 +203,79 @@ dash_haut('offres', $sousTitre);
 <?php endforeach; ?>
 <?php endif; ?>
 
+<?php /* ── SAISIR UNE DEMANDE REÇUE AILLEURS ────────────────────────────────
+     [16.08.2026] Les vraies demandes n'arrivent pas par le formulaire public:
+     elles arrivent par courriel, au téléphone, dans un couloir de festival.
+     Sans cette porte l'écran resterait vide en permanence tout en s'appelant
+     « pipeline », et l'on retournerait dans la boîte de réception — ce que
+     cette section existe précisément pour éviter.
+
+     Un seul champ est exigé: le nom de la personne. Une demande sans personne
+     à qui répondre n'est pas une demande. Tout le reste se complète après. */ ?>
+<?php if ($peutEcrire): ?>
+<details class="nouv">
+  <summary>Ajouter une demande reçue par courriel ou par téléphone</summary>
+  <form method="post" action="/dashboard.php?e=offres" class="fnouv">
+    <?= Auth::csrfField() ?>
+    <input type="hidden" name="act" value="creer">
+
+    <div class="gr">
+      <label>Spectacle
+        <input list="l-spectacles" name="projet" placeholder="Bestiarium">
+        <datalist id="l-spectacles">
+          <?php foreach (Offers::spectacles() as $sp): ?>
+            <option value="<?= e((string)$sp) ?>"><?php endforeach; ?>
+        </datalist>
+      </label>
+      <label>Lieu <input type="text" name="venue" placeholder="Théâtre, festival"></label>
+      <label>Ville <input type="text" name="ville"></label>
+      <label>Pays <input type="text" name="pays" placeholder="Suisse, France"></label>
+    </div>
+
+    <div class="gr">
+      <label>Date souhaitée <input type="date" name="date_souhaitee"></label>
+      <label>ou en toutes lettres <input type="text" name="date_texte" placeholder="printemps 2027"></label>
+      <label>Représentations <input type="number" name="representations" min="1" step="1"></label>
+      <label>Prix annoncé <input type="text" name="budget" placeholder="3500"></label>
+      <label>Devise
+        <select name="devise"><option value="CHF">CHF</option><option value="EUR">EUR</option></select>
+      </label>
+    </div>
+
+    <div class="gr">
+      <label>Qui demande <input type="text" name="contact_nom" required placeholder="Nom et prénom"></label>
+      <label>Rôle <input type="text" name="contact_role" placeholder="programmation"></label>
+      <label>Structure <input type="text" name="structure"></label>
+      <label>Courriel <input type="email" name="contact_email"></label>
+      <label>Téléphone <input type="text" name="contact_tel"></label>
+    </div>
+
+    <label class="pl">Ce qu'ils demandent
+      <textarea name="message" rows="3" placeholder="Ce qui a été dit, copié du courriel ou noté après l'appel"></textarea></label>
+    <label class="pl">Note interne
+      <textarea name="notes_internes" rows="2" placeholder="Ce qui ne se dit pas au lieu"></textarea></label>
+
+    <div class="act"><button type="submit">Ajouter au pipeline</button></div>
+  </form>
+</details>
+<?php endif; ?>
+
+
 <style>
+.tofr td{vertical-align:top}
+.tofr .cp{font-size:11.5px;color:var(--doux)}
+.nouv{margin:26px 0 8px;border:1px solid var(--trait);border-radius:6px;background:var(--papier)}
+.nouv>summary{padding:11px 14px;cursor:pointer;font-weight:600;font-size:14px}
+.nouv[open]>summary{border-bottom:1px solid var(--trait)}
+.fnouv{padding:14px}
+.fnouv .gr{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.fnouv label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--doux)}
+.fnouv label.pl{display:block;margin-bottom:12px}
+.fnouv input,.fnouv select,.fnouv textarea{padding:7px 9px;font:inherit;font-size:14px;
+  font-weight:400;text-transform:none;letter-spacing:0;color:var(--encre);
+  border:1px solid var(--trait);border-radius:5px;background:var(--fond,#fff)}
+.fnouv textarea{width:100%;box-sizing:border-box;resize:vertical}
 .filtres{display:flex;gap:14px;flex-wrap:wrap;padding:0 0 18px;font-size:13.5px}
 .filtres a{color:var(--doux);text-decoration:none}
 .filtres a.ici{color:var(--encre);font-weight:600}
