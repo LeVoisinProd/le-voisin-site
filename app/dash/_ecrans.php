@@ -52,7 +52,7 @@ const DASH_ECRANS = [
     // se répète d'un show à l'autre, modèles de contrat et de deal compris.
     'associations' => ['Associations et artistes', 'ok', []],
 
-    'administration' => ['Administration', 'a_faire', []],
+    'administration' => ['Administration', 'ok', []],
 
     'documentation'  => ['Documentation', 'a_faire', []],
 
