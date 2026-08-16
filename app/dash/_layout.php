@@ -130,7 +130,45 @@ tbody tr:hover { background:var(--fond2); }
 td .sec { color:var(--doux); font-size:12.5px; }
 form.filtres { padding:14px 26px; border-bottom:1px solid var(--trait); display:flex;
         gap:10px; flex-wrap:wrap; align-items:center; background:var(--fond2); }
-input[type=search], input[type=text], select, button { font-family:inherit; }
+input[type=search], input[type=text], input[type=date], input[type=datetime-local],
+input[type=number], input[type=email], input[type=tel], input[type=url],
+input[type=password], textarea, select, button { font-family:inherit; }
+
+/* ── LES CHAMPS DE DATE, COMME LES AUTRES ──────────────────────────── [16.08.2026]
+   Demandé par Anna pour tout le site. Un `input[type=date]` est dessiné par le
+   navigateur: il ignore la taille, la police et le fond des champs voisins, et
+   sort une boîte étroite marquée « dd/mm/yyyy » qui n'a rien à voir avec le
+   champ de texte d'à côté. Sur la même ligne, l'œil lit deux formulaires.
+
+   Trois choses le remettent d'aplomb, et les trois sont nécessaires:
+     `appearance:none`   retire l'habillage natif de WebKit, sans quoi le fond
+                         et le rayon restent ceux du système;
+     `min-height`        le champ natif est plus bas que les autres de quelques
+                         pixels, ce qui se voit dès qu'ils sont alignés;
+     `min-width`         sans elle il se réduit au strict nécessaire et devient
+                         le plus petit champ de la ligne.
+
+   L'icône de calendrier est gardée: c'est elle qui dit que le champ s'ouvre.
+   On la teinte simplement pour qu'elle ne reste pas bleue sur un thème noir et
+   blanc. */
+input[type=date], input[type=datetime-local], input[type=time], input[type=month],
+input[type=number], input[type=email], input[type=tel], input[type=url] {
+        appearance:none; -webkit-appearance:none;
+        padding:8px 12px; min-height:38px; min-width:150px;
+        border:1px solid var(--trait); border-radius:4px; font-size:15px;
+        background:var(--papier); color:var(--encre); box-sizing:border-box; }
+input[type=datetime-local] { min-width:210px; }
+input[type=date]:focus, input[type=datetime-local]:focus, input[type=number]:focus,
+input[type=email]:focus, input[type=tel]:focus, input[type=url]:focus,
+input[type=search]:focus, input[type=text]:focus { outline:2px solid var(--encre);
+        outline-offset:-1px; border-color:var(--encre); }
+input[type=date]::-webkit-calendar-picker-indicator,
+input[type=datetime-local]::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.55; }
+input[type=date]:hover::-webkit-calendar-picker-indicator,
+input[type=datetime-local]:hover::-webkit-calendar-picker-indicator { opacity:1; }
+/* Firefox met une flèche de pas sur les champs numériques: elle ne sert à rien
+   pour un montant et déplace le texte. */
+input[type=number] { -moz-appearance:textfield; }
 input[type=search], input[type=text] { flex:1 1 240px; min-width:180px; padding:8px 12px;
         border:1px solid var(--trait); border-radius:4px; font-size:15px;
         background:var(--papier); color:var(--encre); }
