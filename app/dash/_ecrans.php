@@ -41,6 +41,10 @@ const DASH_ECRANS = [
     // en attente, voyages, logistique.
     'calendrier'   => ['Calendrier', 'ok', [
         'bookings'  => ['Bookings',  'ok'],
+        // Le pipeline des demandes entrantes, sous Bookings comme dans la
+        // spécification: une offre acceptée devient une date, donc elle vit
+        // au même endroit qu'elles.
+        'offres'    => ['Offres',    'ok'],
         'projets'   => ['Projets',   'ok'],
     ]],
 
@@ -95,6 +99,11 @@ const DASH_ACCES = [
     'calendrier'     => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
     'bookings'       => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
     'projets'        => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
+
+    // Les demandes entrantes portent des budgets annoncés et des noms de
+    // programmateurs. Même niveau que les bookings: c'est le travail de
+    // diffusion, et `lecture` doit pouvoir voir ce qui arrive sans y répondre.
+    'offres'         => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
 
     'contacts'       => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],
     'marketing'      => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'lit'],

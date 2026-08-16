@@ -1,11 +1,12 @@
 <?php
 /**
- * L'enveloppe du portail d'advancing. [16.08.2026]
+ * L'enveloppe des pages publiques hors CMS. [16.08.2026]
  *
- * Séparée du portail lui-même parce que la page d'erreur — lien expiré — s'en
- * sert aussi, et qu'un lien mort doit avoir la même allure que le reste: la
- * personne doit voir qu'elle est au bon endroit et que c'est le lien qui est
- * vieux, pas le site qui est cassé.
+ * Sert le portail d'advancing et le formulaire de demande de booking. Écrite
+ * d'abord pour le premier, généralisée quand le second est arrivé: les deux
+ * s'ouvrent sans compte, ne font qu'une chose, et doivent avoir la même allure
+ * — y compris leurs pages d'erreur, parce qu'un lien mort doit montrer qu'on
+ * est au bon endroit et que c'est le lien qui est vieux, pas le site.
  *
  * PAS DE MENU, PAS DE LIENS VERS LE SITE. Ce n'est pas de l'avarice: cette
  * page s'ouvre sans compte, et tout lien qu'on y met est une invitation à se

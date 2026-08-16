@@ -43,7 +43,7 @@ if (!$lien) {
               par un plus récent.</p>
               <p>Écrivez à la personne qui vous l\'a envoyé: elle peut en ouvrir un
               nouveau en un clic.</p>';
-    require __DIR__ . '/app/advancing_page.php';
+    require __DIR__ . '/app/page_publique.php';
     exit;
 }
 
@@ -145,4 +145,4 @@ ob_start();
 <?php endif; ?>
 <?php
 $corps = (string)ob_get_clean();
-require __DIR__ . '/app/advancing_page.php';
+require __DIR__ . '/app/page_publique.php';
