@@ -246,6 +246,50 @@ class ProdFiche
      * est refusée, exactement comme au deuxième niveau. On garde la propriété
      * qui compte: UN POST FABRIQUÉ NE PEUT RIEN ÉCRIRE QUI NE SOIT DÉCLARÉ.
      */
+    /**
+     * LES CHAMPS DE LA DÉCLARATION SSA. [16.08.2026]
+     *
+     * Ceux du formulaire officiel M23F0525, dans son ordre. Le titre, le
+     * producteur, la première représentation et le partage des droits ne sont
+     * PAS ici: ils viennent du projet et de l'onglet Droits, et les redemander
+     * ferait deux vérités — celle qu'on déclare et celle qu'on tient.
+     *
+     * Chaque entrée: [libellé, type, aide]. `type` vaut 'texte', 'oui_non',
+     * ou le nom d'une liste.
+     */
+    public const SSA_GENRES = [
+        'a' => 'Théâtre',                    'i' => 'Arts de rue',
+        'b' => 'Sketch/es',                  'j' => 'Revue',
+        'c' => 'Improvisation',              'k' => 'Opéra',
+        'd' => 'Chorégraphie sans musique',  'l' => '(Panto)mime',
+        'e' => 'Chorégraphie avec musique',  'm' => 'Comédie musicale',
+        'f' => 'Cirque',                     'n' => 'Œuvre dramatico-musicale',
+        'g' => 'Marionnettes',               'h' => 'Magie',
+        'o' => 'Autre',
+    ];
+
+    public const SSA_CHAMPS = [
+        'soustitre'    => ['Sous-titre',                      'texte',   ''],
+        'autreTitre'   => ['Autre titre (titre de travail)',  'texte',   ''],
+        'langue'       => ['Langue/s',                        'texte',   ''],
+        'genre'        => ['Genre d\'œuvre',                  'genres',  ''],
+        'genreAutre'   => ['Genre « Autre » (préciser)',      'texte',   'seulement si le genre est « Autre »'],
+        'duree'        => ['Durée de l\'œuvre (min)',         'texte',   'reprise du CMS si vide'],
+        'musique'      => ['Comporte une musique ?',          'oui_non', ''],
+        'dureeMusOrig' => ['Durée musique originale (min)',   'texte',   ''],
+        'dureeMusProt' => ['Musique préexistante protégée (min)', 'texte', ''],
+        'dureeMusDP'   => ['Musique domaine public (min)',    'texte',   ''],
+        'editee'       => ['Œuvre/musique éditée ?',          'oui_non', ''],
+        'editionLieu'  => ['Édition : lieu et année',         'texte',   ''],
+        'originale'    => ['L\'œuvre est',                    'orig',    ''],
+        'diffusion'    => ['Diffusion radio/TV/web prévue ?', 'oui_non', ''],
+        'producteur'   => ['Producteur',                      'texte',   'l\'association qui porte, reprise si vide'],
+        'date1'        => ['Date de la 1ère représentation',  'date',    'reprise des dates si vide'],
+        'lieu1'        => ['Lieu de la 1ère représentation',  'texte',   ''],
+        'description'  => ['Description de l\'œuvre',         'zone',    'le résumé de la Synthèse si vide'],
+        'remarques'    => ['Remarques',                       'texte',   ''],
+    ];
+
     private const TECH_GROUPES = [
         'plateau' => 'TECH_PLATEAU',
         'temps'   => 'TECH_TEMPS',
@@ -263,12 +307,20 @@ class ProdFiche
         if (!array_key_exists($parts[0], $vide)) return false;
 
         if (count($parts) === 3) {
-            /* Seule la fiche technique a trois niveaux aujourd'hui. */
-            if ($parts[0] !== 'technique') return false;
-            if (!array_key_exists($parts[1], self::TECH_GROUPES)) return false;
-            $const = self::TECH_GROUPES[$parts[1]];
-            $permis = $const === null ? self::TECH_CONTACT : constant('self::' . $const);
-            if (!array_key_exists($parts[2], $permis)) return false;
+            /* Deux familles ont trois niveaux: la fiche technique et la
+               déclaration SSA. Chacune valide son troisième segment contre sa
+               propre liste — un POST fabriqué ne peut rien écrire qui ne soit
+               déclaré quelque part. */
+            if ($parts[0] === 'technique') {
+                if (!array_key_exists($parts[1], self::TECH_GROUPES)) return false;
+                $const = self::TECH_GROUPES[$parts[1]];
+                $permis = $const === null ? self::TECH_CONTACT : constant('self::' . $const);
+                if (!array_key_exists($parts[2], $permis)) return false;
+            } elseif ($parts[0] === 'droits' && $parts[1] === 'ssa') {
+                if (!array_key_exists($parts[2], self::SSA_CHAMPS)) return false;
+            } else {
+                return false;
+            }
         } elseif (count($parts) === 2) {
             if (!is_array($vide[$parts[0]]) || !array_key_exists($parts[1], $vide[$parts[0]])) return false;
             if (is_array($vide[$parts[0]][$parts[1]])) return false;   // pas une liste

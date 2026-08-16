@@ -130,3 +130,10 @@ $ok = abs($total - 100.0) < 0.01;
 </form>
 
 <style>form.sep2{margin-top:24px;padding-top:20px;border-top:1px solid var(--trait)}</style>
+
+<?php /* ── LA DÉCLARATION SSA ────────────────────────────────────────────────
+     [16.08.2026] Elle est ici et pas dans un onglet à part: on remplit le
+     partage des droits et on déclare dans le même mouvement. Un onglet de plus
+     ferait oublier l'un des deux, et c'est toujours la déclaration qu'on
+     oublie. */ ?>
+<?php require __DIR__ . '/_prod_ssa.php'; ?>
