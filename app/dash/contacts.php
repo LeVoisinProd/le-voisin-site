@@ -177,7 +177,13 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         echo '<div class="titre-bloc">La structure</div>';
         ch('structure', 'Structure', $v('structure'), $err, ['large'=>true]);
         ch('ville_struct', 'Ville', $v('ville_struct'), $err);
-        ch('pays_struct', 'Pays', $v('pays_struct'), $err);
+        /* Deux champs s'appelaient « Pays » dans le même formulaire, à vingt
+           lignes l'un de l'autre, et rien ne disait lequel remplir. Ils portent
+           d'ailleurs la même valeur sur les 7481 fiches renseignées. Le libellé
+           dit maintenant lequel est lequel; les deux colonnes restent, parce
+           qu'une structure française peut avoir un contact qui habite ailleurs
+           et que la fusion se déciderait sur des données, pas sur un écran. */
+        ch('pays_struct', 'Pays de la structure', $v('pays_struct'), $err);
         ch('region', 'Région', $v('region'), $err);
         ch('site', 'Site', $v('site'), $err, ['large'=>true]);
         ch('instagram', 'Instagram', $v('instagram'), $err);
@@ -196,7 +202,7 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         ch('cp', 'Code postal', $v('cp'), $err);
         ch('ville', 'Ville', $v('ville'), $err);
         ch('dept', 'Département', $v('dept'), $err);
-        ch('pays', 'Pays', $v('pays'), $err);
+        ch('pays', 'Pays de la personne', $v('pays'), $err);
 
         echo '<div class="titre-bloc">Le reste</div>';
         ch('mots_cles', 'Mots-clefs', $v('mots_cles'), $err, ['large'=>true,
@@ -308,13 +314,27 @@ if ($cid > 0) {
       $l('LinkedIn', $k['linkedin']);
       $l('Courriel pro', $k['email_pro1'], 'mailto:');
       $l('Courriel', $k['email1'], 'mailto:');
-      $l('Autre courriel', $k['email2'], 'mailto:');
+      /* « AUTRE COURRIEL » NE S'AFFICHE QUE S'IL EST VRAIMENT AUTRE. [17.08.2026]
+         Anna: « na ficha de contatos, tirar autre couriel ». Le retirer tout
+         court aurait caché une VRAIE seconde adresse sur 512 fiches — mesuré:
+         896 en portent une, 198 recopient `email1` et 186 recopient le courriel
+         professionnel, donc 384 répétaient mot pour mot la ligne juste
+         au-dessus. C'est cette répétition-là qu'elle voyait, pas le champ. */
+      $autre = trim((string)($k['email2'] ?? ''));
+      if ($autre !== '' && $autre !== trim((string)$k['email1']) && $autre !== trim((string)$k['email_pro1']))
+          $l('Autre courriel', $autre, 'mailto:');
       $l('Téléphone pro', $k['tel_pro1'], 'tel:');
       $l('Téléphone', $k['tel1'], 'tel:');
+      /* LE PAYS EST DANS LA LIGNE D'ADRESSE ET PLUS SUR SA PROPRE LIGNE. Anna:
+         « ta duplicado pays ». Il l'était pour de bon: `pays` est égal à
+         `pays_struct` sur les 7481 fiches qui en portent un — 100 %, pas une
+         exception — et `pays_struct` s'affiche déjà quatre lignes plus haut,
+         collé à la ville de la structure. Deux lignes disaient donc toujours la
+         même chose. Il reste ici, où une adresse postale en a besoin. */
       $l('Adresse', trim((string)($k['adresse'] ?? '') . ' ' . ($k['adresse2'] ?? '')
-                        . ' ' . ($k['cp'] ?? '') . ' ' . ($k['ville'] ?? '')));
+                        . ' ' . ($k['cp'] ?? '') . ' ' . ($k['ville'] ?? '')
+                        . ' ' . ($k['pays'] ?? '')));
       $l('Département', $k['dept']);
-      $l('Pays', $k['pays']);
       $l('Description', $k['description']);
       $l('Référence', $k['ref']);
       ?>
