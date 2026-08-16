@@ -6,10 +6,10 @@
  * du Planning quand elle est remplie, et c'est le point: on ne resaisit pas un
  * nombre que l'onglet d'à côté connaît déjà.
  *
- * IL NE CALCULE PAS LE SALAIRE. Les barèmes SSRS, les défraiements et les
- * charges vivent dans le dépôt de travail, et changent tous les ans. Ce que cet
- * onglet fait, c'est noter ce qui a été convenu, pour que la Feuille de route
- * et le Budget le reprennent sans qu'on ouvre un tableur.
+ * IL NE CALCULE PAS LE SALAIRE. Les barèmes, les défraiements et les charges
+ * vivent dans le dépôt de travail, et changent tous les ans. Ce que cet onglet
+ * fait, c'est noter ce qui a été convenu, pour que la Feuille de route et le
+ * Budget le reprennent sans qu'on ouvre un tableur.
  */
 declare(strict_types=1);
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */

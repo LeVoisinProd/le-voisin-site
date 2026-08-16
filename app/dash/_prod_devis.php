@@ -3,10 +3,10 @@
  * Onglet Devis. [16.08.2026]
  *
  * IL NE REFAIT PAS LE CALCUL. Les devis de cession se calculent dans le dépôt
- * de travail, par la skill `/devis`, à partir des barèmes SSRS, des tarifs
- * négociés par personne et de la grille de 1 à 6 représentations. Refaire cette
- * chaîne ici donnerait deux calculs qui divergeraient au premier barème changé
- * — et un barème change tous les ans.
+ * de travail, par la skill `/devis`, à partir des barèmes en vigueur, des
+ * tarifs négociés par personne et de la grille de 1 à 6 représentations.
+ * Refaire cette chaîne ici donnerait deux calculs qui divergeraient au premier
+ * barème changé — et un barème change tous les ans.
  *
  * Ce que l'onglet fait: montrer les dates de ce spectacle et ce qu'elles
  * portent comme prix, pour qu'on voie d'un coup ce qui a été vendu et à
@@ -27,7 +27,7 @@ $tot = 0.0;
 foreach ($dates as $x) $tot += (float)$x['prix_cession'];
 ?>
 <p class="aide top">Le calcul d'un prix de cession vit dans le dépôt de travail, avec les
-   barèmes SSRS et les tarifs par personne: le refaire ici donnerait deux calculs qui
+   barèmes en vigueur et les tarifs par personne: le refaire ici donnerait deux calculs qui
    divergeraient au premier barème changé. Cet onglet montre ce qui a été vendu.</p>
 
 <?php if ($dates): ?>
