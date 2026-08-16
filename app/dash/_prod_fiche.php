@@ -35,6 +35,7 @@ $ONGLETS = [
     'dossier'      => 'Dossier',
     'planning'     => 'Planning',
     'logistique'   => 'Logistique',
+    'technique'    => 'Fiche technique',
     'fdr'          => 'Feuille de route',
     'remuneration' => 'Rémunération',
     'budget'       => 'Budget',
@@ -195,6 +196,10 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 <?php /* ═════════════════════════ LOGISTIQUE ═════════════════════════ */ ?>
 <?php elseif ($onglet === 'logistique'): ?>
   <?php require __DIR__ . '/_prod_logistique.php'; ?>
+
+<?php /* ══════════════════════ FICHE TECHNIQUE ═══════════════════════ */ ?>
+<?php elseif ($onglet === 'technique'): ?>
+  <?php require __DIR__ . '/_prod_technique.php'; ?>
 
 <?php /* ════════════════════ FEUILLE DE ROUTE ════════════════════════ */ ?>
 <?php elseif ($onglet === 'fdr'): ?>

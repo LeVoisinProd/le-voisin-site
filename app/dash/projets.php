@@ -156,7 +156,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['pk'] ?? '') !== '') {
 
 $q     = trim((string)($_GET['q'] ?? ''));
 $phase = trim((string)($_GET['ph'] ?? ''));
+/* LES SPECTACLES PASSÉS NE S'OUVRENT PLUS PAR DÉFAUT. Anna, 16.08.2026: « tem
+   que tirar os inativos. ja foram, nao precisam estar ali ». Quatorze des
+   trente-cinq sont en `status = 'former'`, et ils remplissaient plus du tiers
+   d'une liste qu'on ouvre pour travailler sur les vingt et un autres.
+
+   ILS NE SONT PAS SUPPRIMÉS POUR AUTANT, et « tous » reste à un clic: leurs
+   fiches de production portent des budgets, des feuilles de route et des
+   contrats qu'on va rechercher des années après. Cacher n'est pas effacer, et
+   la différence se voit le jour d'un contrôle. */
 $etat  = trim((string)($_GET['st'] ?? ''));
+if ($etat === '' && !isset($_GET['st'])) $etat = 'current';
 
 $where = ['1=1']; $args = [];
 if (isset($PHASES[$phase])) { $where[] = 'pp.phase = ?'; $args[] = $phase; }
@@ -201,12 +211,12 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
     <?php endforeach; ?>
   </select>
   <select name="st">
-    <option value="">Tous</option>
+    <option value="tous"<?= $etat==='tous'?' selected':'' ?>>tous, y compris les passés</option>
     <option value="current"<?= $etat==='current'?' selected':'' ?>>en cours</option>
     <option value="former"<?= $etat==='former'?' selected':'' ?>>passés</option>
   </select>
   <button type="submit">Chercher</button>
-  <?php if ($q!==''||$phase!==''||$etat!==''): ?>
+  <?php if ($q!==''||$phase!==''||$etat!=='current'): ?>
     <a class="vider" href="/dashboard.php?e=projets">tout effacer</a><?php endif; ?>
 </form>
 <?php dash_flash_html(); ?>
@@ -218,7 +228,7 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
 <?php endif; ?>
 
 <div class="tw"><table>
-  <thead><tr><th>Projet</th><th>Phase</th><th>Responsable</th><th>Porteur</th>
+  <thead><tr><th>Projet</th><th>Phase</th><th>Porteur</th>
     <th class="d">Année</th><th class="d">Durée</th><th class="d">Budget</th><th class="d">Dates</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
@@ -228,7 +238,6 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
         <?php if (!$r['visible']): ?><span class="np">non publié</span><?php endif; ?></td>
       <td><?php if ($r['phase']): ?><span class="ph <?= e($r['phase']) ?>"><?=
         e($PHASES[$r['phase']]) ?></span><?php else: ?><span class="sec">—</span><?php endif; ?></td>
-      <td class="sec"><?= e($r['responsable'] ?? '') ?></td>
       <td class="sec"><?= e($r['organisation'] ?? '') ?></td>
       <td class="d sec"><?= $r['year_creation'] ? (int)$r['year_creation'] : '' ?></td>
       <td class="d sec"><?= $r['duration_min'] ? (int)$r['duration_min'] . ' min' : '' ?></td>

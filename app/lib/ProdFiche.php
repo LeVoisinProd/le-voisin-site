@@ -83,8 +83,57 @@ class ProdFiche
             'droits'        => ['auteurs'=>[],'cols'=>[],'editeur'=>'','repartition'=>'','notes'=>'','ssa'=>[]],
             'fdr'           => ['texte'=>''],
             'diffusionDocs' => ['dossier'=>'','fiches'=>'','photos'=>'','autres'=>[]],
+            'technique'     => ['plateau'=>[], 'temps'=>[], 'besoins'=>[],
+                                'contact'=>['nom'=>'','role'=>'','email'=>'','tel'=>''],
+                                'adaptations'=>'', 'notes'=>'', 'versions'=>[]],
         ];
     }
+
+    /* ── La fiche technique ─────────────────────────────────────────────────
+       Les champs sont ceux que les lieux demandent, dans l'ordre où ils les
+       demandent, relevé sur les fiches techniques que le bureau envoie déjà.
+       Ils sont en trois groupes parce qu'ils se remplissent à trois moments:
+       le plateau à la création, les temps au premier montage, les besoins à
+       chaque nouvelle configuration.
+
+       AUCUN N'EST OBLIGATOIRE, ET C'EST VOULU. Une fiche technique à moitié
+       remplie et envoyée vaut mieux qu'une fiche complète jamais finie: le
+       lieu qui manque une information la demande, le lieu qui n'a rien reçu
+       suppose. */
+
+    public const TECH_PLATEAU = [
+        'ouverture'   => ['Ouverture',            'mur à mur, en mètres'],
+        'profondeur'  => ['Profondeur',           'du nez de scène au fond, en mètres'],
+        'hauteur'     => ['Hauteur sous grill',   'en mètres'],
+        'aireJeu'     => ['Aire de jeu minimale', 'en dessous, le spectacle ne se joue pas'],
+        'sol'         => ['Sol',                  'tapis de danse, plancher, noir ou clair'],
+        'pendrillon'  => ['Pendrillonnage',       'à l\'italienne, boîte noire, aucun'],
+        'occultation' => ['Occultation',          'nécessaire en journée ?'],
+        'jauge'       => ['Jauge maximale',       'au delà, le rapport au public change'],
+    ];
+
+    public const TECH_TEMPS = [
+        'montage'    => ['Montage',              'en heures ou en services'],
+        'reglages'   => ['Réglages',             'lumière et son, hors montage'],
+        'raccord'    => ['Raccord ou filage',    ''],
+        'demontage'  => ['Démontage',            ''],
+        'preMontage' => ['Pré-montage demandé',  'ce que le lieu fait avant l\'arrivée'],
+        'duree'      => ['Durée du spectacle',   'sans entracte, en minutes'],
+        'entracte'   => ['Entracte',             ''],
+        'enchaine'   => ['Deux services par jour', 'possible, et à quel intervalle'],
+    ];
+
+    public const TECH_BESOINS = [
+        'tourneeNb'   => ['Personnes en tournée',   'total, artistes et technique'],
+        'tourneeTech' => ['dont technique',         ''],
+        'lieuEquipe'  => ['Équipe demandée au lieu', 'régie lumière, son, plateau, cintres'],
+        'lumiere'     => ['Lumière',                'puissance, gradateurs, console, ce qui est apporté'],
+        'son'         => ['Son',                    'diffusion, console, retours, micros'],
+        'video'       => ['Vidéo',                  'vidéoprojecteur, écran, ce qui est apporté'],
+        'electricite' => ['Électricité',            'puissance, monophasé ou triphasé, arrivées'],
+        'loges'       => ['Loges',                  'nombre, douches, catering'],
+        'transport'   => ['Transport du décor',     'volume, poids, véhicule'],
+    ];
 
     /* ── Lire ───────────────────────────────────────────────────────────── */
 
@@ -139,14 +188,42 @@ class ProdFiche
      * refusée. Sans cela un POST fabriqué écrirait n'importe quoi dans le JSON,
      * et un JSON n'a pas de schéma pour l'en empêcher.
      */
+    /**
+     * TROIS NIVEAUX DEPUIS LA FICHE TECHNIQUE, et la vérification devient plus
+     * stricte, pas moins. `technique.plateau.ouverture` a trois segments, et la
+     * fiche vide ne peut pas les valider seule: `technique.plateau` y est un
+     * tableau vide, exprès — écrire les huit clefs dans `vide()` obligerait à
+     * les tenir à jour à deux endroits.
+     *
+     * Le troisième segment est donc validé contre les constantes TECH_*, qui
+     * sont la définition unique de ces champs. Une clef absente de la constante
+     * est refusée, exactement comme au deuxième niveau. On garde la propriété
+     * qui compte: UN POST FABRIQUÉ NE PEUT RIEN ÉCRIRE QUI NE SOIT DÉCLARÉ.
+     */
+    private const TECH_GROUPES = [
+        'plateau' => 'TECH_PLATEAU',
+        'temps'   => 'TECH_TEMPS',
+        'besoins' => 'TECH_BESOINS',
+        'contact' => null,   // quatre clefs fixes, listées ci-dessous
+    ];
+    private const TECH_CONTACT = ['nom' => 1, 'role' => 1, 'email' => 1, 'tel' => 1];
+
     public static function champ(int $projectId, string $chemin, string $valeur): bool
     {
         $parts = explode('.', $chemin);
-        if (count($parts) > 2) return false;
+        if (count($parts) > 3) return false;
 
         $vide = self::vide();
         if (!array_key_exists($parts[0], $vide)) return false;
-        if (count($parts) === 2) {
+
+        if (count($parts) === 3) {
+            /* Seule la fiche technique a trois niveaux aujourd'hui. */
+            if ($parts[0] !== 'technique') return false;
+            if (!array_key_exists($parts[1], self::TECH_GROUPES)) return false;
+            $const = self::TECH_GROUPES[$parts[1]];
+            $permis = $const === null ? self::TECH_CONTACT : constant('self::' . $const);
+            if (!array_key_exists($parts[2], $permis)) return false;
+        } elseif (count($parts) === 2) {
             if (!is_array($vide[$parts[0]]) || !array_key_exists($parts[1], $vide[$parts[0]])) return false;
             if (is_array($vide[$parts[0]][$parts[1]])) return false;   // pas une liste
         } elseif (is_array($vide[$parts[0]])) {
@@ -154,8 +231,16 @@ class ProdFiche
         }
 
         $d = self::donnees($projectId);
-        if (count($parts) === 2) $d[$parts[0]][$parts[1]] = $valeur;
-        else                     $d[$parts[0]] = $valeur;
+        if (count($parts) === 3) {
+            if (!isset($d[$parts[0]][$parts[1]]) || !is_array($d[$parts[0]][$parts[1]])) {
+                $d[$parts[0]][$parts[1]] = [];
+            }
+            $d[$parts[0]][$parts[1]][$parts[2]] = $valeur;
+        } elseif (count($parts) === 2) {
+            $d[$parts[0]][$parts[1]] = $valeur;
+        } else {
+            $d[$parts[0]] = $valeur;
+        }
         self::ecrire($projectId, $d);
         return true;
     }
