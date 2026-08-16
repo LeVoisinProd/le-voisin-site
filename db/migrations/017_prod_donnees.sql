@@ -1,0 +1,41 @@
+-- Les données de la fiche de production. [16.08.2026]
+--
+-- CE QUE C'EST. Le dashboard Apps Script porte, pour chaque spectacle, une
+-- fiche à neuf onglets: Synthèse, Dossier, Planning, Logistique, Feuille de
+-- route, Rémunération, Budget, Devis, Droits d'auteur. Leur contenu vit dans
+-- `lv-prodData`, un objet par production.
+--
+-- POURQUOI UNE COLONNE JSON ET NON DIX TABLES, alors que tout le reste de ce
+-- schéma est relationnel — deal_item, trip_item, contract, invoice. Trois
+-- raisons, dans l'ordre où elles pèsent:
+--
+--   1. LA REPRISE DOIT ÊTRE SANS PERTE. Le modèle existant est irrégulier:
+--      mesuré le 16.08.2026 sur les dix fiches, une seule (p4) porte les quinze
+--      clefs, les neuf autres n'en ont que trois. Le normaliser d'avance, c'est
+--      décider maintenant de la forme de champs qu'on n'a jamais vus remplis.
+--   2. IL N'EST PAS ENCORE STABLE. `budget`, `remuneration` et `partenaires`
+--      sont des listes VIDES dans les dix fiches: personne ne sait encore ce
+--      qu'elles portent. Une table par liste vide est une table à refaire.
+--   3. CE QUI SE PROUVE SE NORMALISE ENSUITE. `planning.jours` et `equipe` sont
+--      les deux seules parties remplies partout: ce sont elles qui mériteront
+--      une table le jour où l'on voudra les interroger en travers des
+--      spectacles — « qui est en tournée en mars ». Le JSON ne l'empêche pas,
+--      il ne le facilite pas non plus, et c'est le prix assumé.
+--
+-- LA FORME, relevée sur les données réelles et non sur la lecture du code:
+--
+--   resume         texte           coproductions  texte
+--   soutiens       texte           statistiques   {villes, representations, spectateurs, recettes, notes}
+--   dossier        {lettre, description, intention, calendrier, publicCible, benefice}
+--   planning       {dateArrivee, dateRetour, jours[]}
+--   equipe         [{empId, nom, prenom, fonction}]
+--   logistique     {voyages[], hebergement[], repas[], transports[]}
+--   remuneration   []              budget         []
+--   partenaires    []              admin          {contratTexte}
+--   droits         {auteurs[], cols[], editeur, repartition, notes, ssa{}}
+--   communication  {docs[], images[], videos[], presse[]}
+--   diffusionDocs  {dossier, fiches, photos, autres[]}
+
+ALTER TABLE projet_prod
+    ADD COLUMN donnees JSON NULL COMMENT 'la fiche à neuf onglets, reprise de lv-prodData'
+        AFTER raci;

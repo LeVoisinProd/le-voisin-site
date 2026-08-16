@@ -36,6 +36,88 @@ $CHAMPS = ['phase','responsable','valide_par','budget','devise','organisation_id
            'lieu_creation','notes'];
 $err = $saisi = [];
 
+/* ══ LA FICHE DE PRODUCTION, ses neuf onglets. [16.08.2026] ══════════════
+   Ouverte par ?p=<id du spectacle du CMS>. Elle est traitée avant tout le
+   reste de cet écran, y compris les POST de la liste: elle a ses propres
+   actions et ne partage rien avec eux. */
+$pcms = (int)($_GET['p'] ?? 0);
+if ($pcms > 0) {
+    $p = DB::one('SELECT * FROM projects WHERE id = ?', [$pcms]);
+    if (!$p) { dash_haut('projets'); echo '<p class="vide">Ce spectacle n\'existe pas.</p>'; dash_bas(); return; }
+
+    $onglet = preg_replace('/[^a-z]/', '', strtolower((string)($_GET['o'] ?? 'synthese')));
+    $retour = '/dashboard.php?e=projets&p=' . $pcms . '&o=' . $onglet;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['pf'] ?? '') !== '') {
+        Auth::requireCsrf();
+        dash_exige_ecriture('projets');
+        $act = (string)$_POST['pf'];
+
+        if ($act === 'champs') {
+            /* Les champs libres de la fiche, vérifiés un à un contre le modèle:
+               une clef inconnue est refusée, parce qu'un JSON n'a pas de schéma
+               pour s'en défendre tout seul. */
+            $n = 0;
+            foreach ((array)($_POST['v'] ?? []) as $chemin => $val) {
+                if (ProdFiche::champ($pcms, (string)$chemin, (string)$val)) $n++;
+            }
+            /* Les colonnes typées de projet_prod ne passent pas par le JSON. */
+            $pr = (array)($_POST['prod'] ?? []);
+            $maj = [];
+            if (isset($pr['phase']) && in_array($pr['phase'], ['dev','creation','production','promo','tournee','cloture'], true)) {
+                $maj['phase'] = $pr['phase'];
+            }
+            foreach (['responsable','valide_par','lieu_creation'] as $c) {
+                if (isset($pr[$c])) $maj[$c] = mb_substr(trim((string)$pr[$c]), 0, 190) ?: null;
+            }
+            if (isset($pr['notes'])) $maj['notes'] = trim((string)$pr['notes']) ?: null;
+            if (isset($pr['devise']) && in_array($pr['devise'], ['CHF','EUR'], true)) $maj['devise'] = $pr['devise'];
+            if (isset($pr['organisation_id'])) $maj['organisation_id'] = (int)$pr['organisation_id'] ?: null;
+            if (isset($pr['budget'])) {
+                /* « 12 000 », « 12'000 » et « 12,5 » arrivent tous les trois. Ce
+                   qui ne se lit pas comme un nombre est ignoré plutôt qu'écrit à
+                   zéro: un budget effacé par une virgule serait pire que rien. */
+                $b = str_replace([',', ' ', "'", ' '], ['.', '', '', ''], trim((string)$pr['budget']));
+                $maj['budget'] = $b === '' ? null : (is_numeric($b) ? (float)$b : null);
+                if ($b !== '' && !is_numeric($b)) unset($maj['budget']);
+            }
+            if ($maj) { ProdFiche::ligne($pcms); DB::update('projet_prod', $maj, 'project_id = ?', [$pcms]); }
+            dash_flash($n || $maj ? 'Enregistré.' : 'Rien à enregistrer.');
+
+        } elseif ($act === 'liste_ajouter') {
+            $l = array_map(fn($x) => mb_substr(trim((string)$x), 0, 500), (array)($_POST['l'] ?? []));
+            ProdFiche::ajouter($pcms, (string)($_POST['ou'] ?? ''), $l);
+            dash_flash('Ligne ajoutée.');
+
+        } elseif ($act === 'liste_retirer') {
+            ProdFiche::retirer($pcms, (string)($_POST['ou'] ?? ''), (string)($_POST['ligne'] ?? ''));
+            dash_flash('Ligne retirée.');
+
+        } elseif ($act === 'jour') {
+            ProdFiche::jour($pcms, (string)($_POST['jour'] ?? ''));
+
+        } elseif ($act === 'fdr_generer') {
+            /* Elle remplace le texte, et la page prévient avant. Générer sans
+               écraser donnerait deux feuilles de route et personne ne saurait
+               laquelle est partie au lieu. */
+            $dd = ProdFiche::donnees($pcms);
+            $dd['fdr']['texte'] = ProdFiche::feuilleDeRoute($p, $dd);
+            ProdFiche::ecrire($pcms, $dd);
+            dash_flash('Feuille de route générée. Modifiez-la librement.');
+        }
+        redirect($retour);
+    }
+
+    /* Les deux vues imprimables: le dossier et la feuille de route. */
+    if (($_GET['imprimer'] ?? '') === '1' && in_array($onglet, ['dossier','fdr'], true)) {
+        require __DIR__ . '/_prod_imprimer.php';
+        return;
+    }
+
+    require __DIR__ . '/_prod_fiche.php';
+    return;
+}
+
 /* LES LIENS DE PRESSKIT. Traités avant le bloc ci-dessous, qui exige un projet
    ouvert ($id > 0): ceux-ci portent un identifiant de spectacle du CMS, pas de
    projet du dashboard, et se postent depuis la liste. */
@@ -56,179 +138,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['pk'] ?? '') !== '') {
     redirect('/dashboard.php?e=projets');
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $id > 0) {
-    Auth::requireCsrf();
-    /* Le rôle décide aussi de l'écriture, et pas seulement de l'accès à
-       l'écran: `production` lit les Finances sans les modifier. Le routeur
-       ne peut pas le faire à notre place, lui ne voit pas les POST. */
-    dash_exige_ecriture('projets');
-    foreach ($CHAMPS as $c) $saisi[$c] = trim((string)($_POST[$c] ?? ''));
 
-    if (!isset($PHASES[$saisi['phase']])) $saisi['phase'] = 'dev';
-    if ($saisi['devise'] === '') $saisi['devise'] = 'CHF';
-    if ($saisi['budget'] !== '') {
-        $saisi['budget'] = str_replace([',', ' ', "'"], ['.', '', ''], $saisi['budget']);
-        if (!is_numeric($saisi['budget'])) $err['budget'] = 'Un montant, sans texte autour.';
-    }
+/* ══ L'ANCIENNE FICHE A ÉTÉ REMPLACÉE. [16.08.2026] ═════════════════════════
+   Elle vivait ici et montrait la seule couche `projet_prod`: phase,
+   responsable, validé par, lieu, budget, porteur juridique, notes. Ses champs
+   sont tous repris dans l'onglet Synthèse de la nouvelle fiche, qui en ajoute
+   huit autres. La garder aurait donné deux fiches pour le même spectacle,
+   atteignables par la même adresse — et c'est la première qui aurait gagné.
 
-    if (!$err) {
-        $v = array_map(fn($c) => $saisi[$c] === '' ? null : $saisi[$c], $CHAMPS);
-        DB::pdo()->prepare(
-            'INSERT INTO projet_prod (project_id,' . implode(',', $CHAMPS) . ')
-             VALUES (?,?,?,?,?,?,?,?,?)
-             ON DUPLICATE KEY UPDATE '
-             . implode(',', array_map(fn($c) => "$c=VALUES($c)", $CHAMPS)))
-          ->execute([$id, ...$v]);
-        dash_flash('Projet enregistré.');
-        redirect('/dashboard.php?e=projets&p=' . $id);
-    }
-}
+   La liste des dates du spectacle qu'elle affichait est passée dans l'onglet
+   Devis, qui répond à la même question avec les prix en plus. */
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LA FICHE
-// ═══════════════════════════════════════════════════════════════════════════
-
-if ($id > 0) {
-    $p = DB::one(
-        "SELECT pr.*, pp.phase, pp.responsable, pp.valide_par, pp.budget, pp.devise,
-                pp.organisation_id, pp.lieu_creation, pp.notes AS notes_prod, pp.raci,
-                o.nom AS organisation
-           FROM projects pr
-           LEFT JOIN projet_prod  pp ON pp.project_id = pr.id
-           LEFT JOIN organisation o  ON o.id = pp.organisation_id
-          WHERE pr.id = ?", [$id]);
-    if (!$p) { dash_haut('projets'); echo '<p class="vide">Ce projet n\'existe pas.</p>'; dash_bas(); return; }
-
-    $st = DB::pdo()->prepare("SELECT * FROM booking WHERE supprime_le IS NULL AND projet = ?
-                              ORDER BY date_debut DESC");
-    $st->execute([$p['title_fr'] ?: $p['title_en']]);
-    $dates = $st->fetchAll();
-
-    $mod = isset($_GET['mod']);
-    $v = fn(string $c) => $saisi[$c] ?? ($p[$c] ?? '');
-    $titre = $p['title_fr'] ?: $p['title_en'];
-
-    dash_haut('projets', e($PHASES[$p['phase'] ?? 'dev'] ?? '') .
-        ($p['year_creation'] ? ' · ' . (int)$p['year_creation'] : ''));
-    if ($mod) dash_form_style();
-    ?>
-    <div class="fil"><a href="/dashboard.php?e=projets">← tous les projets</a>
-      <?php if (!$mod): ?>
-        <a class="mod" href="/dashboard.php?e=projets&amp;p=<?= $id ?>&amp;mod=1">modifier la production</a>
-      <?php endif; ?></div>
-    <?php dash_flash_html(); ?>
-    <div class="zone">
-      <h2 class="gros"><?= e($titre) ?></h2>
-
-      <?php if ($mod): ?>
-        <?php if ($err) echo '<div class="flash err">Rien n\'a été enregistré: '
-                          . count($err) . ' champ(s) à corriger.</div>'; ?>
-        <form class="saisie" method="post" action="/dashboard.php?e=projets&amp;p=<?= $id ?>&amp;mod=1">
-          <?= Auth::csrfField() ?>
-          <div class="grille">
-            <?php
-            ch('phase', 'Phase', $v('phase') ?: 'dev', $err, ['type'=>'select','choix'=>$PHASES]);
-            ch('responsable', 'Responsable', $v('responsable'), $err, ['aide'=>'Qui le porte au bureau']);
-            ch('valide_par', 'Validé par', $v('valide_par'), $err);
-            ch('lieu_creation', 'Lieu de création', $v('lieu_creation'), $err);
-            ch('budget', 'Budget du projet', $v('budget'), $err,
-               ['aide'=>'Le budget du projet artistique, PAS l\'argent qui passe par Le Voisin']);
-            ch('devise', 'Devise', $v('devise') ?: 'CHF', $err,
-               ['type'=>'select','choix'=>['CHF'=>'CHF','EUR'=>'EUR']]);
-            $orgs = ['' => '(aucune)'];
-            foreach (DB::all("SELECT id, nom FROM organisation WHERE supprime_le IS NULL
-                              ORDER BY genre, nom") as $o) $orgs[$o['id']] = $o['nom'];
-            ch('organisation_id', 'Porteur juridique', $v('organisation_id'), $err,
-               ['type'=>'select','choix'=>$orgs]);
-            ch('notes', 'Notes de production', $v('notes_prod'), $err,
-               ['type'=>'textarea','large'=>true]);
-            ?>
-          </div>
-          <div class="actions">
-            <button type="submit">Enregistrer</button>
-            <a class="sec2" href="/dashboard.php?e=projets&amp;p=<?= $id ?>">annuler</a>
-          </div>
-        </form>
-      <?php else: ?>
-        <div class="deux">
-          <div>
-            <h3 class="sect">Production <span class="n">le dashboard</span></h3>
-            <div class="fiche">
-            <?php
-            $l = function (string $k, $v, string $n = '') {
-                if ($v === null || $v === '') return;
-                printf('<div class="l"><span class="k">%s</span><span class="v">%s%s</span></div>',
-                       e($k), e((string)$v), $n ? '<span class="n">'.e($n).'</span>' : '');
-            };
-            $l('Phase', $PHASES[$p['phase'] ?? ''] ?? '');
-            $l('Responsable', $p['responsable']);
-            $l('Validé par', $p['valide_par']);
-            $l('Lieu de création', $p['lieu_creation']);
-            if ($p['budget'] !== null)
-                $l('Budget', number_format((float)$p['budget'], 0, ',', ' ') . ' ' . $p['devise'],
-                   'du projet, pas de la maison');
-            $l('Porteur juridique', $p['organisation']);
-            if (!$p['phase']) echo '<p class="sec">Rien encore. Cette couche est vide tant qu\'on ne l\'a pas remplie.</p>';
-            ?>
-            </div>
-          </div>
-          <div>
-            <h3 class="sect">Éditorial <span class="n">le site</span></h3>
-            <div class="fiche">
-            <?php
-            $l('Titre FR', $p['title_fr']);
-            $l('Titre EN', $p['title_en']);
-            $l('Année de création', $p['year_creation']);
-            $l('Durée', $p['duration_min'] ? $p['duration_min'] . ' min' : '');
-            $l('Public', $p['public_cible']);
-            $l('Statut', $p['status'] === 'current' ? 'en cours' : 'passé');
-            $l('Publié', $p['visible'] ? 'oui' : 'non');
-            $l('Au catalogue', $p['catalog_visible'] ? 'oui' : 'non');
-            ?>
-            </div>
-            <p class="sec ren">Les textes, les images et les catégories se modifient
-              dans <a href="/admin/edit.php?e=project&amp;id=<?= $id ?>">l'administration du site</a>.
-              Les déplacer ici est un autre chantier: le faire à moitié rouvrirait
-              la double saisie qu'on vient de fermer.</p>
-          </div>
-        </div>
-
-        <h3 class="sect">Dates <span class="n"><?= count($dates) ?></span></h3>
-        <?php if (!$dates): ?>
-          <p class="sec">Aucune date rattachée. Le rapprochement se fait sur le titre exact.</p>
-        <?php else: ?>
-        <div class="tw"><table><tbody>
-          <?php foreach ($dates as $d): ?>
-          <tr>
-            <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$d['id'] ?>"><?=
-              e($d['date_texte'] ?: (string)$d['date_debut']) ?></a></td>
-            <td><?= e($d['venue'] ?? '') ?></td><td class="sec"><?= e($d['ville'] ?? '') ?></td>
-            <td class="sec"><?= e($d['statut']) ?></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody></table></div>
-        <?php endif; ?>
-      <?php endif; ?>
-    </div>
-    <style>
-    .fil{padding:12px 26px 0;font-size:13px;display:flex;gap:16px}
-    .fil a{color:var(--doux);text-decoration:none}
-    .fil a.mod{margin-left:auto;color:var(--encre);font-weight:600}
-    h2.gros{font-size:21px;margin:0 0 18px}
-    h3.sect{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
-      margin:0 0 8px;border-bottom:1px solid var(--trait);padding-bottom:5px}
-    h3.sect .n{font-weight:400;text-transform:none;letter-spacing:0}
-    .deux{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:0 40px}
-    .deux h3.sect{margin-top:0}
-    .fiche .l{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--trait)}
-    .fiche .k{color:var(--doux);font-size:12.5px;min-width:130px}
-    .fiche .v{font-size:14px}.fiche .n{color:var(--doux);font-size:12px;margin-left:8px}
-    .sec{color:var(--doux);font-size:13px}
-    .ren{margin-top:14px;max-width:46ch;line-height:1.5}
-    .deux + h3.sect{margin-top:32px}
-    </style>
-    <?php dash_bas(); return;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LA LISTE
@@ -335,22 +255,25 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
        n'est pas faite, mieux vaut deux listes honnêtes qu'une seule qui
        mentirait sur ce qu'elle montre. */ ?>
 
-<h2 class="sect2">Presskits</h2>
-<p class="sec expl">Le lien qu'on envoie à un programmateur intéressé: intro, photos et
-   fiches techniques, sans lui demander d'ouvrir un compte ni de connaître le mot de passe
-   du Catalogue. Il se révoque, contrairement à une adresse publique une fois partagée.
+<h2 class="sect2">Les spectacles du site</h2>
+<p class="sec expl">Cliquez un titre pour ouvrir sa <strong>fiche de production</strong> et ses
+   neuf onglets: Synthèse, Dossier, Planning, Logistique, Feuille de route, Rémunération,
+   Budget, Devis, Droits d'auteur.
+   <br>La colonne <em>presskit</em> donne le lien qu'on envoie à un programmateur — intro,
+   photos et fiches techniques, sans compte ni mot de passe du Catalogue. Il se révoque,
+   contrairement à une adresse publique une fois partagée.
    <br>Ces spectacles sont ceux du <strong>site</strong>, pas les projets de production
-   ci-dessus: le contenu d'un presskit vit dans le CMS.</p>
+   ci-dessus: leur contenu vit dans le CMS.</p>
 
 <div class="tw"><table>
-  <thead><tr><th>Spectacle</th><th>Lien</th><th>Visites</th><th></th></tr></thead>
+  <thead><tr><th>Spectacle</th><th>Lien de presskit</th><th>Visites</th><th></th></tr></thead>
   <tbody>
   <?php foreach (Presskit::projets() as $s): $sid = (int)$s['id'];
         $actif = $s['jeton'] && !(int)$s['revoque']
                  && (!$s['expire_a'] || strtotime((string)$s['expire_a']) > time());
         $url = $actif ? rtrim((string)cfg('base_url',''), '/') . '/presskit.php?t=' . $s['jeton'] : ''; ?>
     <tr>
-      <td><?= e((string)($s['title_fr'] ?: $s['title_en'])) ?></td>
+      <td><a href="/dashboard.php?e=projets&amp;p=<?= $sid ?>"><strong><?= e((string)($s['title_fr'] ?: $s['title_en'])) ?></strong></a></td>
       <td class="sec">
         <?php if ($actif): ?>
           <input type="text" class="url" value="<?= e($url) ?>" readonly onclick="this.select()"
