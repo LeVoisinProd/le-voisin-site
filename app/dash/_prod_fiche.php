@@ -120,7 +120,7 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 
     <div class="deux">
       <div class="bl">
-        <h3>Informations du spectacle</h3>
+        <h3>Informations de la création</h3>
         <p class="aide">Le titre, la durée et les textes publics viennent du CMS et se
            modifient dans l'administration du site: les recopier ici ferait deux vérités.</p>
         <dl class="info">
@@ -139,8 +139,6 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
           </dd>
           <dt>Responsable</dt>
           <dd><input type="text" name="prod[responsable]" value="<?= e((string)($prod['responsable'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></dd>
-          <dt>Validé par</dt>
-          <dd><input type="text" name="prod[valide_par]" value="<?= e((string)($prod['valide_par'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></dd>
           <dt>Lieu de création</dt>
           <dd><input type="text" name="prod[lieu_creation]" value="<?= e((string)($prod['lieu_creation'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></dd>
           <dt>Porteur juridique</dt>
