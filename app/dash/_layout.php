@@ -60,9 +60,10 @@ aside { background:var(--barre); color:#e8e8e8; padding:18px 0 40px; }
 aside .marque { display:block; padding:2px 18px 20px; font-size:14px; font-weight:600;
         letter-spacing:.02em; text-decoration:none; color:#e8e8e8; border-left:0; }
 aside .marque img { display:block; width:100%; max-width:132px; height:auto; }
-/* Le logo est noir sur fond clair: sur le rail sombre il faut l'inverser.
-   Ce n'est pas un choix esthétique, sans cela il disparaît. */
-aside .marque img { filter:invert(1) brightness(1.9); }
+/* AUCUN FILTRE. Le logo porte son propre fond: bloc noir avec « LE » en blanc,
+   bloc jaune avec « VOISIN » en noir. Un invert() posé le 16.08.2026 pour le
+   « faire ressortir » a tourné le jaune de la marque en bleu. Une image qui
+   porte son fond n'a pas besoin d'aide. */
 @media (max-width:820px) {
   aside .marque { padding:4px 12px 8px; }
   aside .marque img { max-width:92px; }
