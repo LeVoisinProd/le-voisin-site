@@ -627,9 +627,41 @@ dash_haut('contacts', e($sst));
   <tbody>
   <?php foreach ($lignes as $r): ?>
     <tr>
-      <td><a href="/dashboard.php?e=contacts&amp;c=<?= (int)$r['id'] ?>"><?= e($r['nom']) ?></a><?php if ($r['prenom'] || $r['nom_famille']): ?>
-        <div class="sec"><?= e(trim(($r['prenom'] ?? '') . ' ' . ($r['nom_famille'] ?? ''))) ?></div>
-      <?php endif; ?></td>
+      <?php /* LA PREMIÈRE COLONNE PORTE LA PERSONNE, PAS LA STRUCTURE. Anna,
+           16.08.2026: « a primeira coluna tem que ter somente o nome da pessoa,
+           esta em doublon com o nome da estrutura ».
+
+           D'où venait le doublon, mesuré sur les 8432: 3373 fiches — 40 % —
+           ont `nom` STRICTEMENT ÉGAL à `structure`. Ce n'est pas une faute de
+           saisie mais l'héritage du carnet: quand on ne connaissait que le
+           lieu, on écrivait le lieu dans les deux. La colonne répétait donc
+           mot pour mot celle d'à côté, en occupant deux lignes chacune.
+
+           565 de ces 3373 portent en plus une vraie personne dans `prenom` et
+           `nom_famille` — c'est elle qu'on cherche, et elle était reléguée en
+           petit sous le nom du lieu.
+
+           L'ordre est donc: la personne d'abord; à défaut le `nom` libre, mais
+           seulement s'il n'est pas déjà la structure; sinon rien, et la
+           colonne Structure porte l'information une seule fois. */
+        $pers = trim(((string)($r['prenom'] ?? '')) . ' ' . ((string)($r['nom_famille'] ?? '')));
+        $lib  = $pers;
+        $sous = '';
+        if ($lib === '') {
+            $n = trim((string)($r['nom'] ?? ''));
+            /* `nom` n'est retenu que s'il apporte autre chose que la structure. */
+            if ($n !== '' && $n !== trim((string)($r['structure'] ?? ''))) $lib = $n;
+        } elseif (trim((string)($r['nom'] ?? '')) !== ''
+                  && trim((string)$r['nom']) !== trim((string)($r['structure'] ?? ''))
+                  && mb_stripos((string)$r['nom'], $pers) === false) {
+            /* Un `nom` qui dit encore autre chose — un service, une mention —
+               reste lisible en dessous plutôt que d'être perdu. */
+            $sous = trim((string)$r['nom']);
+        }
+      ?>
+      <td><a href="/dashboard.php?e=contacts&amp;c=<?= (int)$r['id'] ?>"><?=
+        $lib !== '' ? e($lib) : '<span class="sec">sans personne nommée</span>' ?></a>
+        <?php if ($sous !== ''): ?><div class="sec"><?= e(mb_substr($sous, 0, 70)) ?></div><?php endif; ?></td>
       <td class="sec"><?= e($r['fonction'] ?? '') ?></td>
       <td><?= e($r['structure'] ?? '') ?><?php if ($r['site']): ?>
         <div class="sec"><a href="<?= e($r['site']) ?>" target="_blank" rel="noopener">site</a></div>
