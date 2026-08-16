@@ -315,7 +315,6 @@ if ($cid > 0) {
                         . ' ' . ($k['cp'] ?? '') . ' ' . ($k['ville'] ?? '')));
       $l('Département', $k['dept']);
       $l('Pays', $k['pays']);
-      $l('Mots-clefs', $k['mots_cles']);
       $l('Description', $k['description']);
       $l('Référence', $k['ref']);
       ?>
@@ -355,6 +354,11 @@ if ($cid > 0) {
       $past('Participations et rencontres professionnelles', $k['participations'],
             'Jamais croisé, ou pas encore noté.');
 
+      /* Les mots-clefs en pastilles, comme le reste. [16.08.2026] Ils étaient
+         une ligne de texte au milieu de l'état civil; ce sont eux qui servent à
+         chercher, ils appartiennent à la colonne de droite. */
+      $past('Mots-clefs', $k['mots_cles'], 'Aucun mot-clef.');
+
       $past('Associations liées', $k['directions'],
             'Aucune association liée. C\'est ce champ qui dit à qui proposer quoi.');
       ?>
@@ -379,6 +383,8 @@ if ($cid > 0) {
     .past-t{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--doux);margin-bottom:6px}
     .past-g{display:flex;flex-wrap:wrap;gap:6px}
     .past-p{font-size:13px;padding:3px 11px;border:1px solid var(--trait);border-radius:13px}
+    a.sans{color:var(--trait);text-decoration:none}
+    a.sans:hover{color:var(--doux)}
     .fil{padding:12px 26px 0;font-size:13px;display:flex;gap:16px}
     .fil a{color:var(--doux);text-decoration:none}
     .fil a.mod{margin-left:auto;color:var(--encre);font-weight:600}
@@ -424,9 +430,18 @@ if ($pays !== '') { $where[] = 'pays_struct = ?'; $args[] = $pays; }
 $reg  = trim((string)($_GET['reg'] ?? ''));
 $part = trim((string)($_GET['part'] ?? ''));
 $dir  = trim((string)($_GET['dir'] ?? ''));
+$tag  = trim((string)($_GET['tag'] ?? ''));
 if ($reg  !== '') { $where[] = 'region = ?';           $args[] = $reg; }
 if ($part !== '') { $where[] = 'participations LIKE ?'; $args[] = '%' . $part . '%'; }
 if ($dir  !== '') { $where[] = 'directions LIKE ?';     $args[] = '%' . $dir . '%'; }
+/* La recherche est sans casse — `LIKE` l'est déjà avec la collation
+   `utf8mb4_unicode_ci` de cette base — et bornée par des virgules pour que
+   « danse » ne remonte pas « danse contemporaine ». Les extrémités sont
+   couvertes en encadrant la colonne elle-même. */
+if ($tag !== '') {
+    $where[] = "CONCAT(',', REPLACE(mots_cles, ', ', ','), ',') LIKE ?";
+    $args[] = '%,' . $tag . ',%';
+}
 
 /* DEUX CHEMINS DE RECHERCHE, ET C'EST VOULU.
  *
@@ -472,6 +487,35 @@ foreach (DB::all("SELECT directions FROM contact
     foreach (array_map('trim', explode(',', (string)$r['directions'])) as $x)
         if ($x !== '') $lesDirs[$x] = ($lesDirs[$x] ?? 0) + 1;
 arsort($lesParts); arsort($lesDirs);
+
+/* ── LES MOTS-CLEFS, LE FILTRE QU'ANNA ATTENDAIT ────────────────────────────
+   [16.08.2026] « ataca as tags (…) é uma funcao muito importate para eu poder
+   fazer pesquisa ». Ils étaient importés — 4713 fiches en portent — et
+   n'apparaissaient que comme une ligne de texte dans la fiche: ni pastilles, ni
+   filtre. La donnée était là et ne servait à rien.
+
+   LES VARIANTES DE CASSE SONT FONDUES, et c'est la moitié du travail. Relevé
+   sur les 8432: « jeune public » 900 fois et « JEUNE PUBLIC » 748, « AVIGNON
+   2026 » 206 et « Avignon 2026 » 68. Un filtre exact aurait perdu la moitié des
+   fiches sans rien dire — et un filtre qui perd la moitié est pire qu'aucun
+   filtre, parce qu'on croit avoir la liste complète.
+
+   On garde l'orthographe la PLUS FRÉQUENTE comme étiquette, on additionne les
+   comptes, et la recherche se fait sans casse. Rien n'est réécrit en base: on ne
+   corrige pas 4713 fiches sur une supposition, on lit mieux ce qui est écrit. */
+$lesTags = [];
+foreach (DB::all("SELECT mots_cles FROM contact
+                   WHERE supprime_le IS NULL AND mots_cles IS NOT NULL AND mots_cles <> ''") as $r) {
+    foreach (array_filter(array_map('trim', explode(',', (string)$r['mots_cles']))) as $t) {
+        $k = mb_strtolower($t);
+        if (!isset($lesTags[$k])) $lesTags[$k] = ['n' => 0, 'formes' => []];
+        $lesTags[$k]['n']++;
+        $lesTags[$k]['formes'][$t] = ($lesTags[$k]['formes'][$t] ?? 0) + 1;
+    }
+}
+foreach ($lesTags as $k => &$t) { arsort($t['formes']); $t['lib'] = array_key_first($t['formes']); }
+unset($t);
+uasort($lesTags, fn($a, $b) => $b['n'] <=> $a['n']);
 
 /* LES ASSOCIATIONS SONT PROPOSÉES MÊME QUAND AUCUN CONTACT N'EN PORTE ENCORE.
    Les deux autres filtres se déduisent des fiches, et c'est juste pour eux: une
@@ -581,6 +625,21 @@ dash_haut('contacts', e($sst));
     <?php endforeach; ?>
   </select>
   <?php endif; ?>
+  <?php /* Les mots-clefs. Les vingt-cinq plus portés sont proposés; au-delà la
+       liste devient un mur qu'on ne parcourt plus. Les autres restent
+       atteignables par la recherche en texte libre, qui couvre `mots_cles`. */ ?>
+  <select name="tag">
+    <option value="">Tous les mots-clefs</option>
+    <?php $i = 0; foreach ($lesTags as $k => $t): if (++$i > 25) break; ?>
+      <option value="<?= e($k) ?>"<?= mb_strtolower($tag) === $k ? ' selected' : '' ?>><?=
+        e($t['lib']) ?> (<?= $t['n'] ?>)</option>
+    <?php endforeach; ?>
+    <?php /* Si la valeur choisie n'est pas dans les vingt-cinq, on l'ajoute pour
+         que le filtre ne se réinitialise pas tout seul en rechargeant. */ ?>
+    <?php if ($tag !== '' && !array_key_exists(mb_strtolower($tag), array_slice($lesTags, 0, 25, true))): ?>
+      <option value="<?= e($tag) ?>" selected><?= e($tag) ?></option>
+    <?php endif; ?>
+  </select>
   <select name="pays">
     <option value="">Tous les pays</option>
     <?php foreach ($payss as $p): ?>
@@ -588,7 +647,7 @@ dash_haut('contacts', e($sst));
         e($p['pays_struct']) ?> (<?= $p['n'] ?>)</option>
     <?php endforeach; ?>
   </select>
-  <?php if ($q !== '' || $cat !== '' || $reg !== '' || $part !== '' || $dir !== '' || $pays !== ''): ?>
+  <?php if ($q !== '' || $cat !== '' || $reg !== '' || $part !== '' || $dir !== '' || $tag !== '' || $pays !== ''): ?>
     <a class="vider" href="/dashboard.php?e=contacts">tout effacer</a>
   <?php endif; ?>
   </div>
@@ -659,8 +718,14 @@ dash_haut('contacts', e($sst));
             $sous = trim((string)$r['nom']);
         }
       ?>
-      <td><a href="/dashboard.php?e=contacts&amp;c=<?= (int)$r['id'] ?>"><?=
-        $lib !== '' ? e($lib) : '<span class="sec">sans personne nommée</span>' ?></a>
+      <?php /* La cellule reste VIDE quand il n'y a pas de personne. [16.08.2026]
+           J'y avais mis « sans personne nommée » pour que le trou se voie; sur
+           2808 fiches ça répétait la même phrase à chaque ligne et couvrait les
+           noms qu'on cherche. Anna: « nao faz sentido algum, apaga isso ». Une
+           colonne vide se voit très bien toute seule. */ ?>
+      <td><?php if ($lib !== ''): ?><a href="/dashboard.php?e=contacts&amp;c=<?= (int)$r['id'] ?>"><?=
+        e($lib) ?></a><?php else: ?><a class="sans" href="/dashboard.php?e=contacts&amp;c=<?= (int)$r['id'] ?>"
+        title="Ouvrir la fiche">—</a><?php endif; ?>
         <?php if ($sous !== ''): ?><div class="sec"><?= e(mb_substr($sous, 0, 70)) ?></div><?php endif; ?></td>
       <td class="sec"><?= e($r['fonction'] ?? '') ?></td>
       <td><?= e($r['structure'] ?? '') ?><?php if ($r['site']): ?>
