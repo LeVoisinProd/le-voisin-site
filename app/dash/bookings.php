@@ -85,6 +85,22 @@ if ($dl > 0) {
     exit;
 }
 
+/* TÉLÉCHARGER UN FICHIER DE LA DATE. Forcé en attachement, jamais rendu dans
+   la page: un SVG déposé par un tiers peut porter du script. */
+$bf = (int)($_GET['bf'] ?? 0);
+if ($bf > 0) {
+    $f = BookingFiles::un($bf);
+    if (!$f || (int)$f['booking_id'] !== $id) { http_response_code(404); exit('Introuvable'); }
+    $p = BookingFiles::chemin($f);
+    if (!is_file($p)) { http_response_code(404); exit('Fichier introuvable'); }
+    header('Content-Type: application/octet-stream');
+    header('Content-Length: ' . filesize($p));
+    header('Content-Disposition: attachment; filename="' . basename($p) . '"');
+    header('X-Content-Type-Options: nosniff');
+    readfile($p);
+    exit;
+}
+
 /* TÉLÉCHARGER UN FICHIER DÉPOSÉ PAR LE LIEU. Même parti que les contrats:
    uploads/private/ n'est pas servi par Apache, et le rôle est déjà vérifié à
    la porte. Le champ doit appartenir à CE booking. */
@@ -112,6 +128,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        l'écran: `production` lit les Finances sans les modifier. Le routeur
        ne peut pas le faire à notre place, lui ne voit pas les POST. */
     dash_exige_ecriture('bookings');
+
+    /* Les fichiers de la date. */
+    $actB = (string)($_POST['bfic'] ?? '');
+    if ($actB !== '' && $id > 0) {
+        try {
+            if ($actB === 'deposer') {
+                $u = Auth::user();
+                BookingFiles::deposer($id, $_FILES['fichier'] ?? [],
+                                      (string)($_POST['partage'] ?? 'interne'),
+                                      (string)($u['name'] ?? $u['email'] ?? ''));
+                dash_flash('Fichier déposé.');
+            } elseif ($actB === 'partage') {
+                BookingFiles::partage((int)($_POST['ligne'] ?? 0), $id, (string)($_POST['p'] ?? 'interne'));
+                dash_flash('Partage changé.');
+            } elseif ($actB === 'supprimer') {
+                BookingFiles::supprimer((int)($_POST['ligne'] ?? 0), $id);
+                dash_flash('Fichier supprimé.');
+            }
+        } catch (Throwable $ex) { dash_flash($ex->getMessage(), 'err'); }
+        redirect('/dashboard.php?e=bookings&b=' . $id);
+    }
 
     /* Les factures: ajouter, changer l'état, supprimer. */
     $actF = (string)($_POST['fact'] ?? '');
@@ -497,6 +534,106 @@ if ($id > 0) {
           <p><?= $b['notes_internes'] ? nl2br(e($b['notes_internes'])) : '<span class="n">rien</span>' ?></p>
         </div>
       </div>
+
+      <?php /* LES FICHIERS DE LA DATE. [16.08.2026]
+
+               Ils vivent ici, sous les notes, parce qu'ils posent le même
+               problème et se règlent pareil: le plan de feu se partage avec
+               l'artiste, la grille de négociation non. La colonne `partage`
+               reprend donc la distinction des deux blocs ci-dessus.
+
+               LE GLISSER-DÉPOSER N'EST QU'UN RACCOURCI. Le champ de fichier
+               reste là, visible, et fonctionne sans une ligne de JavaScript.
+               Une zone de dépôt qui serait le seul moyen exclurait qui navigue
+               au clavier, et tomberait en panne le jour où le script casse. */ ?>
+      <?php $fichiers = BookingFiles::liste($id);
+            $peutEcrire = dash_droit('bookings', dash_role()) === 'ecrit'; ?>
+
+      <div class="fich">
+        <h3>Fichiers <span class="n"><?= count($fichiers) ?: 'aucun' ?><?= count($fichiers) ? ' sur cette date' : '' ?></span></h3>
+
+        <?php if ($fichiers): ?>
+          <ul class="lf">
+          <?php foreach ($fichiers as $f): $fid = (int)$f['id']; ?>
+            <li>
+              <a href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;bf=<?= $fid ?>"><?= e((string)$f['titre']) ?></a>
+              <span class="n"><?= e(BookingFiles::poids((int)$f['taille'])) ?>
+                · <?= e(date('d.m.Y', strtotime((string)$f['cree_a']))) ?></span>
+              <?php if ($peutEcrire): ?>
+                <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>" class="inline">
+                  <?= Auth::csrfField() ?>
+                  <input type="hidden" name="bfic" value="partage">
+                  <input type="hidden" name="ligne" value="<?= $fid ?>">
+                  <input type="hidden" name="p" value="<?= $f['partage'] === 'artiste' ? 'interne' : 'artiste' ?>">
+                  <button type="submit" class="pg pg-<?= e($f['partage']) ?>"><?= $f['partage'] === 'artiste' ? 'partagé avec l\'artiste' : 'interne' ?></button>
+                </form>
+                <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>" class="inline"
+                      onsubmit="return confirm('Supprimer ce fichier ?')">
+                  <?= Auth::csrfField() ?>
+                  <input type="hidden" name="bfic" value="supprimer">
+                  <input type="hidden" name="ligne" value="<?= $fid ?>">
+                  <button type="submit" class="x">×</button>
+                </form>
+              <?php else: ?>
+                <span class="pg pg-<?= e($f['partage']) ?>"><?= $f['partage'] === 'artiste' ? 'partagé' : 'interne' ?></span>
+              <?php endif; ?>
+            </li>
+          <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+
+        <?php if ($peutEcrire): ?>
+          <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>"
+                enctype="multipart/form-data" id="fdrop" class="drop">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="bfic" value="deposer">
+            <p class="dz">Glissez un fichier ici, ou choisissez-le :</p>
+            <input type="file" name="fichier" id="finput">
+            <select name="partage">
+              <option value="interne">interne</option>
+              <option value="artiste">partagé avec l'artiste</option>
+            </select>
+            <button type="submit">déposer</button>
+            <p class="n">Fiches techniques, plans, itinéraires, photos. 25 Mo au maximum.</p>
+          </form>
+          <script>
+          /* Le glisser-déposer se contente de remplir le champ existant et
+             d'envoyer le formulaire: aucun chemin de code séparé, donc rien à
+             maintenir en double, et la même validation côté serveur. */
+          (function(){
+            var f=document.getElementById('fdrop'), i=document.getElementById('finput');
+            if(!f||!i||!window.DataTransfer) return;
+            ['dragenter','dragover'].forEach(function(n){
+              f.addEventListener(n,function(e){e.preventDefault();f.classList.add('sur');});});
+            ['dragleave','drop'].forEach(function(n){
+              f.addEventListener(n,function(e){e.preventDefault();f.classList.remove('sur');});});
+            f.addEventListener('drop',function(e){
+              if(!e.dataTransfer||!e.dataTransfer.files.length) return;
+              i.files=e.dataTransfer.files;
+              f.submit();
+            });
+          })();
+          </script>
+        <?php endif; ?>
+      </div>
+
+      <style>
+      .fich{margin-top:22px}
+      .fich h3{margin-bottom:8px}
+      .lf{list-style:none;margin:0 0 16px;padding:0}
+      .lf li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+        padding:7px 0;border-bottom:1px solid var(--rule,var(--trait))}
+      .lf .n{font-size:12.5px;color:var(--doux)}
+      .pg{font-size:11.5px;padding:2px 8px;border-radius:3px;border:1px solid var(--trait);
+        background:none;color:var(--doux);cursor:pointer;font:inherit;font-size:11.5px}
+      .pg-artiste{border-color:#7bb33a;color:#5c8f28}
+      button.pg:hover{border-color:var(--encre);color:var(--encre)}
+      .drop{border:1px dashed var(--trait);border-radius:6px;padding:16px 18px;
+        display:flex;gap:10px;align-items:center;flex-wrap:wrap;transition:border-color .12s}
+      .drop.sur{border-color:var(--encre);border-style:solid;background:var(--fond2)}
+      .drop .dz{margin:0;font-size:13.5px;color:var(--doux)}
+      .drop .n{flex-basis:100%;margin:0;font-size:12.5px;color:var(--doux)}
+      </style>
 
     <?php elseif ($ong === 'deal'): ?>
       <?php
