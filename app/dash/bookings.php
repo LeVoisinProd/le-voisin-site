@@ -1,6 +1,6 @@
 <?php
 /**
- * Écran Bookings. [16.08.2026]
+ * Écran Événements — les dates jouées. [16.08.2026, renommé le 17.08]
  *
  * Une date jouée, ou en cours de l'être. C'est l'objet central du dashboard, et
  * il n'existait nulle part comme donnée: `events` du CMS portait une chaîne
@@ -423,7 +423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
     $b = $id > 0 ? DB::one('SELECT * FROM booking WHERE id = ? AND supprime_le IS NULL', [$id]) : [];
-    if ($id > 0 && !$b) { dash_haut('bookings'); echo '<p class="vide">Ce booking n\'existe pas.</p>'; dash_bas(); return; }
+    if ($id > 0 && !$b) { dash_haut('bookings'); echo '<p class="vide">Cet événement n\'existe pas.</p>'; dash_bas(); return; }
 
     // Ce qui a été saisi prime sur ce qui est en base: un refus ne doit rien effacer.
     $v = fn(string $c) => $saisi[$c] ?? ($b[$c] ?? '');
@@ -488,7 +488,7 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         <a class="sec2" href="/dashboard.php?e=bookings<?= $id > 0 ? '&amp;b=' . $id : '' ?>">annuler</a>
         <?php if ($id > 0): ?>
           <a class="sup" href="#"
-             onclick="if(confirm('Supprimer ce booking ? Il restera en base et pourra être rétabli.')){
+             onclick="if(confirm('Supprimer cet événement ? Il restera en base et pourra être rétabli.')){
                         var f=document.createElement('form');f.method='post';
                         f.action='/dashboard.php?e=bookings&b=<?= $id ?>&mod=1';
                         f.innerHTML='<?= addslashes(Auth::csrfField()) ?><input name=action value=supprimer>';
@@ -509,7 +509,7 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($id > 0) {
     $b = DB::one('SELECT * FROM booking WHERE id = ? AND supprime_le IS NULL', [$id]);
-    if (!$b) { dash_haut('bookings'); echo '<p class="vide">Ce booking n\'existe pas.</p>'; dash_bas(); return; }
+    if (!$b) { dash_haut('bookings'); echo '<p class="vide">Cet événement n\'existe pas.</p>'; dash_bas(); return; }
 
     $ong = (string)($_GET['o'] ?? 'apercu');
     if (!isset(ONGLETS[$ong])) $ong = 'apercu';
@@ -530,7 +530,7 @@ if ($id > 0) {
     $titre = trim(($b['projet'] ?? '') . ' · ' . ($b['venue'] ?? ''));
     dash_haut('bookings', e($b['date_texte'] ?: (string)$b['date_debut']) . ' · ' . e($b['ville'] ?? ''));
     ?>
-    <div class="fil"><a href="/dashboard.php?e=bookings">← tous les bookings</a>
+    <div class="fil"><a href="/dashboard.php?e=bookings">← tous les événements</a>
       <a class="mod" href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;mod=1">modifier</a></div>
     <?php dash_flash_html(); ?>
 
@@ -745,7 +745,7 @@ if ($id > 0) {
         </div>
       <?php endif; ?>
       <?php else: ?>
-        <p class="sec">Aucune ligne. Le prix de ce booking n'est pour l'instant qu'un
+        <p class="sec">Aucune ligne. Le prix de cet événement n'est pour l'instant qu'un
            nombre: ajouter les lignes dit ce qu'il contient.</p>
       <?php endif; ?>
 
@@ -1437,7 +1437,7 @@ if (($_GET['v'] ?? '') === 'prix') {
     return;
 }
 
-dash_haut('bookings', number_format($total,0,',',' ') . ' booking' . ($total>1?'s':'') . ' · ' . $ms . ' ms');
+dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total>1?'s':'') . ' · ' . $ms . ' ms');
 ?>
 
 <form class="filtres" method="get" action="/dashboard.php">
@@ -1459,7 +1459,7 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' booking' . ($total>1?'
   <?php if ($q !== '' || $statut !== '' || $annee !== ''): ?>
     <a class="vider" href="/dashboard.php?e=bookings">tout effacer</a>
   <?php endif; ?>
-  <a class="neuf" href="/dashboard.php?e=bookings&amp;mod=1">+ nouveau booking</a>
+  <a class="neuf" href="/dashboard.php?e=bookings&amp;mod=1">+ nouvel événement</a>
   <?php /* Le chemin vers la grille des prix. Sans lui elle n'existe pas: une
        page qu'on atteint en tapant une adresse n'est ouverte par personne. Le
        compte dit combien il reste à faire — « les prix » tout court ne donne
@@ -1480,7 +1480,7 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' booking' . ($total>1?'
 <?php endif; ?>
 
 <?php if (!$lignes): ?>
-  <p class="vide">Aucun booking ne correspond.</p>
+  <p class="vide">Aucun événement ne correspond.</p>
 <?php else: ?>
 <div class="tw">
 <table>

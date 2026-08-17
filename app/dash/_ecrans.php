@@ -40,8 +40,25 @@ const DASH_ECRANS = [
     // Le cœur, dans ses mots. Tout ce qui a une date y figure: shows confirmés,
     // en attente, voyages, logistique.
     'calendrier'   => ['Calendrier', 'ok', [
-        'bookings'  => ['Bookings',  'ok'],
-        // Le pipeline des demandes entrantes, sous Bookings comme dans la
+        /* « Événements » et non « Bookings » — Anna, 17.08.2026. L'écran porte
+           les dates jouées, et le mot anglais désignait le métier plutôt que la
+           chose: on fait du booking, on vend des événements.
+
+           LA CLEF RESTE `bookings`, ET C'EST DÉLIBÉRÉ. Elle est l'adresse
+           (`?e=bookings`), la ligne de la grille de permissions, le nom de la
+           table `booking` et de ses colonnes, et elle apparaît 160 fois dans le
+           dépôt. Renommer tout cela casserait les liens déjà envoyés et les
+           marque-pages, pour un gain nul: personne ne lit l'adresse. Ce qu'on
+           lit, c'est le menu, et c'est lui qui change.
+
+           Orthographe: DEUX ACCENTS AIGUS, « Événements ». Les deux graphies
+           sont correctes en français — la rectification de 1990 préfère
+           « évènement » — mais les cinq occurrences déjà dans le dépôt
+           (`admin.fr.php`, `entities.php`, `agenda.php`, `index.php`) portent
+           l'aigu. Ce qui n'est pas correct, c'est d'en avoir deux dans la même
+           application: le menu dirait l'une et le courriel envoyé l'autre. */
+        'bookings'  => ['Événements', 'ok'],
+        // Le pipeline des demandes entrantes, sous Événements comme dans la
         // spécification: une offre acceptée devient une date, donc elle vit
         // au même endroit qu'elles.
         'offres'    => ['Offres',    'ok'],
