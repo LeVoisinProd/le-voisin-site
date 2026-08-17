@@ -1487,7 +1487,9 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
   <?php /* ── LES ONZE COLONNES DU MODÈLE D'ANNA ─────────────────────────────
        [16.08.2026] « copiar tal e qual », d'après l'écran d'agence qu'elle a
        montré: Venue · Performance name · Date · Artist · Time · Performance Fee
-       · Country · City · Status · Booking Fee · Client.
+       · Country · City · Status · Booking Fee. « Client » a été retirée le
+       17.08.2026 — elle reste sur la fiche et dans la recherche, elle ne
+       tenait simplement pas sa place dans une liste de onze colonnes.
 
        Trois changements de fond par rapport à avant:
 
@@ -1502,9 +1504,14 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
        comme dans le modèle. C'est le nom de l'ÉVÉNEMENT, pas de l'œuvre; les
        deux cohabitent dans le tableau et c'est voulu. */ ?>
   <thead><tr>
-    <th>Venue</th><th>Performance name</th><th>Date</th><th>Artist</th>
-    <th>Time</th><th class="d">Performance Fee</th><th>Country</th><th>City</th>
-    <th>Status</th><th class="d">Booking Fee</th><th>Client</th>
+    <?php /* DIX COLONNES ET NON ONZE. [17.08.2026] Anna: « tu peux enlever
+         Client des colonnes, donner plus de place pour les dates ». « Client »
+         était la onzième et la moins lue: c'est le nom de qui paie, qu'on
+         cherche sur la fiche au moment de facturer, jamais en balayant une
+         liste. Elle prenait la largeur qui manquait à la date. */ ?>
+    <th class="c-venue">Venue</th><th>Performance name</th><th class="c-date">Date</th><th>Artist</th>
+    <th class="c-h">Time</th><th class="d">Performance Fee</th><th class="c-pays">Country</th><th>City</th>
+    <th>Status</th><th class="d">Booking Fee</th>
   </tr></thead>
   <tbody>
   <?php foreach ($lignes as $r):
@@ -1545,7 +1552,6 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
                  ? '<div class="sec">' . rtrim(rtrim(number_format((float)$r['frais_booking_taux'], 2, ',', ' '), '0'), ',') . ' %</div>'
                  : '')
             : '' ?></td>
-      <td class="sec"><?= e($r['client'] ?? '') ?></td>
     </tr>
   <?php endforeach; ?>
   </tbody>
@@ -1561,6 +1567,25 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
 
 <style>
 td.d, th.d { text-align:right; white-space:nowrap; }
+/* ── LES LARGEURS, PARCE QUE LE NAVIGATEUR CHOISIT MAL ──────────── [17.08.2026]
+   Anna, capture à l'appui: « cest quoi cette mise en page! ». « Sun, 25 Apr 27 »
+   sortait sur QUATRE lignes et « Pôle Nord - Centre de Musique Contemporaine
+   (CMC) » sur quatre aussi, pendant que trois colonnes vides gardaient leur
+   pleine largeur.
+
+   C'est le comportement normal d'un tableau automatique: il répartit la place
+   au prorata du contenu le plus long de chaque colonne, sans savoir qu'une date
+   ne se coupe pas et qu'un nom de lieu, si.
+
+   `white-space:nowrap` SUR LA DATE ET LE PAYS: ce sont des valeurs courtes et
+   atomiques, les couper ne gagne rien et coûte trois lignes de hauteur à toute
+   la ligne. Le lieu et la ville gardent le droit de passer à la ligne — un nom
+   de quarante caractères doit bien s'écrire quelque part — mais avec une
+   largeur minimale qui lui évite de le faire à chaque mot. */
+td.c-date, th.c-date { white-space:nowrap; }
+td.c-pays, th.c-pays, td.c-h, th.c-h { white-space:nowrap; }
+th.c-venue { min-width:150px; }
+table td, table th { vertical-align:top; }
 .et { font-size:11.5px; padding:2px 8px; border-radius:10px; border:1px solid var(--trait);
       white-space:nowrap; }
 .et.confirmed { background:#e7f6ea; border-color:#bfe3c8; color:#1c5c2e; }
