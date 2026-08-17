@@ -663,11 +663,10 @@ table.mat th.mc .tg{display:inline-block;margin-top:3px;font-size:9.5px;border:1
   border-radius:3px;padding:0 4px;color:var(--doux);background:var(--papier)}
 table.mat th.mc .jr{display:block;font-size:9.5px;color:var(--doux);font-weight:400}
 /* LES EN-TÊTES DE LIGNE NE COLLENT PAS. [17.08.2026]
-   `_layout.php` pose `th{position:sticky;top:var(--h-tete)}` pour que les noms
-   de colonnes tiennent en haut d'un long tableau. Dans une matrice, les noms
+   `_layout.php` pose `th{position:sticky;top:0}` pour que les noms de colonnes
+   tiennent en haut d'un long tableau. Dans une matrice, les noms
    d'ASSOCIATION sont aussi des `th` — ils héritaient donc du collant vertical
-   et les treize venaient s'empiler sous la barre de titre, par-dessus l'en-tête
-   des colonnes. C'est ce qu'Anna a vu: « a mise en page esta meio truncada »,
+   et les treize venaient s'empiler en haut, par-dessus l'en-tête des colonnes. C'est ce qu'Anna a vu: « a mise en page esta meio truncada »,
    CRILE et DieselReclame flottant au-dessus du tableau.
 
    Ils collent à GAUCHE à la place, ce qu'une matrice large demande vraiment: on

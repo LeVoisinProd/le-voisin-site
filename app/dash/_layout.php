@@ -168,33 +168,44 @@ main { min-width:0; }
 
 /* Les briques que les écrans réutilisent. Déclarées ici une fois, pour que le
    deuxième écran n'ait pas à redéclarer un tableau. */
-/* ── POURQUOI `overflow-y:clip` ET NON RIEN DU TOUT ──────────── [17.08.2026]
-   Anna, sur l'écran Évènements: « o titulo das colunas ainda esta no lugar
-   errado ». Elle l'avait déjà signalé le 16 sur les contacts, et LA CORRECTION
-   DE CE JOUR-LÀ TRAITAIT LE SYMPTÔME. On avait mesuré `--h-tete` au lieu de la
-   deviner, ce qui était juste mais ne touchait pas la cause: elle a seulement
-   changé de combien l'en-tête descendait trop bas.
+/* ── LE TABLEAU DÉFILE DANS SA PROPRE FENÊTRE ──────────────────── [17.08.2026]
+   Anna, deux fois: « o titulo das colunas ainda esta no lugar errado », capture
+   à l'appui — la première ligne au-dessus des noms de colonnes, la deuxième
+   cachée derrière.
 
-   LA CAUSE EST UNE RÈGLE DU CSS QU'ON NE VOIT PAS EN LISANT SA PROPRE FEUILLE.
-   `overflow-x:auto` seul ne reste pas seul: quand un axe vaut autre chose que
-   `visible`, l'autre — resté `visible` — est calculé en `auto`. `.tw` devenait
-   donc un CONTENEUR DE DÉFILEMENT VERTICAL, et `position:sticky` se résout
-   contre le plus proche conteneur de défilement, pas contre la fenêtre. L'en-
-   tête se collait au haut de `.tw`, et le `top:var(--h-tete)` le poussait d'une
-   soixantaine de pixels vers le bas À L'INTÉRIEUR du tableau: la première ligne
-   passait au-dessus des noms de colonnes.
+   J'AI CORRIGÉ ÇA DEUX FOIS ET DEUX FOIS À CÔTÉ, et il faut l'écrire pour ne
+   pas recommencer:
 
-   `clip` n'est pas concerné par cette conversion et NE CRÉE PAS de conteneur de
-   défilement. L'axe horizontal continue de défiler — un tableau de onze
-   colonnes en a besoin, et le corps de page ne doit jamais partir de côté — et
-   le collant retrouve la fenêtre pour référence. */
-.tw { overflow-x:auto; overflow-y:clip; }
+     16.08  on a mesuré `--h-tete` au lieu de la deviner. Juste, et sans effet:
+            ça n'a changé que de combien l'en-tête descendait trop bas.
+     17.08  on a posé `overflow-y:clip` en croyant que `.tw` cessait d'être un
+            conteneur de défilement. Faux. La spec est claire: un conteneur de
+            défilement naît dès que `overflow-x` OU `overflow-y` vaut `auto` ou
+            `scroll`. `overflow-x:auto` suffit, et `position:sticky` se résout
+            contre lui SUR LES DEUX AXES.
+
+   Donc `top:var(--h-tete)` ne plaçait pas l'en-tête sous la barre de titre: il
+   le poussait de 75 px VERS LE BAS à l'intérieur du tableau, et la première
+   ligne passait au-dessus.
+
+   LA VRAIE RÉPONSE EST D'ASSUMER CE CONTENEUR au lieu de lutter contre lui. Le
+   tableau reçoit sa propre fenêtre — une hauteur maximale — et l'en-tête colle
+   à `top:0` DEDANS. Il reste alors visible pendant qu'on parcourt les 8432
+   contacts, sans jamais chevaucher quoi que ce soit.
+
+   `max-height` ET NON `height`: un tableau de trois lignes garde trois lignes.
+   La règle ne s'applique qu'à ceux qui dépassent, c'est-à-dire aux listes, et
+   laisse tranquilles les petits tableaux à l'intérieur des fiches. */
+.tw { overflow:auto; max-height:calc(100vh - var(--h-tete) - 10px); }
 table { border-collapse:collapse; width:100%; font-size:14px; }
 th, td { padding:8px 14px; border-bottom:1px solid var(--trait); text-align:left;
          vertical-align:top; }
+/* `top:0` et non `var(--h-tete)`: le collant se résout contre `.tw`, qui
+   commence déjà sous la barre de titre. Décaler encore le ferait descendre
+   dans le tableau — c'est exactement le défaut qu'on vient de corriger. */
 th { background:var(--fond2); font-size:11.5px; text-transform:uppercase;
      letter-spacing:.04em; color:var(--encre); font-weight:700;
-     position:sticky; top:var(--h-tete); z-index:10; }
+     position:sticky; top:0; z-index:10; }
 tbody tr:hover { background:var(--fond2); }
 td .sec { color:var(--doux); font-size:12.5px; }
 form.filtres { padding:14px 26px; border-bottom:1px solid var(--trait); display:flex;
