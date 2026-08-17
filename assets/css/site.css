@@ -1404,6 +1404,11 @@ input:focus, select:focus, textarea:focus { outline: var(--trait-fort) solid var
    un libellé et son champ, et remonterait sur le champ si on la posait après.
    [17.08.2026] */
 .field-help--bas { margin: 6px 0 0; }
+/* Le quand-suis-je-payé, sous l'intro des paiements. Un filet jaune
+   plutôt qu'un encadré: c'est un repère, pas une alerte. [17.08.2026] */
+.espace-part-q { margin: -6px 0 18px; padding: 8px 0 8px 14px;
+  border-left: 3px solid var(--yellow, #FFD24D); font-size: 13.5px;
+  color: var(--grey); max-width: 70ch; }
 .field-error { margin: 6px 0 0; color: var(--error); font-size: 13.5px; font-weight: 700; }
 .field.has-error input, .field.has-error select, .field.has-error textarea { border-color: var(--error); }
 .field[data-show-if] { display: none; }

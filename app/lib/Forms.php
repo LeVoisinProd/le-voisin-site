@@ -766,8 +766,29 @@ class Forms
             $intro = $isFr
                 ? '<p>Bonjour,</p><p>Nous avons bien reçu votre envoi « ' . e($title) . ' ». En voici une copie pour vos archives. Notre équipe revient vers vous si nécessaire.</p>'
                 : '<p>Hello,</p><p>We have received your submission "' . e($title) . '". Here is a copy for your records. Our team will get back to you if needed.</p>';
+            /* [17.08.2026] UNE NOTE PROPRE AU FORMULAIRE, et elle n'est pas
+               décorative. Anna: « sempre que alguem enviar recibos tem que ter
+               na mensagem que chega à pessoa que os pagamentos são feitos na
+               última semana do mês ».
+
+               Quelqu'un qui envoie une facture le 3 et ne voit rien arriver le
+               12 écrit pour demander où elle en est, et c'est une question
+               qu'on peut supprimer d'une phrase. La règle existait déjà — elle
+               est dans le courriel d'invitation depuis toujours — mais pas là
+               où on en a besoin, c'est-à-dire au moment où l'on vient
+               d'envoyer.
+
+               `confirm_note` ET NON UNE PHRASE POUR TOUS LES FORMULAIRES: une
+               demande de programmation n'a rien à faire des semaines de
+               paiement, et une note qui ne concerne pas le lecteur lui apprend
+               à ne plus lire les notes. */
+            $note = !empty($def['confirm_note'])
+                ? '<p style="margin-top:18px;padding:10px 14px;background:#f7f7f7;'
+                  . 'border-left:3px solid #FFD24D;font-size:13.5px;">'
+                  . e(Forms::label($def['confirm_note'])) . '</p>'
+                : '';
             $confHtml = Mailer::wrap($isFr ? 'Confirmation de votre envoi' : 'Submission confirmation',
-                $intro . '<table style="width:100%;border-collapse:collapse;font-size:14px;">' . $rows . '</table>');
+                $intro . '<table style="width:100%;border-collapse:collapse;font-size:14px;">' . $rows . '</table>' . $note);
             $confSubject = ($isFr ? 'Confirmation — ' : 'Confirmation — ') . $title . ' — ' . setting('site_name', 'Le Voisin');
             Mailer::send([$values['email']], $confSubject, $confHtml, $attachments, setting('contact_email', '') ?: null);
         }

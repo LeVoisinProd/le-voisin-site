@@ -178,6 +178,12 @@ return [
         'assoc_key'  => 'association',
         'subject'    => 'Facture / note de frais',
         'confirm'    => true,   // copie de confirmation à la personne
+        /* [17.08.2026] Ce que la copie doit dire en plus du récapitulatif.
+           Anna: la personne doit savoir QUAND elle sera payée, au moment où
+           elle envoie — sinon elle écrit pour demander, et c'est une
+           question qu'une phrase supprime. */
+        'confirm_note' => ['en' => 'Payments go out in the last week of each month. A transfer to an account outside Switzerland takes about two extra working days to be credited.',
+                           'fr' => 'Les paiements partent la dernière semaine de chaque mois. Un virement vers un compte hors de Suisse met environ deux jours ouvrables de plus à être crédité.'],
         'fields'     => [
             ['key' => 'sec_exp', 'type' => 'section', 'label' => ['en' => 'Expense', 'fr' => 'Dépense']],
             /* [13.08.2026] Le formulaire s'appelait déjà « Factures /
@@ -289,9 +295,13 @@ return [
         'repeat' => ['association', 'project_place', 'work_stage',
                      'full_name', 'email', 'phone', 'iban', 'bic',
                      'street', 'city', 'zip', 'country'],
+        /* [17.08.2026] « à la fin du mois » devient « la dernière semaine »,
+           qui est la formulation d'Anna et celle du courriel d'invitation.
+           « Fin du mois » se lit comme le 30 ou le 31; les virements partent
+           avant, et quelqu'un qui attend le 31 relance le 29. */
         'notice' => [
-            'en' => 'All payments and reimbursements are processed at the end of the month during which the documents were sent. Thank you for your cooperation!',
-            'fr' => 'Tous les paiements et remboursements sont traités à la fin du mois au cours duquel les documents ont été envoyés. Merci de votre coopération !',
+            'en' => 'Payments go out in the last week of each month. A transfer to an account outside Switzerland takes about two extra working days to be credited.',
+            'fr' => 'Les paiements partent la dernière semaine de chaque mois. Un virement vers un compte hors de Suisse met environ deux jours ouvrables de plus à être crédité.',
         ],
     ],
 ];

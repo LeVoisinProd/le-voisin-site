@@ -247,6 +247,7 @@ return [
     'member_tab_paie'     => 'Paiements & remboursements',
     'member_part_paie'    => 'Mes paiements et remboursements',
     'member_part_paie_i'  => 'Les factures et les justificatifs que tu nous envoies, et où ils en sont. Tu déposes, nous marquons « payée », tu confirmes la réception.',
+    'member_part_paie_q' => 'Les paiements partent la dernière semaine de chaque mois. Un virement vers un compte hors de Suisse met environ deux jours ouvrables de plus à être crédité.',
     'member_no_paiement'  => 'Tu n\'as encore rien envoyé. Dépose ta première facture ci-dessus.',
 
     // Fiche personnelle imprimable  [V15-FICHE-PDF]

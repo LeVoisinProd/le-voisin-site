@@ -197,6 +197,13 @@ $depart = ($infos['saved'] || $infos['errors']) ? ' data-depart="partie-infos"' 
 <section class="espace-part" id="partie-paiements" aria-labelledby="onglet-paiements">
   <h2 class="espace-part-h"><span class="espace-part-n">3</span><?= e(t('member_part_paie')) ?></h2>
   <p class="espace-part-i"><?= e(t('member_part_paie_i')) ?></p>
+  <?php /* [17.08.2026] QUAND on est payé, dit là où on regarde si on l'a été.
+           Anna: la personne doit le savoir sans avoir à demander. La règle
+           existait déjà dans le courriel d'invitation — donc lue une fois, le
+           jour de l'arrivée, et jamais retrouvée après. Ici elle est sous les
+           yeux à chaque fois qu'on ouvre ses paiements, c'est-à-dire
+           exactement quand la question se pose. */ ?>
+  <p class="espace-part-q"><?= e(t('member_part_paie_q')) ?></p>
   <?= espace_flash_html() ?>
   <?= espace_facture_form($m) ?>
   <?php if (!$parVolet['paiement']): ?>

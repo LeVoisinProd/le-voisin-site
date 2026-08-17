@@ -237,6 +237,7 @@ return [
     'member_tab_paie'     => 'Payments & reimbursements',
     'member_part_paie'    => 'My payments and reimbursements',
     'member_part_paie_i'  => 'The invoices and receipts you send us, and where they stand. You upload, we mark « paid », you confirm receipt.',
+    'member_part_paie_q' => 'Payments go out in the last week of each month. A transfer to an account outside Switzerland takes about two extra working days to be credited.',
     'member_no_paiement'  => 'You have not sent anything yet. Upload your first invoice above.',
 
     // Printable personal sheet  [V15-FICHE-PDF]
