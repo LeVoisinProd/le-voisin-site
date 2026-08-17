@@ -84,7 +84,29 @@ a { color:inherit; }
   :root { --h-tete:84px; }
 }
 
-aside { background:var(--barre); color:#e8e8e8; padding:18px 0 40px; }
+/* ── LE MENU RESTE À L'ÉCRAN ──────────────────────────────────── [17.08.2026]
+   Anna: « o menu a gauche tb tem que ficar fixo, ele scrola como a pagina
+   inteira, nao pode ser ». Sur 8432 contacts ou 51 dates on descend loin, et
+   arrivé en bas il fallait remonter tout le chemin pour changer d'écran.
+
+   `sticky` ET NON `fixed`, et la différence n'est pas cosmétique: en `fixed`
+   l'aside sort du flux, la grille de deux colonnes perd sa première, et le
+   contenu passe dessous. En `sticky` la colonne garde sa place, elle se
+   contente de ne pas défiler.
+
+   `height:100vh` avec `overflow-y:auto` PARCE QUE LE MENU PEUT ÊTRE PLUS HAUT
+   QUE L'ÉCRAN: treize entrées, leurs sous-entrées et le pied. Sans cela un
+   portable de 13 pouces perdrait Paramètres, et il n'y aurait aucun moyen d'y
+   arriver — un menu collant qui dépasse est pire qu'un menu qui défile.
+
+   `align-self:start` est ce qui rend le collant effectif: dans une grille, un
+   élément est étiré sur toute la hauteur de la rangée par défaut, et un
+   élément déjà aussi haut que sa rangée n'a nulle part où coller. */
+aside { background:var(--barre); color:#e8e8e8; padding:18px 0 40px;
+        position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+        /* La barre de défilement du menu, sur fond noir. Laissée au thème
+           clair elle dessine un rail blanc au milieu du rail noir. */
+        scrollbar-width:thin; scrollbar-color:#3a3a3a var(--barre); }
 aside .marque { display:block; padding:2px 18px 20px; font-size:14px; font-weight:600;
         letter-spacing:.02em; text-decoration:none; color:#e8e8e8; border-left:0; }
 aside .marque img { display:block; width:100%; max-width:132px; height:auto; }
