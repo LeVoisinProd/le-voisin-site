@@ -307,23 +307,29 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
 
 
 <div class="tw"><table>
-  <thead><tr><th>Projet</th><th>Type</th><th>Phase</th><th>Porteur</th>
-    <th class="d">Année</th><th class="d">Durée</th><th class="d">Budget</th><th class="d">Dates</th></tr></thead>
+  <?php /* L'ORDRE EST CELUI D'ANNA. [17.08.2026] « projet + porteur + type +
+       annee + duree + budget + dates + phase ». Il suit la façon dont on lit
+       une ligne à voix haute — quelle pièce, portée par qui, de quel genre —
+       et il finit par la phase, qui est le seul de ces champs qui change tout
+       seul avec le temps. */ ?>
+  <thead><tr><th>Projet</th><th>Porteur</th><th>Type</th>
+    <th class="d">Année</th><th class="d">Durée</th><th class="d">Budget</th>
+    <th class="d">Dates</th><th>Phase</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
     <tr class="<?= $r['status']==='former' ? 'passe' : '' ?>">
       <td><a href="/dashboard.php?e=projets&amp;p=<?= (int)$r['id'] ?>"><?=
         e($r['title_fr'] ?: $r['title_en']) ?></a>
         <?php if (!$r['visible']): ?><span class="np">non publié</span><?php endif; ?></td>
-      <td class="sec"><?= $r['types'] ? e((string)$r['types']) : '<span class="sec">—</span>' ?></td>
-      <td><?php if ($r['phase']): ?><span class="ph <?= e($r['phase']) ?>"><?=
-        e($PHASES[$r['phase']]) ?></span><?php else: ?><span class="sec">—</span><?php endif; ?></td>
       <td class="sec"><?= e($r['organisation'] ?? '') ?></td>
+      <td class="sec"><?= $r['types'] ? e((string)$r['types']) : '<span class="sec">—</span>' ?></td>
       <td class="d sec"><?= $r['year_creation'] ? (int)$r['year_creation'] : '' ?></td>
       <td class="d sec"><?= $r['duration_min'] ? (int)$r['duration_min'] . ' min' : '' ?></td>
       <td class="d"><?= $r['budget'] !== null
           ? number_format((float)$r['budget'], 0, ',', ' ') . ' ' . e($r['devise']) : '' ?></td>
       <td class="d"><?= $r['n_dates'] ? (int)$r['n_dates'] : '<span class="sec">0</span>' ?></td>
+      <td><?php if ($r['phase']): ?><span class="ph <?= e($r['phase']) ?>"><?=
+        e($PHASES[$r['phase']]) ?></span><?php else: ?><span class="sec">—</span><?php endif; ?></td>
     </tr>
   <?php endforeach; ?>
   </tbody>

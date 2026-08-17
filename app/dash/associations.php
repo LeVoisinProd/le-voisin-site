@@ -198,7 +198,10 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </form>
     <?php require __DIR__ . '/_assoc_grilles.php'; ?>
-    <style>.fil{padding:12px 26px 0;font-size:13px}.fil a{color:var(--doux);text-decoration:none}</style>
+    <style>
+/* Un tiret pâle plutôt qu'une cellule vide: une case vide se lit comme
+   « il n'y a rien à savoir », un tiret comme « ce n'est pas renseigné ». */
+.rien{color:var(--doux);opacity:.45}.fil{padding:12px 26px 0;font-size:13px}.fil a{color:var(--doux);text-decoration:none}</style>
     <?php dash_bas(); return;
 }
 
@@ -421,7 +424,16 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
        LA VILLE REMPLACE LE PAYS, avec le canton à côté. « Suisse » sur treize
        lignes sur quinze n'apprend rien; « Genève GE » situe l'association, et
        c'est le canton qui décide de l'impôt à la source. */ ?>
-  <thead><tr><th>Nom</th><th>Direction</th><th>Ville, canton</th>
+  <?php /* LE PAYS REPREND SA COLONNE. [17.08.2026] Anna: « nome + direction +
+       ville, canton + pays + discipline + statut ».
+
+       Il en était sorti le 16.08 avec l'argument que « Suisse » sur treize
+       lignes sur quinze n'apprend rien. L'argument ne tient plus: le carnet
+       porte maintenant le Brésil, le Portugal et la France, et c'est le pays
+       qui décide des obligations sociales et de l'attestation A1. Une colonne
+       muette quatorze fois sur dix-sept mérite quand même sa place quand les
+       trois autres fois changent le travail. */ ?>
+  <thead><tr><th>Nom</th><th>Direction</th><th>Ville, canton</th><th>Pays</th>
     <th>Discipline</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
@@ -433,17 +445,17 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
            dans la fiche, où il sert — sur un contrat. */ ?>
       <td><a href="/dashboard.php?e=associations&amp;o=<?= (int)$r['id'] ?>"><?= e($r['nom']) ?></a></td>
       <td class="sec"><?= e($r['direction'] ?? '') ?></td>
-      <?php /* Le pays ne suit que s'il n'est pas suisse: quinze lignes qui
-           répètent « Suisse » cachent les deux qui ne le sont pas. */ ?>
+      <?php /* Ville et canton dans la même cellule — ils se lisent ensemble,
+           « Genève GE » — et le pays dans la sienne, depuis le 17.08. */ ?>
       <td class="sec"><?php
         $lieu = trim((string)($r['ville'] ?? ''));
         if (($r['canton'] ?? '') !== '') $lieu = trim($lieu . ($lieu !== '' ? ' ' : '') . $r['canton']);
-        $pays = trim((string)($r['pays'] ?? ''));
-        $etr  = $pays !== '' && !in_array(mb_strtolower($pays), ['ch', 'suisse'], true);
-        echo e($lieu ?: ($etr ? $pays : ''));
-        if ($etr && $lieu !== '') echo '<div class="sec">' . e($pays) . '</div>';
+        echo $lieu !== '' ? e($lieu) : '<span class="rien">—</span>';
       ?></td>
-      <td class="sec"><?= e($r['discipline'] ?? '') ?></td>
+      <td class="sec"><?= ($r['pays'] ?? '') !== ''
+            ? e((string)$r['pays']) : '<span class="rien">—</span>' ?></td>
+      <td class="sec"><?= ($r['discipline'] ?? '') !== ''
+            ? e((string)$r['discipline']) : '<span class="rien">—</span>' ?></td>
       <td><span class="et s-<?= e($r['statut']) ?>"><?= e($STATUTS[$r['statut']] ?? '') ?></span></td>
     </tr>
   <?php endforeach; ?>

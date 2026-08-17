@@ -1509,7 +1509,12 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
          était la onzième et la moins lue: c'est le nom de qui paie, qu'on
          cherche sur la fiche au moment de facturer, jamais en balayant une
          liste. Elle prenait la largeur qui manquait à la date. */ ?>
-    <th class="c-venue">Venue</th><th>Performance name</th><th class="c-date">Date</th><th>Artist</th>
+    <?php /* LE SPECTACLE AVANT LE LIEU. [17.08.2026] Anna: « deixar primeiro a
+         coluna do nome do projet e depois a venue ». On cherche une date en
+         partant de la pièce — « où joue Bestiarium » — pas du lieu, dont il y a
+         quatre-vingt-six. Le modèle d'agence mettait Venue en tête parce qu'une
+         agence vend des salles; nous vendons des spectacles. */ ?>
+    <th>Performance name</th><th class="c-venue">Venue</th><th class="c-date">Date</th><th>Artist</th>
     <th class="c-h">Time</th><th class="d">Performance Fee</th><th class="c-pays">Country</th><th>City</th>
     <th>Status</th><th class="d">Booking Fee</th>
   </tr></thead>
@@ -1535,8 +1540,8 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
        `projet` est rempli sur les 51 dates, vérifié avant de basculer. */
     $nomEvt = trim((string)($r['projet'] ?? '')); ?>
     <tr>
-      <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$r['id'] ?>"><?= e($r['venue'] ?? '') ?></a></td>
-      <td class="sec"><?= e($nomEvt) ?></td>
+      <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$r['id'] ?>"><?= e($nomEvt) ?></a></td>
+      <td class="sec"><?= e($r['venue'] ?? '') ?></td>
       <td class="nb"><?= e($jour) ?></td>
       <td><?= e($r['artiste'] ?? '') ?></td>
       <td class="nb sec"><?= $r['heure'] && $r['heure'] !== '00:00:00'

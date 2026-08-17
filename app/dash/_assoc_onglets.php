@@ -58,7 +58,13 @@ declare(strict_types=1);
     ch('adresse', 'Adresse', $v('adresse'), $err, ['large'=>true]);
     ch('cp', 'Code postal', $v('cp'), $err, ['placeholder'=>'1205, 75009…']);
     ch('ville', 'Ville', $v('ville'), $err, ['placeholder'=>'Genève, Paris…']);
-    ch('canton', 'Canton', $v('canton'), $err);
+    /* « Canton / Région » et non « Canton »: le carnet porte maintenant le
+       Brésil, le Portugal et la France, où le mot n'existe pas. Un champ dont
+       le nom ne s'applique pas à la moitié des fiches reste vide sur cette
+       moitié — pas parce qu'on n'a pas l'information, parce qu'on ne sait pas
+       qu'elle va là. [17.08.2026] */
+    ch('canton', 'Canton / Région', $v('canton'), $err,
+       ['aide' => 'GE, VD, BE en Suisse · la région ou le département ailleurs']);
     ch('pays', 'Pays', $v('pays'), $err, ['aide'=>'Décide des obligations sociales et du A1']);
 
     echo '<div class="titre-bloc">Contact</div>';
