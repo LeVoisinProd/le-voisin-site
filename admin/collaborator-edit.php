@@ -399,14 +399,28 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
               <?php endforeach; ?>
             </select></div>
           <?php if ($assocChoix): ?>
-          <div class="f lv-volet" data-volet="contrat"><label class="f-label"><?= e(ta('ce_assoc')) ?></label>
+          <?php /* [17.08.2026] PLUS DE `lv-volet` SUR L'ASSOCIATION: elle vaut
+                   pour toutes les rubriques. Le menu la cachait dès qu'on
+                   choisissait autre chose qu'une pièce contractuelle, parce que
+                   le serveur l'effaçait pour le volet « projet ». Il ne l'efface
+                   plus: une feuille de route est émise par une association comme
+                   le reste, et son sigle doit être sur le fichier. */ ?>
+          <div class="f"><label class="f-label"><?= e(ta('ce_assoc')) ?></label>
             <select name="assoc"><option value="">—</option>
               <?php foreach ($assocChoix as $nom => $sig): ?><option value="<?= e($nom) ?>"><?= e($nom) ?><?= $sig !== '' ? ' (' . e($sig) . ')' : '' ?></option><?php endforeach; ?>
             </select>
             <p class="hint"><?= e(ta('ce_assoc_h')) ?></p></div>
           <?php endif; ?>
           <?php if ($projChoix): ?>
-          <div class="f lv-volet" data-volet="projet"><label class="f-label"><?= e(ta('ce_project')) ?></label>
+          <?php /* Le projet se montre pour le volet « projet » ET pour les
+                   rubriques qui peuvent nommer une production — facture,
+                   justificatif, reçu. Le menu ne regardait que le volet, si
+                   bien qu'en déposant une facture au nom du bureau le champ
+                   projet disparaissait alors que le serveur, lui, l'acceptait.
+                   Un formulaire qui cache ce que le serveur accepte fait
+                   perdre l'information sans le dire. [17.08.2026] */ ?>
+          <div class="f lv-volet" data-volet="projet"
+               data-aussi="<?= e((string)json_encode(MemberDocs::AVEC_PROJET)) ?>"><label class="f-label"><?= e(ta('ce_project')) ?></label>
             <select name="project_id"><option value="">—</option>
               <?php foreach ($projChoix as $pid => $ptitre): ?><option value="<?= (int)$pid ?>"><?= e($ptitre) ?></option><?php endforeach; ?>
             </select>
@@ -425,9 +439,13 @@ admin_top(ta('ce_head') . ' — ' . $c['name'], 'collab');
           try { map = JSON.parse(sel.getAttribute('data-volets') || '{}'); } catch (e) { return; }
           var cases = sel.form ? sel.form.querySelectorAll('.lv-volet') : [];
           function montrer() {
-            var v = map[sel.value] || 'contrat', i;
+            var v = map[sel.value] || 'contrat', i, c, aussi;
             for (i = 0; i < cases.length; i++) {
-              cases[i].hidden = (cases[i].getAttribute('data-volet') !== v);
+              c = cases[i];
+              aussi = [];
+              try { aussi = JSON.parse(c.getAttribute('data-aussi') || '[]'); } catch (e) {}
+              c.hidden = c.getAttribute('data-volet') !== v
+                         && aussi.indexOf(sel.value) === -1;
             }
           }
           sel.addEventListener('change', montrer);

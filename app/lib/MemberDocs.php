@@ -742,12 +742,23 @@ class MemberDocs
            production n'a pas d'association, un document contractuel n'a pas de
            projet. La règle est appliquée ici, une fois, plutôt que dans chaque
            formulaire — un envoi bricolé à la main ne peut pas la contourner. */
-        /* [V36-FACTURES] Une seule exception, et elle est nommée : la facture
-           appartient à une association ET peut concerner une production. Sans
-           cette ligne, le projet choisi par la personne serait effacé en
-           silence — le formulaire l'aurait demandé pour rien. */
-        if (self::volet($category) === 'projet')                  $assoc = '';
-        elseif (!in_array($category, self::AVEC_PROJET, true))    $projectId = null;
+        /* [17.08.2026] L'ASSOCIATION N'EST PLUS JAMAIS EFFACÉE. Anna: « no CMS,
+           na hora de upload de documentos, sempre deixar o campo de nome de
+           asso disponível; agora fica vazio para outros tipos de documentos ».
+
+           Jusqu'ici un document du volet « projet » — feuille de route, fiche
+           technique — perdait son association en silence, et le champ était
+           caché à la saisie pour cette raison. Or une feuille de route EST
+           émise par une association: c'est elle qui contracte, qui paie et dont
+           le sigle doit figurer sur le fichier. La cacher n'évitait pas une
+           question inutile, elle supprimait une réponse utile.
+
+           Le projet, lui, garde sa règle: il ne se garde que là où il veut dire
+           quelque chose — les documents du volet projet, et les trois pièces
+           comptables qui peuvent nommer une production. Ailleurs il serait un
+           rattachement inventé. */
+        if (self::volet($category) !== 'projet'
+            && !in_array($category, self::AVEC_PROJET, true)) $projectId = null;
 
         $source = $nomImpose !== '' ? $nomImpose : (string)$file['name'];
         $clean  = preg_replace('/[^A-Za-z0-9._-]+/', '-', $source) ?: ('document.' . $ext);
