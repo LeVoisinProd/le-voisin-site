@@ -100,6 +100,85 @@ class ProdFiche
         'communication' => 'communication', 'autre_d' => 'production',
     ];
 
+    /* ── LE CALCUL D'UN PRIX DE CESSION ─────────────────────── [17.08.2026]
+       Anna: « na parte devis temos que criar a logica que usamos para fazer com
+       bestiarium: saber quem viaja, a quantidade de dias, o preço de le voisin,
+       os custos de produção (que no bestiarium não tinha) e depois a margem ».
+
+       LA CHAÎNE N'EST PAS INVENTÉE ICI: elle est écrite dans
+       `_contexto/modele_donnees_documents.md` du dépôt de travail, corrigée par
+       Anna le 14 puis le 15.08.2026. Ce fichier ne fait que l'exécuter.
+
+       ET C'EST POUR ÇA QUE LES HUIT DEVIS DU BESTIARIUM NE LA SUIVENT PAS: ils
+       datent du 07.08, donc d'AVANT la correction. Ils portent deux grilles
+       contradictoires — l'une dégressive par jour, l'autre par représentation —
+       parce qu'elles ont été écrites à la main avant que la règle existe.
+
+       LES QUATRE CONSTANTES, ET D'OÙ ELLES VIENNENT. Elles ne s'inventent pas
+       et ne se changent pas sans changer la note du dépôt de travail avec. */
+
+    /** Un mois de salaire vaut vingt jours ouvrés. Diviseur du barème. */
+    public const DEVIS_DIVISEUR = 20;
+
+    /** Indemnité de vacances, en pourcentage du salaire de base. */
+    public const DEVIS_VACANCES = 8.33;
+
+    /** Charges patronales, en pourcentage du brut. */
+    public const DEVIS_PATRONALES = 19.0;
+
+    /**
+     * UN JOUR À DEUX REPRÉSENTATIONS VAUT UN JOUR ET DEMI DE SALAIRE, la
+     * deuxième représentation étant un service et non une seconde journée.
+     *
+     * Corrigé par Anna le 15.08.2026. La version de la veille comptait la
+     * deuxième gratuite, si bien que huit représentations en quatre jours
+     * sortaient au même prix que quatre — et personne ne l'aurait vu sur le
+     * devis fini, seulement sur la paie.
+     */
+    public const DEVIS_JOUR_DOUBLE = 1.5;
+
+    /**
+     * L'ADMINISTRATION N'EST PAS LE PRIX DU VOISIN, ET LES CONFONDRE COÛTE
+     * CHER. [précisé par Anna, 17.08.2026]
+     *
+     * « esse adm é meio dia de trabalho de uma pessoa de adm da chicoria que
+     * não é o Le Voisin ». La demi-journée d'administration du devis du
+     * Bestiarium est celle de quelqu'un de la GRAN CHICHORNIA — l'association
+     * qui porte la pièce. Le prix du Voisin, lui, ce sont les heures de
+     * diffusion, et rien d'autre.
+     *
+     * Les tenir séparés n'est pas une finesse comptable: « tem que deixar
+     * espaço para uma pessoa de administração se for o caso, será o caso de
+     * Improvável Produções que não fazemos a adm ». Sur Improvável, le Voisin
+     * ne fait pas l'administration. Une demi-journée cousue dans le prix du
+     * Voisin y facturerait un travail que personne ne fait de notre côté.
+     *
+     * D'où le modèle: l'administration est UNE LIGNE D'ÉQUIPE COMME UNE AUTRE,
+     * qu'on ajoute ou qu'on n'ajoute pas, avec son propre tarif. Ce qui la
+     * distingue de celles qui partent en tournée tient en un champ:
+     * `suit_jeu` — ses jours ne montent pas avec le nombre de représentations.
+     */
+
+    /**
+     * Les postes de coûts de production, fixes. [dictés par Anna, 17.08.2026]
+     *
+     * « pode colocar casas e os valores eu coloco caso a caso ». Des cases
+     * nommées plutôt qu'une liste libre: ce sont toujours les mêmes cinq, et
+     * une liste libre ferait écrire « costumes » ici et « Costumes » là, donc
+     * deux postes qui ne s'additionnent jamais.
+     *
+     * ELLES SONT VIDES SUR LE BESTIARIUM, et c'est le constat d'Anna elle-même
+     * — « que no bestiarium não tinha ». Le champ vide se voit et attend; c'est
+     * exactement ce qu'on lui demande.
+     */
+    public const DEVIS_PRODUCTION = [
+        'materiel_technique' => 'Matériel technique',
+        'consommables'       => 'Consommables',
+        'costumes'           => 'Costumes',
+        'maquillage'         => 'Maquillage',
+        'frais_production'   => 'Frais de production',
+    ];
+
     /** Les quatre volets de la logistique. */
     public const LOGI = [
         'voyages'     => 'Voyages',
@@ -134,6 +213,17 @@ class ProdFiche
             'production'    => '',
             'bio'           => '',
             'tournee'       => [],   // [{lieu, saison}] — les lieux déjà joués
+            /* Le calcul du prix de cession. Voir les constantes DEVIS_*. */
+            'devis'         => [
+                'equipe'        => [],     // [{nom, role, paie, jours_fixes, suit_jeu}]
+                'diffusion'     => ['heures' => '', 'taux' => '80'],
+                'production'    => [],     // les cinq postes de DEVIS_PRODUCTION
+                'marge'         => '10',
+                'repr_jour'     => '2',
+                'seuil'         => '10',
+                'tarif_semaine' => '',
+                'notes'         => '',
+            ],
             'statistiques'  => ['representations'=>'','spectateurs'=>'','recettes'=>'','villes'=>'','notes'=>''],
             'dossier'       => ['lettre'=>'','description'=>'','intention'=>'','calendrier'=>'',
                                 'publicCible'=>'','benefice'=>''],
@@ -336,6 +426,10 @@ class ProdFiche
                 if (!array_key_exists($parts[2], $permis)) return false;
             } elseif ($parts[0] === 'droits' && $parts[1] === 'ssa') {
                 if (!array_key_exists($parts[2], self::SSA_CHAMPS)) return false;
+            } elseif ($parts[0] === 'devis' && $parts[1] === 'production') {
+                if (!array_key_exists($parts[2], self::DEVIS_PRODUCTION)) return false;
+            } elseif ($parts[0] === 'devis' && $parts[1] === 'diffusion') {
+                if (!in_array($parts[2], ['heures', 'taux'], true)) return false;
             } else {
                 return false;
             }
@@ -516,6 +610,192 @@ class ProdFiche
     }
 
     /** La somme des parts de droits, qui doit faire 100. */
+    /**
+     * Un nombre saisi à la main. « 5 000 », « 5'000 », « 5000.50 » — les trois
+     * arrivent, et `(float)` sur le premier rend 5. Une paie lue à 5 au lieu de
+     * 5 000 ne se voit pas: elle rend un prix de cession plausible et faux.
+     */
+    private static function nb($v): float
+    {
+        $s = str_replace([' ', "'", "\u{202f}", "\u{a0}"], '', (string)$v);
+        $s = str_replace(',', '.', $s);
+        return is_numeric($s) ? (float)$s : 0.0;
+    }
+
+    /**
+     * LE PRIX DE CESSION POUR UN NOMBRE DE JOURS DE JEU. [17.08.2026]
+     *
+     * L'ordre est celui de la note du dépôt de travail, et il compte:
+     *
+     *     par personne   base       = (paie mensuelle ÷ 20) × jours travaillés
+     *                    vacances   = base × 8,33 %
+     *                    brut       = base + vacances
+     *                    patronales = brut × 19 %
+     *                    TTC        = brut + patronales
+     *
+     *     A  SALAIRES    = Σ des TTC              ← qui voyage, et l'admin
+     *     B  LE VOISIN   = heures de diffusion × taux
+     *     C  PRODUCTION  = Σ des cinq postes
+     *     CHARGES        = A + B + C
+     *     PRIX           = CHARGES × (1 + marge)
+     *
+     * `suit_jeu` DÉCIDE SI LES JOURS D'UNE PERSONNE MONTENT AVEC LA SÉRIE.
+     * Annina et la régie: oui — un jour de plus, c'est un jour de plus pour
+     * elles. L'administration: non — sa demi-journée est la même qu'on joue
+     * deux fois ou dix.
+     *
+     * LE VOISIN N'EST PAS DANS LES SALAIRES et n'y sera jamais: son temps se
+     * facture à l'heure, il ne se paie pas en cachet. Depuis le 14.08.2026 il
+     * est un COÛT DIRECT et non un prélèvement sur la marge — conséquence
+     * qu'Anna a assumée: les 10 % qui restent sont du résultat, et les céder en
+     * négociation ne réduit plus une provision, cela réduit le bénéfice.
+     *
+     * Le voyage, l'hébergement, les per diem et le transport du décor NE SONT
+     * PAS ICI: modèle « plus, plus, plus » du manuel Reso, hors prix de cession.
+     */
+    public static function devisCalcul(array $d, float $joursJeu, ?float $reprJour = null): array
+    {
+        $v = $d['devis'] ?? [];
+        $reprJour = $reprJour ?? self::nb($v['repr_jour'] ?? 2);
+        if ($reprJour <= 0) $reprJour = 1.0;
+
+        /* Un jour à deux représentations vaut 1,5 jour, la seconde étant un
+           service. Au delà de deux dans la journée on ne sait pas, et on ne
+           devine pas: le poids reste celui du jour double. */
+        $poids = $reprJour >= 2 ? self::DEVIS_JOUR_DOUBLE : 1.0;
+        $ponderes = $joursJeu * $poids;
+
+        $gens = [];
+        $salaires = 0.0;
+        $sansTarif = 0;
+
+        foreach ((array)($v['equipe'] ?? []) as $p) {
+            $paie  = self::nb($p['paie'] ?? 0);
+            $fixes = self::nb($p['jours_fixes'] ?? 0);
+            /* Le défaut est « suit le jeu »: c'est le cas de tout le monde sauf
+               l'administration, et un défaut qui se trompe dans le sens de
+               l'oubli produirait des salaires trop bas. */
+            $suit  = (string)($p['suit_jeu'] ?? '1') !== '0';
+            $jours = $fixes + ($suit ? $ponderes : 0);
+
+            $base = $paie / self::DEVIS_DIVISEUR * $jours;
+            $vac  = $base * self::DEVIS_VACANCES / 100;
+            $brut = $base + $vac;
+            $pat  = $brut * self::DEVIS_PATRONALES / 100;
+            $ttc  = $brut + $pat;
+
+            if ($paie <= 0) $sansTarif++;
+            $salaires += $ttc;
+            $gens[] = [
+                'nom' => (string)($p['nom'] ?? ''), 'role' => (string)($p['role'] ?? ''),
+                'paie' => $paie, 'jours' => $jours, 'suit' => $suit,
+                'base' => $base, 'vacances' => $vac, 'brut' => $brut,
+                'patronales' => $pat, 'ttc' => $ttc,
+            ];
+        }
+
+        $heures    = self::nb($v['diffusion']['heures'] ?? 0);
+        $taux      = self::nb($v['diffusion']['taux'] ?? 80);
+        $diffusion = $heures * $taux;
+
+        $prod = 0.0;
+        $postes = [];
+        foreach (self::DEVIS_PRODUCTION as $k => $lib) {
+            $m = self::nb($v['production'][$k] ?? 0);
+            $postes[$k] = $m;
+            $prod += $m;
+        }
+
+        $charges = $salaires + $diffusion + $prod;
+        $marge   = self::nb($v['marge'] ?? 10);
+        $prix    = $charges * (1 + $marge / 100);
+        $repr    = (int)round($joursJeu * $reprJour);
+
+        return [
+            'jours'      => $joursJeu,
+            'ponderes'   => $ponderes,
+            'repr'       => $repr,
+            'personnes'  => $gens,
+            'sans_tarif' => $sansTarif,
+            'salaires'   => $salaires,
+            'diffusion'  => $diffusion,
+            'heures'     => $heures,
+            'postes'     => $postes,
+            'production' => $prod,
+            'charges'    => $charges,
+            'taux_marge' => $marge,
+            'marge'      => $prix - $charges,
+            'prix'       => $prix,
+            'unitaire'   => $repr > 0 ? $prix / $repr : 0.0,
+        ];
+    }
+
+    /**
+     * LES VALEURS DE DÉPART, QUI SONT CELLES DU BESTIARIUM. [17.08.2026]
+     *
+     * Anna: « voce pode pegar os valores diarios iguais aos de bestiarium ».
+     * Elles sont relevées dans `Calcul_Devis_LeVoisin.xlsx`, onglet « Barèmes »,
+     * qui porte pour chacune sa source et sa date — ce qui est la seule raison
+     * de pouvoir les recopier ici sans les inventer:
+     *
+     *     5 000 CHF / mois ÷ 20 jours ouvrables = 250 CHF de base par jour
+     *     vacances 8,33 %          CCT SSRS (10,64 % au delà de 50 ans)
+     *     patronales 19 %          Anna, 14.08.2026, d'après son budget
+     *     marge 10 %               Anna, 14.08.2026 (le manuel Reso dit 20 %)
+     *     diffusion 80 CHF/h       Le Voisin, 4 h par date dans le modèle
+     *
+     * 250 CHF DE BASE EST EXACTEMENT LE PLANCHER LÉGAL — minimum CCT pour une
+     * représentation isolée. La feuille le dit en toutes lettres: « il n'y a
+     * rien à céder de ce côté ». Une négociation qui descend le salaire au lieu
+     * de la marge sort de la légalité, pas du confort.
+     *
+     * LA LIGNE ADMINISTRATION EST PROPOSÉE ET SE SUPPRIME. C'est la demi-
+     * journée de quelqu'un de l'association qui porte la pièce — la Gran
+     * Chichornia pour le Bestiarium — et sur Improvável Produções, où le Voisin
+     * ne fait pas l'administration, elle n'a rien à faire là.
+     */
+    public static function devisDefaut(): array
+    {
+        return [
+            'equipe' => [
+                ['id' => self::gid(), 'role' => 'Mise en scène / Jeu', 'nom' => '',
+                 'paie' => '5000', 'jours_fixes' => '2',   'suit_jeu' => '1'],
+                ['id' => self::gid(), 'role' => 'Technique', 'nom' => '',
+                 'paie' => '5000', 'jours_fixes' => '1',   'suit_jeu' => '1'],
+                ['id' => self::gid(), 'role' => 'Administration', 'nom' => '',
+                 'paie' => '5000', 'jours_fixes' => '0.5', 'suit_jeu' => '0'],
+            ],
+            'diffusion'     => ['heures' => '4', 'taux' => '80'],
+            'production'    => ['costumes' => '50'],
+            'marge'         => '10',
+            'repr_jour'     => '2',
+            'seuil'         => '10',
+            'tarif_semaine' => '',
+            'notes'         => '',
+        ];
+    }
+
+    /**
+     * La grille, du premier jour jusqu'au seuil. Au delà, la note du devis dit
+     * que la série relève d'un tarif à la semaine — décision d'Anna confirmée
+     * le 17.08.2026 — et la grille s'arrête donc au lieu de prolonger une
+     * dégressivité qui ne tient plus.
+     */
+    public static function devisGrille(array $d): array
+    {
+        $v     = $d['devis'] ?? [];
+        $repJ  = max(1.0, self::nb($v['repr_jour'] ?? 2));
+        $seuil = max(1.0, self::nb($v['seuil'] ?? 10));
+
+        $out = [];
+        for ($j = 1; $j <= 40; $j++) {
+            $c = self::devisCalcul($d, (float)$j, $repJ);
+            if ($c['repr'] > $seuil) break;
+            $out[] = $c;
+        }
+        return $out;
+    }
+
     public static function droitsTotal(array $d): float
     {
         $t = 0.0;

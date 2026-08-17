@@ -54,23 +54,29 @@ $taux = $tDem > 0 ? $tAcc / $tDem * 100 : 0.0;
 $fm = fn($v) => number_format((float)$v, 0, ',', ' ');
 ?>
 
-<div class="kpi">
-  <div class="k k-dem"><span class="kl">Demandé</span><span class="kv"><?= $fm($tDem) ?> CHF</span>
-    <span class="kn"><?= count($dem) ?> demande<?= count($dem) > 1 ? 's' : '' ?></span></div>
-  <div class="k k-acc"><span class="kl">Accordé</span><span class="kv"><?= $fm($tAcc) ?> CHF</span>
-    <span class="kn"><?= $nAcc ?> obtenue<?= $nAcc > 1 ? 's' : '' ?></span></div>
-  <div class="k k-tx"><span class="kl">Taux d'obtention</span>
-    <span class="kv"><?= number_format($taux, 0, ',', ' ') ?> %</span>
-    <span class="kn">sur ce qui est filtré</span></div>
-</div>
+<?php /* ── LES FILTRES AVANT LES CHIFFRES ───────────────────────── [17.08.2026]
+     Anna: « deixar os campos de pesquisa na mesma linha, agora está separado,
+     deixar em cima dos 3 cards de resumo ».
 
-<?php if ($enRetard): ?>
-  <div class="rap ecart"><strong><?= $enRetard ?></strong>
-    demande<?= $enRetard > 1 ? 's' : '' ?> dont le délai est passé et qui
-    <?= $enRetard > 1 ? 'sont' : 'est' ?> encore à préparer ou en cours.</div>
-<?php endif; ?>
-
-<form class="filtres" method="get" action="/dashboard.php">
+     ET CE N'EST PAS QU'UNE QUESTION D'ORDRE. Les trois cartes — demandé,
+     accordé, taux d'obtention — ne portent pas des totaux généraux: elles
+     comptent CE QUI EST FILTRÉ, et le disent en petit sous le taux. Placées
+     au-dessus du filtre, elles se lisaient comme le bilan de l'année alors
+     qu'elles pouvaient ne parler que d'une association. Le geste vient
+     d'abord, le résultat ensuite: c'est aussi l'ordre dans lequel on les lit. */ ?>
+<style>
+/* Les trois filtres sur UNE ligne. Sans contrainte, un `select` prend la
+   largeur de sa plus longue option — « Improvável Produções » — et les trois
+   ensemble passaient à la ligne. `min-width:0` est ce qui autorise un
+   flex-item à descendre sous sa largeur intrinsèque; sans lui, `max-width`
+   ne suffit pas. En dessous de 720 px on laisse revenir le retour à la ligne:
+   forcer une ligne sur un écran étroit fabrique un défilement horizontal. */
+form.filtres.fonds{flex-wrap:nowrap}
+form.filtres.fonds select{min-width:0;max-width:210px;text-overflow:ellipsis}
+form.filtres.fonds button,form.filtres.fonds .vider{white-space:nowrap}
+@media (max-width:720px){ form.filtres.fonds{flex-wrap:wrap} }
+</style>
+<form class="filtres fonds" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="finances">
   <input type="hidden" name="v" value="fonds">
   <select name="fa"><option value="">Toutes les assos</option>
@@ -90,6 +96,23 @@ $fm = fn($v) => number_format((float)$v, 0, ',', ' ');
     <a class="vider" href="/dashboard.php?e=finances&amp;v=fonds">tout voir</a>
   <?php endif; ?>
 </form>
+
+<div class="kpi">
+  <div class="k k-dem"><span class="kl">Demandé</span><span class="kv"><?= $fm($tDem) ?> CHF</span>
+    <span class="kn"><?= count($dem) ?> demande<?= count($dem) > 1 ? 's' : '' ?></span></div>
+  <div class="k k-acc"><span class="kl">Accordé</span><span class="kv"><?= $fm($tAcc) ?> CHF</span>
+    <span class="kn"><?= $nAcc ?> obtenue<?= $nAcc > 1 ? 's' : '' ?></span></div>
+  <div class="k k-tx"><span class="kl">Taux d'obtention</span>
+    <span class="kv"><?= number_format($taux, 0, ',', ' ') ?> %</span>
+    <span class="kn">sur ce qui est filtré</span></div>
+</div>
+
+<?php if ($enRetard): ?>
+  <div class="rap ecart"><strong><?= $enRetard ?></strong>
+    demande<?= $enRetard > 1 ? 's' : '' ?> dont le délai est passé et qui
+    <?= $enRetard > 1 ? 'sont' : 'est' ?> encore à préparer ou en cours.</div>
+<?php endif; ?>
+
 
 <?php if ($dem): ?>
   <div class="tw"><table>

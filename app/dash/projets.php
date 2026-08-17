@@ -93,6 +93,43 @@ if ($pcms > 0) {
             ProdFiche::retirer($pcms, (string)($_POST['ou'] ?? ''), (string)($_POST['ligne'] ?? ''));
             dash_flash('Ligne retirée.');
 
+        } elseif ($act === 'liste_modifier') {
+            /* [17.08.2026] Ajoutée pour l'équipe du devis, qui se corrige ligne
+               par ligne — un tarif, un nombre de jours. Sans elle il fallait
+               retirer et ressaisir, ce qu'on ne fait pas deux fois avant de
+               laisser tomber.
+
+               Le nom du champ n'est pas vérifié contre un modèle, à la
+               différence de `champs`: une ligne de liste n'a pas de forme
+               déclarée — un voyage, un poste de budget et une personne n'ont
+               pas les mêmes clefs. Ce qui borne l'écriture c'est `ou`, que
+               `ProdFiche::modifier` résout contre les listes existantes et qui
+               refuse tout chemin inconnu, plus le motif ci-dessous qui écarte
+               les noms de champ fabriqués. */
+            $n = 0;
+            foreach ((array)($_POST['l'] ?? []) as $champ => $val) {
+                if (!preg_match('/^[a-z_]{1,24}$/', (string)$champ)) continue;
+                ProdFiche::modifier($pcms, (string)($_POST['ou'] ?? ''),
+                                    (string)($_POST['ligne'] ?? ''),
+                                    (string)$champ, mb_substr(trim((string)$val), 0, 500));
+                $n++;
+            }
+            dash_flash($n ? 'Ligne enregistrée.' : 'Rien à enregistrer.');
+
+        } elseif ($act === 'devis_defauts') {
+            /* Remplit le bloc devis avec les valeurs du Bestiarium — Anna:
+               « voce pode pegar os valores diarios iguais aos de bestiarium ».
+               N'ÉCRASE RIEN: si une équipe est déjà saisie on ne la remplace
+               pas, on le dit. Le geste est fait pour une fiche vide. */
+            $d = ProdFiche::donnees($pcms);
+            if (!empty($d['devis']['equipe'])) {
+                dash_flash('Cette fiche porte déjà une équipe de devis: rien n\'a été touché.', 'err');
+            } else {
+                $d['devis'] = ProdFiche::devisDefaut();
+                ProdFiche::ecrire($pcms, $d);
+                dash_flash('Valeurs du Bestiarium reprises. À ajuster ligne par ligne.');
+            }
+
         } elseif ($act === 'jour') {
             ProdFiche::jour($pcms, (string)($_POST['jour'] ?? ''));
 

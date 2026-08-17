@@ -96,9 +96,37 @@ $parType = DB::all(
       WHERE b.supprime_le IS NULL AND b.date_debut >= ? AND b.date_debut < ?
       GROUP BY d.type, d.charge ORDER BY SUM(d.montant) DESC", [$debut, $fin]);
 
-$TY = ['cachet'=>'cachet','frais_booking'=>'frais de booking','voyage'=>'voyage',
-       'hebergement'=>'hébergement','per_diem'=>'per diem','droits'=>'droits',
+$TY = ['cachet'=>'cachet','frais_booking'=>'frais Le Voisin','voyage'=>'voyage',
+       'hebergement'=>'hébergement','per_diem'=>'per diem','repas'=>'repas',
+       'transport'=>'transport du décor', 'droits'=>'droits',
        'materiel'=>'matériel','catering'=>'catering','marge'=>'marge','autre'=>'autre'];
+
+/* ── LES QUATRE COLONNES DE SYNTHÈSE ──────────────────────────── [17.08.2026]
+   Anna: « Frais booking para Frais LV, Voyage para Frais Annexes (que
+   contabilisa voyages, repas, transport decor, hebergement), Autres por frais
+   de prod ».
+
+   « FRAIS BOOKING » DEVIENT « FRAIS LV » PARCE QUE C'EST NOTRE REVENU et non
+   une dépense de tournée. Rangé au milieu de frais qu'on avance pour un lieu,
+   il se lisait comme un coût de plus — alors que c'est la seule ligne du
+   tableau qui rentre chez nous.
+
+   « VOYAGE » DEVENAIT FAUX DÈS LA DEUXIÈME LIGNE: hébergement, repas et
+   transport du décor tombaient dans « Autres », donc la colonne des frais
+   annexes ne montrait qu'un quart des frais annexes, et « Autres » gonflait
+   sans qu'on sache de quoi. Ce sont les quatre postes du modèle « plus, plus,
+   plus » du manuel Reso — ceux qui sortent du prix de cession et se négocient
+   date par date — et ils se lisent ensemble ou pas du tout.
+
+   RESTE « FRAIS DE PROD », qui porte ce qui est vraiment de la production:
+   matériel, droits d'auteur, le reste. Un fourre-tout nommé « Autres » n'invite
+   personne à regarder dedans; nommé, il se corrige.
+
+   `transport` N'EXISTAIT PAS et c'est ajouté ici: le transport du décor tombait
+   dans `materiel`, qui est la matière et non son camion. `deal_item` est vide
+   en production — mesuré le 17.08 — donc le regroupement ne déplace aucune
+   ligne déjà saisie. */
+const FIN_ANNEXES = ['voyage', 'hebergement', 'per_diem', 'repas', 'catering', 'transport'];
 $CG = ['incluse'=>'incluse','lieu'=>'charge du lieu','nous'=>'à notre charge'];
 $ETIQ = ['option'=>'option','confirmed'=>'confirmé','canceled'=>'annulé','pending'=>'en attente'];
 
@@ -159,8 +187,9 @@ $releve = DB::all(
             b.prix_cession, b.devise, b.statut, b.encaissement, b.versement,
             COALESCE(SUM(CASE WHEN d.type='cachet'        THEN d.montant END),0) cachet,
             COALESCE(SUM(CASE WHEN d.type='frais_booking' THEN d.montant END),0) booking,
-            COALESCE(SUM(CASE WHEN d.type='voyage'        THEN d.montant END),0) voyage,
-            COALESCE(SUM(CASE WHEN d.type NOT IN ('cachet','frais_booking','voyage')
+            COALESCE(SUM(CASE WHEN d.type IN ('voyage','hebergement','per_diem','repas','catering','transport')
+                              THEN d.montant END),0) voyage,
+            COALESCE(SUM(CASE WHEN d.type NOT IN ('cachet','frais_booking','voyage','hebergement','per_diem','repas','catering','transport')
                               THEN d.montant END),0) autres,
             COALESCE(SUM(CASE WHEN d.charge='nous' THEN d.montant END),0) a_nous,
             COUNT(d.id) n_lignes
@@ -226,8 +255,8 @@ if ($vue === 'releve' && ($_GET['imprimer'] ?? '') === '1'):
 <table>
   <thead><tr>
     <th>Date</th><th>Projet</th><th>Lieu</th>
-    <th class="d">Cachets</th><th class="d">Frais booking</th><th class="d">Voyage</th>
-    <th class="d">Autres</th><th class="d">À notre charge</th>
+    <th class="d">Cachets</th><th class="d">Frais LV</th><th class="d">Frais annexes</th>
+    <th class="d">Frais de prod</th><th class="d">À notre charge</th>
     <th class="d">Prix de cession</th><th>Encaissement</th><th>Versement</th>
   </tr></thead>
   <tbody>
@@ -312,8 +341,8 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
   <div class="tw"><table class="rel">
     <thead><tr>
       <th>Date</th><th>Projet</th><th>Lieu</th>
-      <th class="d">Cachets</th><th class="d">Frais booking</th><th class="d">Voyage</th>
-      <th class="d">Autres</th><th class="d">À notre charge</th>
+      <th class="d">Cachets</th><th class="d">Frais LV</th><th class="d">Frais annexes</th>
+      <th class="d">Frais de prod</th><th class="d">À notre charge</th>
       <th class="d">Prix de cession</th><th>Encaissement</th><th>Versement</th>
     </tr></thead>
     <tbody>
