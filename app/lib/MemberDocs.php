@@ -272,6 +272,22 @@ class MemberDocs
      * l'espace, aucun nom de fichier modifié. Installer les fichiers avant de
      * mettre la base à jour ne casse donc rien — cela ne fait rien.
      */
+    /* [17.08.2026] Même garde que pour `assoc`, et pour la même raison: les
+       fichiers peuvent être installés avant que la migration soit passée, et un
+       dépôt de facture ne doit pas tomber en panne entre les deux. */
+    private static ?bool $colProjLibre = null;
+    public static function colonneProjetLibre(): bool
+    {
+        if (self::$colProjLibre === null) {
+            try {
+                self::$colProjLibre = (bool)DB::one("SHOW COLUMNS FROM `member_documents` LIKE 'projet_libre'");
+            } catch (\Throwable $e) {
+                self::$colProjLibre = false;
+            }
+        }
+        return self::$colProjLibre;
+    }
+
     public static function colonneAssoc(): bool
     {
         if (self::$colAssoc === null) {
@@ -695,7 +711,7 @@ class MemberDocs
      *                           par le déposant ; le sigle lui est ajouté
      *                           ensuite, comme aux autres.
      */
-    public static function upload(array $file, int $collaboratorId, string $category, ?int $projectId, bool $needsSignature, string $assoc = '', string $par = 'admin', string $nomImpose = ''): array
+    public static function upload(array $file, int $collaboratorId, string $category, ?int $projectId, bool $needsSignature, string $assoc = '', string $par = 'admin', string $nomImpose = '', string $projetLibre = ''): array
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
             throw new RuntimeException(tu('sys_upload_err'));
@@ -753,6 +769,8 @@ class MemberDocs
            fichiers peuvent être installés avant la mise à jour de la base, et
            un dépôt de document ne doit pas tomber en panne entre les deux. */
         if (self::colonneAssoc()) $ligne['assoc'] = mb_substr($assoc, 0, 120);
+        if (self::colonneProjetLibre() && trim($projetLibre) !== '')
+            $ligne['projet_libre'] = mb_substr(trim($projetLibre), 0, 190);
         /* [V36-FACTURES] Une facture déposée par la personne est ENVOYÉE dès
            qu'elle arrive : le dépôt EST l'envoi, il n'y a pas de bouton à
            cliquer ensuite pour dire ce qu'on vient de faire. Tout le reste

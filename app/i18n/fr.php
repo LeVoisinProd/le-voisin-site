@@ -219,6 +219,13 @@ return [
     'member_depot_mois'  => 'Pour quel mois ?',
     'member_depot_projet' => 'Pour quel projet ?',
     'member_depot_sans_projet' => 'Aucun projet en particulier',
+    /* [17.08.2026] « Autre », parce que le menu ne connaît que les spectacles
+       en cours. Anna: « as vezes as pessoas fazem trabalhos de outras naturezas
+       que nao estao ligadas a projetos que ja estao acontecendo. ou
+       administrativos ». */
+    'member_depot_autre' => 'Autre — précisez',
+    'member_depot_autre_ph' => 'Administratif, répétitions, travail ponctuel…',
+    'member_depot_autre_i' => 'Si votre travail ne correspond à aucun projet de la liste, ou s\'il s\'agit d\'administration, écrivez-le ici. Cela évite au bureau d\'ouvrir la pièce pour le savoir.',
     'member_depot_fichier' => 'Votre facture',
     'member_depot_genre'  => 'De quoi s’agit-il ?',
     'member_depot_montant'    => 'Montant',

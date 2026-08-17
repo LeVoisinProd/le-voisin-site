@@ -258,7 +258,10 @@ function espace_doc_statut(array $d): string
  *
  * @param array<int, array<string, mixed>> $docs
  */
-function espace_liste_docs(array $docs): string
+/* `$avecAsso` traverse le wrapper: seul l'appelant sait si un titre de section
+   porte déjà l'association. Le volet des paiements est le seul qui n'en a
+   pas. [17.08.2026] */
+function espace_liste_docs(array $docs, bool $avecAsso = false): string
 {
     if (!$docs) return '';
 
@@ -277,7 +280,7 @@ function espace_liste_docs(array $docs): string
         usort($lot, static fn($a, $b) => strcmp(
             (string)($b['created_at'] ?? ''), (string)($a['created_at'] ?? '')));
         $out .= '<h4 class="mdoc-cat">' . e(MemberDocs::catLabel($cat, I18n::$lang)) . '</h4>';
-        $out .= $cat === 'payslip' ? espace_docs_par_annee($lot) : espace_liste_docs_brut($lot, false);
+        $out .= $cat === 'payslip' ? espace_docs_par_annee($lot) : espace_liste_docs_brut($lot, false, $avecAsso);
     }
     return $out;
 }
@@ -312,7 +315,7 @@ function espace_docs_par_annee(array $docs): string
 }
 
 /** Le rendu d'une liste, sans titre ni regroupement. */
-function espace_liste_docs_brut(array $docs, bool $avecRubrique = true): string
+function espace_liste_docs_brut(array $docs, bool $avecRubrique = true, bool $avecAsso = false): string
 {
     if (!$docs) return '';
     ob_start();
@@ -323,13 +326,26 @@ function espace_liste_docs_brut(array $docs, bool $avecRubrique = true): string
       <div class="mdoc-main">
         <span class="mdoc-title"><?= e($d['title'] ?: $d['filename']) ?></span>
         <?php /* [V34-ONGLETS] Ce qu'on lit sous le nom : la rubrique, puis le
-                 format, le poids et la date de dépôt. Ni l'association ni le
-                 projet — ils sont écrits en titre juste au-dessus, les répéter
-                 ici n'apprend rien et, quand le rangement change, finit par les
-                 contredire. La date sert à distinguer deux fiches de salaire
-                 dont le nom, par construction, se ressemble. */ ?>
+                 format, le poids et la date de dépôt. La date sert à distinguer
+                 deux fiches de salaire dont le nom, par construction, se
+                 ressemble.
+
+                 [17.08.2026] L'ASSOCIATION S'AJOUTE, ET SEULEMENT ICI. Anna:
+                 « na parte Mes paiements et remboursements, adicionar o nome da
+                 asso ». Les contrats sont groupés par association et les
+                 documents par projet — le titre de section le dit déjà, et le
+                 répéter sur chaque ligne finirait par le contredire le jour où
+                 le rangement change. Mais LES PAIEMENTS NE SONT GROUPÉS PAR
+                 RIEN: c'est une liste à plat, sans titre au-dessus, et
+                 l'association n'y figurait nulle part. Une facture qu'on ne sait
+                 pas rattacher est une facture qu'on rouvre.
+
+                 Le projet libre suit la même règle: il ne s'affiche que là où
+                 aucun titre ne le porte. */ ?>
         <span class="mdoc-meta"><?= e(implode(' · ', array_filter([
             $avecRubrique ? MemberDocs::catLabel((string)$d['category'], I18n::$lang) : '',
+            $avecAsso ? trim((string)($d['assoc'] ?? '')) : '',
+            $avecAsso ? trim((string)($d['projet_libre'] ?? '')) : '',
             strtoupper((string)$d['ext']),
             Docs::human((int)$d['size']),
             Dates::afficher((string)($d['created_at'] ?? '')),

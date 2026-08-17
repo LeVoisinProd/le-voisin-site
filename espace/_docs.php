@@ -190,6 +190,10 @@ function espace_docs_depot(array $m, string $retour): void
     $projets = MemberDocs::projetChoix(I18n::$lang);
     $projet  = isset($projets[$projet]) ? $projet : 0;
 
+    /* [17.08.2026] Et ce que le menu ne sait pas dire. Il complète le projet
+       choisi, il ne le remplace pas: les deux se rangent ensemble. */
+    $projetLibre = mb_substr(trim((string)($_POST['projet_libre'] ?? '')), 0, 190);
+
     /* [13.08.2026] La personne dit ce qu'elle dépose. Le site écrivait
        « facture » pour tout, y compris pour un justificatif de dépense, et le
        bureau devait ouvrir le PDF pour le savoir. Le genre se décide ICI, avant
@@ -228,7 +232,7 @@ function espace_docs_depot(array $m, string $retour): void
 
     try {
         $doc = MemberDocs::upload($fichier, (int)$m['id'], $genre,
-                                  $projet ?: null, false, $assoc, 'member', $nom);
+                                  $projet ?: null, false, $assoc, 'member', $nom, $projetLibre);
     } catch (Throwable $e) {
         espace_flash('err', $e->getMessage());
         redirect($retour);
@@ -367,6 +371,29 @@ function espace_facture_form(array $m): string
           </select>
         </div>
         <?php endif; ?>
+        <?php /* ── « AUTRE », ET LA PERSONNE ÉCRIT ────────────────── [17.08.2026]
+                 Anna: « as vezes as pessoas fazem trabalhos de outras naturezas
+                 que nao estao ligadas a projetos que ja estao acontecendo. ou
+                 administrativos ».
+
+                 Le menu n'avait que deux réponses et il en manquait une. « Aucun
+                 projet » rangeait dans le même tas une facture d'administration,
+                 une répétition pour une création pas encore au site, et un
+                 travail ponctuel — et le bureau rouvrait le PDF pour savoir.
+
+                 LE CHAMP EST TOUJOURS VISIBLE, PAS RÉVÉLÉ PAR LE MENU. L'espace
+                 fonctionne sans JavaScript — c'est une règle de cette maison — et
+                 un champ qui n'apparaît qu'au clic n'existe pas pour qui a le JS
+                 coupé. Toujours là, jamais obligatoire: on le remplit quand le
+                 menu ne dit pas ce qu'on veut dire, et il complète le projet
+                 choisi au lieu de le remplacer — « Bestiarium, résidence de
+                 novembre » est une réponse. */ ?>
+        <div class="field">
+          <label for="depot-autre"><?= e(t('member_depot_autre')) ?></label>
+          <input type="text" id="depot-autre" name="projet_libre" maxlength="190"
+                 placeholder="<?= e(t('member_depot_autre_ph')) ?>">
+          <p class="field-aide"><?= e(t('member_depot_autre_i')) ?></p>
+        </div>
         <?php /* [13.08.2026] Ce qu'on dépose, dit par qui le dépose. Deux
                  réponses seulement, et la première est celle de la plupart des
                  dépôts : on ne fait pas choisir entre huit rubriques quelqu'un

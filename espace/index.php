@@ -202,7 +202,7 @@ $depart = ($infos['saved'] || $infos['errors']) ? ' data-depart="partie-infos"' 
   <?php if (!$parVolet['paiement']): ?>
   <div class="espace-empty"><p><?= e(t('member_no_paiement')) ?></p></div>
   <?php else: ?>
-  <?= espace_liste_docs($ordonner($parVolet['paiement'], 'paiement')) ?>
+  <?= espace_liste_docs($ordonner($parVolet['paiement'], 'paiement'), true) ?>
   <?php endif; ?>
 </section>
 
