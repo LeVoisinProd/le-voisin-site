@@ -293,8 +293,9 @@ $taches = DB::all(
       WHERE t.periode = ?
       ORDER BY m.categorie, m.ordre, o.nom", [$periode]);
 
-$parCat = [];
-foreach ($taches as $t) $parCat[$t['categorie'] ?? 'autre'][] = $t;
+/* Le rôle décide aussi de l'affichage: en lecture seule les cases se lisent
+   mais ne se cliquent pas, plutôt que de proposer un bouton qui répondrait 403. */
+$peutEcrire = dash_droit('administration', dash_role()) === 'ecrit';
 
 $reste = count(array_filter($taches, fn($t) => $t['etat'] === 'a_faire'));
 $fait  = count(array_filter($taches, fn($t) => $t['etat'] === 'fait'));
@@ -340,37 +341,122 @@ dash_haut('administration', $taches
     </form>
   </div>
 <?php else: ?>
-  <div class="zone">
-  <?php foreach ($parCat as $cat => $rows): ?>
-    <h3 class="sect"><?= e($CATS[$cat] ?? $cat) ?>
-      <span class="n"><?= count(array_filter($rows, fn($r) => $r['etat']==='fait')) ?>/<?= count($rows) ?></span></h3>
-    <div class="tw"><table>
-      <tbody>
-      <?php foreach ($rows as $t):
-          $enRetard = $t['echeance'] && $t['etat'] === 'a_faire' && $t['echeance'] < date('Y-m-d'); ?>
-        <tr class="<?= $t['etat'] === 'fait' ? 'ok' : ($enRetard ? 'tard' : '') ?>">
-          <td class="terr"><?php if ($t['territoire']): ?><span class="tg"><?= e($t['territoire']) ?></span><?php endif; ?></td>
-          <td><?= e($t['m_libelle'] ?: $t['libelle'] ?: '') ?></td>
-          <td class="sec"><?= e($t['org'] ?? '') ?></td>
-          <td class="sec d"><?php if ($t['echeance']): ?><?= e(substr((string)$t['echeance'], 8, 2)) ?><?php endif; ?></td>
-          <td class="d">
-            <form method="post" action="/dashboard.php?e=administration&amp;m=<?= e($periode) ?>" class="inline">
+  <?php /* ── UNE GRILLE, PAS UNE LISTE ───────────────────────────── [17.08.2026]
+       Anna: « essa parte le mois com a lista nao ajuda a nada, ela é enorme e
+       nao é legivel ». Elle avait raison et le compte le dit: 94 lignes
+       empilées pour 13 associations et 8 obligations. Une liste de 94 lignes
+       ne répond pas à la question qu'on se pose en ouvrant cet écran, qui
+       n'est jamais « quelle est la 47e ligne » mais « QUI n'a pas encore fait
+       QUOI ». Cette question-là est un croisement, et un croisement se lit
+       dans un tableau à deux entrées, pas dans une colonne.
+
+       LES CASES SE CLIQUENT, ET C'EST DÉJÀ SON VOCABULAIRE: la fiche
+       d'association dit « cliquez sur une case pour changer le statut ». Un
+       clic fait tourner l'état — à faire, en cours, fait, sans objet — au lieu
+       d'ouvrir un menu déroulant, ce qui faisait trois gestes par ligne et 282
+       gestes pour un mois.
+
+       UNE CASE VIDE N'EST PAS UN OUBLI: elle veut dire que cette obligation ne
+       concerne pas cette association. Une association bernoise n'a pas
+       d'impôt à la source genevois, et le tiret le dit mieux qu'une absence. */ ?>
+
+  <?php
+  /* Les colonnes: les modèles réellement présents ce mois-ci, dans l'ordre du
+     formulaire. On ne liste pas les seize modèles: ceux que personne n'a ce
+     mois feraient des colonnes entièrement vides. */
+  $cols = [];
+  $cell = [];
+  $orgs = [];
+  foreach ($taches as $t) {
+      $mid = (int)$t['modele_id'];
+      $oid = (int)$t['organisation_id'];
+      $cols[$mid] ??= ['libelle' => (string)($t['m_libelle'] ?: $t['libelle']),
+                       'terr' => (string)$t['territoire'], 'cat' => (string)$t['categorie'],
+                       'jour' => $t['jour_echeance']];
+      $orgs[$oid] ??= (string)($t['org'] ?? '—');
+      $cell[$oid][$mid] = $t;
+  }
+  asort($orgs, SORT_NATURAL | SORT_FLAG_CASE);
+
+  /* Le suivant dans le cycle. « sans objet » revient à « à faire »: on doit
+     pouvoir se déjuger d'un clic, comme on s'est jugé d'un clic. */
+  $SUIVANT = ['a_faire'=>'en_cours', 'en_cours'=>'fait', 'fait'=>'sans_objet', 'sans_objet'=>'a_faire'];
+  /* « À faire » porte un signe et non le vide. Une case vide et une case sans
+     objet se ressemblent trop de loin, et c'est précisément la distinction qui
+     compte: l'une attend un geste, l'autre non. Le cercle ouvert se ferme en
+     coche, ce qui rend le cycle lisible sans la légende. */
+  $SIGNE   = ['a_faire'=>'○', 'en_cours'=>'···', 'fait'=>'✓', 'sans_objet'=>'—'];
+  $auj     = date('Y-m-d');
+  ?>
+
+  <div class="tw grille-adm">
+  <table class="mat">
+    <thead>
+      <tr>
+        <th class="coin">Association</th>
+        <?php foreach ($cols as $mid => $c): ?>
+          <th class="mc" title="<?= e($c['libelle']) ?><?= $c['jour'] ? ' — le ' . (int)$c['jour'] : '' ?>">
+            <span class="lib"><?= e($c['libelle']) ?></span>
+            <?php if ($c['terr']): ?><span class="tg"><?= e($c['terr']) ?></span><?php endif; ?>
+            <?php if ($c['jour']): ?><span class="jr">le <?= (int)$c['jour'] ?></span><?php endif; ?>
+          </th>
+        <?php endforeach; ?>
+        <th class="tot">reste</th>
+      </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($orgs as $oid => $nom): $reste_o = 0; ?>
+      <tr>
+        <th class="org"><a href="/dashboard.php?e=associations&amp;o=<?= (int)$oid ?>&amp;mod=1"><?= e($nom) ?></a></th>
+        <?php foreach ($cols as $mid => $c):
+            $t = $cell[$oid][$mid] ?? null;
+            if (!$t): ?>
+              <td class="c vide" title="ne concerne pas cette association">·</td>
+            <?php continue; endif;
+            $etat = (string)$t['etat'];
+            if ($etat === 'a_faire') $reste_o++;
+            $tard = $t['echeance'] && $etat === 'a_faire' && $t['echeance'] < $auj; ?>
+          <td class="c e-<?= e($etat) ?><?= $tard ? ' tard' : '' ?>">
+            <?php if ($peutEcrire): ?>
+            <form method="post" action="/dashboard.php?e=administration&amp;m=<?= e($periode) ?>">
               <?= Auth::csrfField() ?>
               <input type="hidden" name="action" value="etat">
               <input type="hidden" name="id" value="<?= (int)$t['id'] ?>">
-              <select name="etat" onchange="this.form.submit()">
-                <?php foreach ($ETATS as $k => $v): ?>
-                  <option value="<?= $k ?>"<?= $t['etat'] === $k ? ' selected' : '' ?>><?= e($v) ?></option>
-                <?php endforeach; ?>
-              </select>
+              <input type="hidden" name="etat" value="<?= $SUIVANT[$etat] ?>">
+              <button type="submit" title="<?= e($ETATS[$etat] ?? $etat) ?><?= $tard ? ' — délai passé' : '' ?>"><?=
+                $SIGNE[$etat] ?></button>
             </form>
+            <?php else: ?><span title="<?= e($ETATS[$etat] ?? $etat) ?>"><?= $SIGNE[$etat] ?></span><?php endif; ?>
           </td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table></div>
-  <?php endforeach; ?>
+        <?php endforeach; ?>
+        <td class="tot<?= $reste_o ? '' : ' zero' ?>"><?= $reste_o ?: '✓' ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th class="org">reste</th>
+        <?php foreach ($cols as $mid => $c):
+            $n = 0;
+            foreach ($orgs as $oid => $_) if ((($cell[$oid][$mid] ?? null)['etat'] ?? '') === 'a_faire') $n++; ?>
+          <td class="tot<?= $n ? '' : ' zero' ?>"><?= $n ?: '✓' ?></td>
+        <?php endforeach; ?>
+        <td class="tot"><?= $reste ?></td>
+      </tr>
+    </tfoot>
+  </table>
+  </div>
 
+  <p class="leg"><span class="k e-a_faire">○</span> à faire ·
+     <span class="k e-en_cours">···</span> en cours ·
+     <span class="k e-fait">✓</span> fait ·
+     <span class="k e-sans_objet">—</span> sans objet ·
+     <span class="k tard">○</span> délai passé ·
+     <span class="k vide">·</span> ne concerne pas cette association.
+     Un clic fait tourner l'état. Le nom de l'association ouvre sa fiche, où vivent
+     les déclarations trimestrielles et les comptes cantonaux.</p>
+
+  <div class="zone">
   <form method="post" action="/dashboard.php?e=administration&amp;m=<?= e($periode) ?>" class="regen">
     <?= Auth::csrfField() ?>
     <input type="hidden" name="action" value="generer">
@@ -385,16 +471,46 @@ dash_haut('administration', $taches
 .onglets a{padding:8px 15px;font-size:13.5px;text-decoration:none;
   border-bottom:3px solid transparent;color:var(--doux)}
 .onglets a.ici{color:var(--encre);border-bottom-color:var(--jaune);font-weight:600}
-h3.sect{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
-  margin:26px 0 6px;border-bottom:1px solid var(--trait);padding-bottom:5px}
-h3.sect .n{float:right;font-weight:400;text-transform:none}
-td.terr{width:44px}
-.tg{font-size:10.5px;border:1px solid var(--trait);border-radius:3px;padding:1px 5px;color:var(--doux)}
-td.d{text-align:right}
-td.d select{font-size:12.5px;padding:3px 6px}
-tr.ok td{opacity:.5}
-tr.tard td:nth-child(2){color:var(--orange);font-weight:600}
-form.inline{display:inline}
+/* La matrice. Les colonnes sont étroites exprès: on y lit un signe, pas un
+   texte, et c'est ce qui permet de tenir treize associations et huit
+   obligations dans un écran. L'en-tête porte le nom en entier, tourné. */
+.grille-adm{padding:0 26px}
+table.mat{width:auto;border-collapse:separate;border-spacing:0}
+table.mat th.coin{text-align:left;vertical-align:bottom;min-width:190px}
+table.mat th.mc{width:62px;padding:6px 3px;vertical-align:bottom;background:var(--fond2);
+  border-bottom:1px solid var(--trait)}
+table.mat th.mc .lib{display:block;font-size:10px;line-height:1.25;font-weight:600;
+  text-transform:none;letter-spacing:0;color:var(--encre);
+  overflow-wrap:anywhere;hyphens:auto}
+table.mat th.mc .tg{display:inline-block;margin-top:3px;font-size:9.5px;border:1px solid var(--trait);
+  border-radius:3px;padding:0 4px;color:var(--doux);background:var(--papier)}
+table.mat th.mc .jr{display:block;font-size:9.5px;color:var(--doux);font-weight:400}
+table.mat th.org{text-align:left;font-weight:600;font-size:13px;white-space:nowrap;
+  padding:5px 12px 5px 0;background:var(--papier);text-transform:none;letter-spacing:0}
+table.mat th.org a{text-decoration:none}
+table.mat th.org a:hover{text-decoration:underline}
+table.mat td.c{padding:2px;text-align:center;border:1px solid var(--trait)}
+table.mat td.c form{margin:0}
+table.mat td.c button,table.mat td.c span{display:block;width:100%;min-height:26px;border:0;
+  background:none;font-family:inherit;font-size:13px;cursor:pointer;color:inherit;padding:0}
+table.mat td.c span{cursor:default}
+table.mat td.c.e-fait{background:#e8f6ec;color:#1c6b32}
+table.mat td.c.e-en_cours{background:#fff6d9}
+table.mat td.c.e-sans_objet{background:var(--fond2);color:var(--doux)}
+table.mat td.c.tard{background:var(--orange);color:#fff}
+table.mat td.c.vide{border-color:transparent;color:var(--trait);cursor:default}
+table.mat td.tot,table.mat th.tot{text-align:center;font-size:12px;color:var(--doux);
+  font-variant-numeric:tabular-nums;padding:4px 8px}
+table.mat td.tot.zero{color:#1c6b32}
+table.mat tfoot td.tot{border-top:2px solid var(--trait);font-weight:600}
+.leg{padding:12px 26px 0;font-size:12.5px;color:var(--doux);max-width:900px}
+.leg .k{display:inline-block;min-width:20px;text-align:center;border:1px solid var(--trait);
+  border-radius:3px;margin-right:2px}
+.leg .k.e-fait{background:#e8f6ec;color:#1c6b32}
+.leg .k.e-en_cours{background:#fff6d9}
+.leg .k.e-sans_objet{background:var(--fond2)}
+.leg .k.tard{background:var(--orange)}
+.leg .k.vide{border-color:transparent}
 .regen{margin-top:30px;padding-top:16px;border-top:1px solid var(--trait);
   display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .avis form{margin-top:12px}
