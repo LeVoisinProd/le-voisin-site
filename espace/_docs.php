@@ -199,7 +199,8 @@ function espace_docs_depot(array $m, string $retour): void
        bureau devait ouvrir le PDF pour le savoir. Le genre se décide ICI, avant
        le nom du fichier, parce qu'il en fait partie : un justificatif rangé sous
        « _Facture » ramène exactement le problème qu'on venait de supprimer. */
-    $genre = ((string)($_POST['genre'] ?? '')) === 'expense' ? 'expense' : 'invoice';
+    $g = (string)($_POST['genre'] ?? '');
+    $genre = in_array($g, ['expense', 'receipt'], true) ? $g : 'invoice';
 
     /* [13.08.2026] LE MONTANT EST DEMANDÉ, et il est obligatoire.
 
@@ -392,14 +393,19 @@ function espace_facture_form(array $m): string
           <label for="depot-autre"><?= e(t('member_depot_autre')) ?></label>
           <?php /* `.field-help` ET NON UNE CLASSE À MOI. [17.08.2026] J'avais
                    écrit `.field-aide`, qui n'existe nulle part: la phrase
-                   sortait donc en taille de paragraphe, plus grosse que le
-                   libellé au-dessus. Le site a déjà sa convention —
-                   `.field-help`, 13,5 px en gris — et elle se place ENTRE le
-                   libellé et le champ: on lit l'explication avant de taper, pas
-                   après. */ ?>
-          <p class="field-help"><?= e(t('member_depot_autre_i')) ?></p>
+                   sortait en taille de paragraphe, plus grosse que le libellé
+                   au-dessus. Le site a sa convention — `.field-help`, 13,5 px
+                   en gris.
+
+                   SOUS LE CHAMP, et c'est le choix d'Anna: « colocar o texto
+                   abaixo da case ». La marge de `.field-help` est négative en
+                   haut, faite pour se glisser entre un libellé et sa case; sous
+                   la case elle remonterait dessus. `--bas` la remet à l'endroit
+                   sans toucher à la règle générale, qui reste juste partout
+                   ailleurs. */ ?>
           <input type="text" id="depot-autre" name="projet_libre" maxlength="190"
                  placeholder="<?= e(t('member_depot_autre_ph')) ?>">
+          <p class="field-help field-help--bas"><?= e(t('member_depot_autre_i')) ?></p>
         </div>
         <?php /* [13.08.2026] Ce qu'on dépose, dit par qui le dépose. Deux
                  réponses seulement, et la première est celle de la plupart des
@@ -424,6 +430,7 @@ function espace_facture_form(array $m): string
           <select id="depot-genre" name="genre">
             <option value="invoice"><?= e(t('member_depot_g_facture')) ?></option>
             <option value="expense"><?= e(t('member_depot_g_frais')) ?></option>
+            <option value="receipt"><?= e(t('member_depot_g_recu')) ?></option>
           </select>
         </div>
         <div class="field field--wide">

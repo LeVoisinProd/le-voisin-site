@@ -42,6 +42,13 @@ class MemberDocs
            les traite différemment, et le bureau devait deviner en ouvrant le
            PDF. La personne qui dépose, elle, sait laquelle c'est. */
         'expense'    => ['fr' => 'Justificatifs de dépenses', 'en' => 'Expense receipts'],
+        /* [17.08.2026] Anna: « incluir no campo "de quoi s'agit-il": juste
+           envoi d'un reçu déjà payé ». Une troisième réponse, et elle n'est pas
+           une nuance: les deux premières ATTENDENT DE L'ARGENT, celle-ci n'en
+           attend pas. Un reçu déjà payé entrait jusqu'ici comme un justificatif
+           à rembourser, donc dans la file d'attente des paiements, et il fallait
+           l'en sortir à la main — ou il y restait, et la file mentait. */
+        'receipt'    => ['fr' => 'Reçus déjà payés', 'en' => 'Receipts already paid'],
         'identity'   => ['fr' => 'Pièces d\'identité', 'en' => 'Identity documents'],
         'other'      => ['fr' => 'Autres documents', 'en' => 'Other documents'],
         // Volet « projets »                                    [V33-ESPACE-3]
@@ -86,7 +93,7 @@ class MemberDocs
        une production, et c'est là qu'on le cherche. */
     public const VOLETS = [
         'contrat'  => ['contract', 'payslip', 'agi', 'attestation', 'identity', 'other'],
-        'paiement' => ['invoice', 'expense'],
+        'paiement' => ['invoice', 'expense', 'receipt'],
         'projet'   => ['roadmap', 'travel', 'hotel', 'perdiem', 'logistics', 'prod_other'],
     ];
 
@@ -106,7 +113,7 @@ class MemberDocs
        dans le formulaire de dépôt, et sans cette ligne ce choix était jeté en
        chemin. C'est exactement ce que la note du dépôt cherchait à éviter pour
        les factures. */
-    public const AVEC_PROJET = ['invoice', 'expense'];
+    public const AVEC_PROJET = ['invoice', 'expense', 'receipt'];
 
     /** Le volet d'une catégorie. Une catégorie inconnue reste contractuelle. */
     public static function volet(string $cat): string
@@ -610,14 +617,18 @@ class MemberDocs
     public static function nomDepot(string $personne, string $montant, string $devise,
                                     string $assoc, string $categorie, string $projet, string $ext): string
     {
+        /* Le mot qui range la pièce. « Recu » sans accent comme les deux
+           autres: il devient un morceau de nom de fichier, et un accent y
+           voyage mal d'un système à l'autre. */
+        $mot = ['expense' => 'Frais', 'receipt' => 'Recu'][$categorie] ?? 'Facture';
         return NomFichier::construire([
             $montant,
             $devise,
             mb_strtoupper($assoc),
-            $categorie === 'expense' ? 'Frais' : 'Facture',
+            $mot,
             $projet,
             $personne,
-        ], $ext, $categorie === 'expense' ? 'Frais' : 'Facture');
+        ], $ext, $mot);
     }
 
 
@@ -782,7 +793,17 @@ class MemberDocs
            payée, la personne confirme. Sans cette ligne, un justificatif de frais
            n'avait pas d'état du tout : aucun bouton d'un côté, aucun suivi de
            l'autre, et il n'apparaissait sur aucune liste d'attente. */
-        $depart = ($par === 'member' && in_array($category, ['invoice', 'expense'], true)) ? 'sent' : '';
+        /* [17.08.2026] UN REÇU DÉJÀ PAYÉ NAÎT « received », PAS « sent ».
+           L'enchaînement est sent → paid → received, et « received » veut dire
+           que l'affaire est close des deux côtés. C'est exactement l'état d'un
+           reçu qu'on envoie pour le classement: personne n'attend rien.
+           Le faire naître « sent » le mettrait dans la file des paiements à
+           faire, et une file qui contient ce qui est déjà payé n'est plus lue. */
+        $depart = '';
+        if ($par === 'member') {
+            if (in_array($category, ['invoice', 'expense'], true)) $depart = 'sent';
+            elseif ($category === 'receipt')                       $depart = 'received';
+        }
             $ligne['uploaded_by'] = $par === 'member' ? 'member' : 'admin';
             $ligne['status']      = $depart;
             $ligne['status_at']   = $depart !== '' ? date('Y-m-d H:i:s') : null;

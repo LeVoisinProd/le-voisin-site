@@ -1400,6 +1400,10 @@ input:focus, select:focus, textarea:focus { outline: var(--trait-fort) solid var
 .field > label { display: block; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
 .field abbr { color: var(--ink); text-decoration: none; }
 .field-help { margin: -2px 0 6px; font-size: 13.5px; color: var(--grey); }
+/* Sous la case plutôt qu'au-dessus: la marge négative du haut se glisse entre
+   un libellé et son champ, et remonterait sur le champ si on la posait après.
+   [17.08.2026] */
+.field-help--bas { margin: 6px 0 0; }
 .field-error { margin: 6px 0 0; color: var(--error); font-size: 13.5px; font-weight: 700; }
 .field.has-error input, .field.has-error select, .field.has-error textarea { border-color: var(--error); }
 .field[data-show-if] { display: none; }

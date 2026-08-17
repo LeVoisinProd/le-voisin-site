@@ -234,6 +234,7 @@ return [
     'member_depot_devise'     => 'Devise',
     'member_depot_g_facture' => 'Une facture, que nous te devons',
     'member_depot_g_frais'   => 'Un justificatif de dépense, à te rembourser',
+    'member_depot_g_recu'    => 'Juste un reçu déjà payé, à classer',
     'member_depot_aide'  => 'PDF, JPG, PNG, DOC ou DOCX, 25 Mo au maximum. Le nom du fichier est mis en forme automatiquement, vous n’avez pas à vous en occuper.',
     'member_depot_go'    => 'Déposer la facture',
     /* Les trois onglets. Courts par nécessité : ils tiennent sur une seule

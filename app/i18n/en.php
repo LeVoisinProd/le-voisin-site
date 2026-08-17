@@ -223,6 +223,7 @@ return [
     'member_depot_devise'     => 'Currency',
     'member_depot_g_facture' => 'An invoice, which we owe you',
     'member_depot_g_frais'   => 'An expense receipt, to reimburse you',
+    'member_depot_g_recu'    => 'Just a receipt already paid, to file',
     'member_depot_aide'  => 'PDF, JPG, PNG, DOC or DOCX, 25 MB maximum. The filename is formatted automatically — you have nothing to do about it.',
     'member_depot_go'    => 'Send the invoice',
 

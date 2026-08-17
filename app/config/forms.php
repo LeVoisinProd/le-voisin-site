@@ -190,6 +190,15 @@ return [
              'options' => [
                  ['en' => 'An invoice, which we owe you', 'fr' => 'Une facture, que nous vous devons'],
                  ['en' => 'An expense receipt, to reimburse you', 'fr' => 'Un justificatif de dépense, à vous rembourser'],
+                 /* [17.08.2026] La troisième réponse, demandée par Anna, et
+                    elle n'est pas une nuance des deux autres: celles-là
+                    attendent de l'argent, celle-ci n'en attend pas. Elle doit
+                    figurer aux DEUX portes — l'espace et ce formulaire — sinon
+                    la même pièce se range différemment selon par où elle est
+                    entrée, ce qui est le défaut qu'on passe la semaine à
+                    réparer ailleurs. */
+                 ['en' => 'Just a receipt already paid, to file',
+                  'fr' => 'Juste un reçu déjà payé, à classer'],
              ]],
             ['key' => 'association', 'type' => 'select', 'required' => true, 'source' => 'assoc',
              'label' => ['en' => 'Association', 'fr' => 'Association']],
