@@ -1513,9 +1513,20 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
     $jour = $r['date_debut']
         ? date('D, j M y', strtotime((string)$r['date_debut']))
         : (string)$r['date_texte'];
-    $nomEvt = trim((string)($r['venue'] ?? '')
-              . ((($r['venue'] ?? '') && ($r['ville'] ?? '')) ? ' - ' : '')
-              . (string)($r['ville'] ?? '')); ?>
+    /* « PERFORMANCE NAME » PORTE LE SPECTACLE, PAS LE LIEU. [17.08.2026]
+       Anna: « na page booking ainda esta o doublon do nome do lieu ». Il
+       valait « Lieu - Ville », donc il répétait mot pour mot la colonne Venue
+       juste à gauche ET la colonne City quatre colonnes plus loin: trois
+       cellules pour deux informations, sur onze colonnes déjà serrées.
+
+       D'où venait l'erreur: le modèle d'agence qu'Anna avait donné le 16.08
+       met « Venue » et « Performance name » côte à côte, et j'avais lu la
+       seconde comme le nom de la SOIRÉE. C'est le nom de ce qui se joue —
+       Bestiarium, Dolce Vita — ce qui est aussi la seule colonne qui manquait
+       au tableau: on y voyait l'artiste et le lieu, jamais la pièce.
+
+       `projet` est rempli sur les 51 dates, vérifié avant de basculer. */
+    $nomEvt = trim((string)($r['projet'] ?? '')); ?>
     <tr>
       <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$r['id'] ?>"><?= e($r['venue'] ?? '') ?></a></td>
       <td class="sec"><?= e($nomEvt) ?></td>

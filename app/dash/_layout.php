@@ -146,7 +146,27 @@ main { min-width:0; }
 
 /* Les briques que les écrans réutilisent. Déclarées ici une fois, pour que le
    deuxième écran n'ait pas à redéclarer un tableau. */
-.tw { overflow-x:auto; }
+/* ── POURQUOI `overflow-y:clip` ET NON RIEN DU TOUT ──────────── [17.08.2026]
+   Anna, sur l'écran Évènements: « o titulo das colunas ainda esta no lugar
+   errado ». Elle l'avait déjà signalé le 16 sur les contacts, et LA CORRECTION
+   DE CE JOUR-LÀ TRAITAIT LE SYMPTÔME. On avait mesuré `--h-tete` au lieu de la
+   deviner, ce qui était juste mais ne touchait pas la cause: elle a seulement
+   changé de combien l'en-tête descendait trop bas.
+
+   LA CAUSE EST UNE RÈGLE DU CSS QU'ON NE VOIT PAS EN LISANT SA PROPRE FEUILLE.
+   `overflow-x:auto` seul ne reste pas seul: quand un axe vaut autre chose que
+   `visible`, l'autre — resté `visible` — est calculé en `auto`. `.tw` devenait
+   donc un CONTENEUR DE DÉFILEMENT VERTICAL, et `position:sticky` se résout
+   contre le plus proche conteneur de défilement, pas contre la fenêtre. L'en-
+   tête se collait au haut de `.tw`, et le `top:var(--h-tete)` le poussait d'une
+   soixantaine de pixels vers le bas À L'INTÉRIEUR du tableau: la première ligne
+   passait au-dessus des noms de colonnes.
+
+   `clip` n'est pas concerné par cette conversion et NE CRÉE PAS de conteneur de
+   défilement. L'axe horizontal continue de défiler — un tableau de onze
+   colonnes en a besoin, et le corps de page ne doit jamais partir de côté — et
+   le collant retrouve la fenêtre pour référence. */
+.tw { overflow-x:auto; overflow-y:clip; }
 table { border-collapse:collapse; width:100%; font-size:14px; }
 th, td { padding:8px 14px; border-bottom:1px solid var(--trait); text-align:left;
          vertical-align:top; }
