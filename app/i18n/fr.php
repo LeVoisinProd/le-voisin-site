@@ -225,7 +225,7 @@ return [
        administrativos ». */
     'member_depot_autre' => 'Autre — précisez',
     'member_depot_autre_ph' => 'Administratif, répétitions, travail ponctuel…',
-    'member_depot_autre_i' => 'Si votre travail ne correspond à aucun projet de la liste, ou s\'il s\'agit d\'administration, écrivez-le ici. Cela évite au bureau d\'ouvrir la pièce pour le savoir.',
+    'member_depot_autre_i' => 'Si votre pièce comptable ne correspond à aucun projet de la liste, ou s\'il s\'agit d\'administration, écrivez-le ici.',
     'member_depot_fichier' => 'Votre facture',
     'member_depot_genre'  => 'De quoi s’agit-il ?',
     'member_depot_montant'    => 'Montant',
