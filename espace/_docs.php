@@ -390,9 +390,16 @@ function espace_facture_form(array $m): string
                  novembre » est une réponse. */ ?>
         <div class="field">
           <label for="depot-autre"><?= e(t('member_depot_autre')) ?></label>
+          <?php /* `.field-help` ET NON UNE CLASSE À MOI. [17.08.2026] J'avais
+                   écrit `.field-aide`, qui n'existe nulle part: la phrase
+                   sortait donc en taille de paragraphe, plus grosse que le
+                   libellé au-dessus. Le site a déjà sa convention —
+                   `.field-help`, 13,5 px en gris — et elle se place ENTRE le
+                   libellé et le champ: on lit l'explication avant de taper, pas
+                   après. */ ?>
+          <p class="field-help"><?= e(t('member_depot_autre_i')) ?></p>
           <input type="text" id="depot-autre" name="projet_libre" maxlength="190"
                  placeholder="<?= e(t('member_depot_autre_ph')) ?>">
-          <p class="field-aide"><?= e(t('member_depot_autre_i')) ?></p>
         </div>
         <?php /* [13.08.2026] Ce qu'on dépose, dit par qui le dépose. Deux
                  réponses seulement, et la première est celle de la plupart des
