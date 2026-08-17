@@ -180,12 +180,53 @@ if ($onglet === 'a1') {
         $parBooking[(int)$a['booking_id']][] = $a;
     }
 
+    /* ── QUI PART, SANS LE REDEMANDER ─────────────────────────── [17.08.2026]
+       Anna: « na parte A1 tb fazer uma tabela por date de jeu, com nome da
+       pessoa, asso, e o nome da pessoa détachée vai aparecer automaticamente
+       assim que as infos do evento forem preenchidas ».
+
+       LA SOURCE EST L'ÉQUIPE DU DEVIS, et c'est la bonne: c'est là qu'on
+       écrit QUI VOYAGE — la distinction existe déjà, `suit_jeu` sépare ceux
+       qui partent de l'administration qui reste. La distribution complète ne
+       conviendrait pas: le Bestiarium en compte dix, dont le dramaturge et
+       l'œil extérieur, qui ne montent dans aucun train.
+
+       Le rapprochement passe par le titre du spectacle, comme partout
+       ailleurs sur cet écran. Une date dont le titre ne correspond à aucune
+       fiche ne propose personne, et le dit. */
+    $equipeProj = [];   // titre normalisé => [['nom'=>…, 'role'=>…], …]
+    $assoProj   = [];   // titre normalisé => nom de l'association
+    $clef = static fn(string $x): string => mb_strtolower(trim($x));
+
+    foreach (DB::all(
+        "SELECT p.title_fr, p.title_en, pp.donnees, o.nom AS asso
+           FROM projet_prod pp
+           JOIN projects p ON p.id = pp.project_id
+      LEFT JOIN organisation o ON o.id = pp.organisation_id") as $r) {
+        $d = json_decode((string)$r['donnees'], true) ?: [];
+        $gens = [];
+        foreach ((array)($d['devis']['equipe'] ?? []) as $x) {
+            /* L'administration ne part pas: `suit_jeu = 0` la désigne. */
+            if ((string)($x['suit_jeu'] ?? '1') === '0') continue;
+            $gens[] = ['nom' => trim((string)($x['nom'] ?? '')),
+                       'role' => trim((string)($x['role'] ?? ''))];
+        }
+        foreach ([$r['title_fr'], $r['title_en']] as $t) {
+            $t = trim((string)$t);
+            if ($t === '') continue;
+            if ($gens) $equipeProj[$clef($t)] ??= $gens;
+            if ($r['asso']) $assoProj[$clef($t)] ??= (string)$r['asso'];
+        }
+    }
+
     $urgentes = 0;
     foreach ($dates as $d) {
         $faites = array_filter($parBooking[(int)$d['id']] ?? [],
                                fn($a) => in_array($a['etat'], ['recu','sans_objet'], true));
         if ((int)$d['jours'] <= A1_DELAI && count($faites) === 0) $urgentes++;
     }
+
+    $peutEcrire = dash_droit('administration', dash_role()) === 'ecrit';
 
     dash_haut('administration', count($dates) . ' date(s) hors de Suisse à venir');
     ?>
@@ -208,53 +249,101 @@ if ($onglet === 'a1') {
     <?php if (!$dates): ?>
       <p class="vide">Aucune date hors de Suisse à venir.</p>
     <?php else: ?>
-    <div class="zone">
-    <?php foreach ($dates as $d):
-        $qui = $parBooking[(int)$d['id']] ?? [];
-        $ok  = count(array_filter($qui, fn($a) => in_array($a['etat'], ['recu','sans_objet'], true)));
-        $urg = (int)$d['jours'] <= A1_DELAI && $ok === 0; ?>
-      <div class="dbloc <?= $urg ? 'urg' : '' ?>">
-        <div class="dtete">
-          <a href="/dashboard.php?e=bookings&amp;b=<?= (int)$d['id'] ?>"><strong><?=
-            e($d['date_texte'] ?: (string)$d['date_debut']) ?></strong></a>
-          <span class="sec"><?= e($d['venue'] ?? '') ?>, <?= e($d['ville'] ?? '') ?>
-            · <?= e($d['pays']) ?></span>
-          <span class="jrs"><?= (int)$d['jours'] ?> jours<?php
-            if ($urg): ?> · délai dépassé<?php endif; ?></span>
-        </div>
-        <?php if ($qui): ?>
-        <table class="mini"><tbody>
-          <?php foreach ($qui as $a): ?>
-          <tr>
-            <td><?= e($a['personne']) ?></td>
-            <td class="d">
+    <div class="tw"><table class="a1">
+      <thead><tr>
+        <th>Date</th><th class="d">J−</th><th>Lieu</th><th>Pays</th>
+        <th>Spectacle</th><th>Association</th><th>Personne détachée</th><th>A1</th>
+      </tr></thead>
+      <tbody>
+      <?php foreach ($dates as $d):
+          $k     = $clef((string)$d['projet']);
+          $qui   = $parBooking[(int)$d['id']] ?? [];
+          $prop  = $equipeProj[$k] ?? [];
+          $asso  = $assoProj[$k] ?? '';
+          $urg   = (int)$d['jours'] <= A1_DELAI;
+          /* Ce qui est déjà demandé passe devant; ce que l'équipe du devis
+             propose et qu'on n'a pas encore demandé vient après, en gris. */
+          $dejaNoms = array_map(fn($a) => mb_strtolower(trim((string)$a['personne'])), $qui);
+          $reste = array_values(array_filter($prop,
+              fn($x) => $x['nom'] !== '' && !in_array(mb_strtolower($x['nom']), $dejaNoms, true)));
+          $lignes = max(1, count($qui) + count($reste));
+          $i = 0;
+      ?>
+        <?php for ($n = 0; $n < $lignes; $n++):
+            $a = $qui[$n] ?? null;
+            $r = $a ? null : ($reste[$n - count($qui)] ?? null); ?>
+        <tr class="<?= $urg && !$a ? 'urg' : '' ?><?= $n === 0 ? ' debut' : ' suite' ?>">
+          <?php if ($n === 0): ?>
+            <td rowspan="<?= $lignes ?>"><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$d['id'] ?>"><?=
+              e($d['date_texte'] ?: (string)$d['date_debut']) ?></a></td>
+            <td rowspan="<?= $lignes ?>" class="d nb<?= $urg ? ' rouge' : '' ?>"><?= (int)$d['jours'] ?></td>
+            <td rowspan="<?= $lignes ?>"><?= e((string)$d['venue']) ?>
+              <span class="sec"><?= e((string)$d['ville']) ?></span></td>
+            <td rowspan="<?= $lignes ?>"><?= e((string)$d['pays']) ?></td>
+            <td rowspan="<?= $lignes ?>" class="sec"><?= e((string)$d['projet']) ?></td>
+            <td rowspan="<?= $lignes ?>" class="sec"><?= $asso !== '' ? e($asso)
+                : '<span class="manq">fiche de production sans association</span>' ?></td>
+          <?php endif; ?>
+
+          <td class="pers">
+            <?php if ($a): ?>
+              <?= e((string)$a['personne']) ?>
+            <?php elseif ($r): ?>
+              <span class="prop"><?= e($r['nom']) ?></span>
+              <?php if ($r['role'] !== ''): ?><span class="sec"><?= e($r['role']) ?></span><?php endif; ?>
+            <?php elseif (!$prop): ?>
+              <span class="manq">personne n'est encore inscrit·e au devis de ce spectacle</span>
+            <?php else: ?>
+              <span class="manq">les lignes du devis n'ont pas de nom</span>
+            <?php endif; ?>
+          </td>
+
+          <td class="etat">
+            <?php if ($a): ?>
               <form method="post" action="/dashboard.php?e=administration&amp;t=a1" class="inline">
                 <?= Auth::csrfField() ?>
                 <input type="hidden" name="action" value="a1_etat">
                 <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
-                <select name="etat" onchange="this.form.submit()">
-                  <?php foreach ($ETATS_A1 as $k => $v): ?>
-                    <option value="<?= $k ?>"<?= $a['etat'] === $k ? ' selected' : '' ?>><?= e($v) ?></option>
+                <select name="etat" onchange="this.form.submit()"<?= $peutEcrire ? '' : ' disabled' ?>>
+                  <?php foreach ($ETATS_A1 as $kk => $vv): ?>
+                    <option value="<?= $kk ?>"<?= $a['etat'] === $kk ? ' selected' : '' ?>><?= e($vv) ?></option>
                   <?php endforeach; ?>
                 </select>
               </form>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody></table>
-        <?php else: ?>
-          <p class="sec pas">Personne n'est encore inscrit sur cette date.</p>
+            <?php elseif ($r && $peutEcrire): ?>
+              <form method="post" action="/dashboard.php?e=administration&amp;t=a1" class="inline">
+                <?= Auth::csrfField() ?>
+                <input type="hidden" name="action" value="a1_creer">
+                <input type="hidden" name="booking_id" value="<?= (int)$d['id'] ?>">
+                <input type="hidden" name="personne" value="<?= e($r['nom']) ?>">
+                <button type="submit" class="lien">inscrire</button>
+              </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+        <?php endfor; ?>
+
+        <?php if ($peutEcrire): ?>
+        <tr class="ajout-l">
+          <td colspan="6"></td>
+          <td colspan="2">
+            <form method="post" action="/dashboard.php?e=administration&amp;t=a1" class="ajout">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="action" value="a1_creer">
+              <input type="hidden" name="booking_id" value="<?= (int)$d['id'] ?>">
+              <input type="text" name="personne" placeholder="quelqu'un d'autre part sur cette date">
+              <button type="submit">ajouter</button>
+            </form>
+          </td>
+        </tr>
         <?php endif; ?>
-        <form method="post" action="/dashboard.php?e=administration&amp;t=a1" class="ajout">
-          <?= Auth::csrfField() ?>
-          <input type="hidden" name="action" value="a1_creer">
-          <input type="hidden" name="booking_id" value="<?= (int)$d['id'] ?>">
-          <input type="text" name="personne" placeholder="Nom de la personne détachée">
-          <button type="submit">ajouter</button>
-        </form>
-      </div>
-    <?php endforeach; ?>
-    </div>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+
+    <p class="leg">Les noms en gris viennent de l'<strong>équipe du devis</strong> du
+       spectacle — ceux dont les jours suivent le jeu, donc ceux qui voyagent.
+       « Inscrire » ouvre la demande. L'administration n'y figure pas: elle ne part pas.</p>
     <?php endif; ?>
 
     <style>
@@ -262,6 +351,20 @@ if ($onglet === 'a1') {
     .onglets a{padding:8px 15px;font-size:13.5px;text-decoration:none;
       border-bottom:3px solid transparent;color:var(--doux)}
     .onglets a.ici{color:var(--encre);border-bottom-color:var(--jaune);font-weight:600}
+    table.a1 td{vertical-align:top}
+    table.a1 tr.suite td{border-top:0}
+    table.a1 tr.debut td{border-top:1px solid var(--trait)}
+    table.a1 td.d{text-align:right}
+    table.a1 td.rouge{color:var(--orange);font-weight:700}
+    table.a1 td.pers .prop{color:var(--doux)}
+    table.a1 td.pers .sec{margin-left:7px;font-size:12px}
+    table.a1 .manq{color:var(--doux);font-size:12.5px;font-style:italic}
+    table.a1 tr.urg td.pers{background:#fff4f0}
+    table.a1 tr.ajout-l td{border-top:0;padding-top:0;padding-bottom:10px}
+    table.a1 button.lien{background:none;border:0;color:var(--encre);text-decoration:underline;
+      cursor:pointer;font-family:inherit;font-size:13px;padding:0}
+    table.a1 select{font-size:12.5px;padding:3px 6px}
+    .leg{padding:12px 26px 0;font-size:12.5px;color:var(--doux);max-width:860px}
     .dbloc{border:1px solid var(--trait);border-radius:5px;padding:12px 16px;margin-bottom:14px;max-width:820px}
     .dbloc.urg{border-left:4px solid var(--orange)}
     .dtete{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
@@ -476,17 +579,33 @@ dash_haut('administration', $taches
    obligations dans un écran. L'en-tête porte le nom en entier, tourné. */
 .grille-adm{padding:0 26px}
 table.mat{width:auto;border-collapse:separate;border-spacing:0}
-table.mat th.coin{text-align:left;vertical-align:bottom;min-width:190px}
+/* Le coin haut-gauche croise les deux collants: il doit passer devant les
+   deux, sinon un nom d'association lui glisse dessous en défilant. */
+table.mat th.coin{text-align:left;vertical-align:bottom;min-width:190px;
+  position:sticky;left:0;z-index:12;background:var(--fond2)}
 table.mat th.mc{width:62px;padding:6px 3px;vertical-align:bottom;background:var(--fond2);
-  border-bottom:1px solid var(--trait)}
+  border-bottom:1px solid var(--trait);z-index:10}
 table.mat th.mc .lib{display:block;font-size:10px;line-height:1.25;font-weight:600;
   text-transform:none;letter-spacing:0;color:var(--encre);
   overflow-wrap:anywhere;hyphens:auto}
 table.mat th.mc .tg{display:inline-block;margin-top:3px;font-size:9.5px;border:1px solid var(--trait);
   border-radius:3px;padding:0 4px;color:var(--doux);background:var(--papier)}
 table.mat th.mc .jr{display:block;font-size:9.5px;color:var(--doux);font-weight:400}
+/* LES EN-TÊTES DE LIGNE NE COLLENT PAS. [17.08.2026]
+   `_layout.php` pose `th{position:sticky;top:var(--h-tete)}` pour que les noms
+   de colonnes tiennent en haut d'un long tableau. Dans une matrice, les noms
+   d'ASSOCIATION sont aussi des `th` — ils héritaient donc du collant vertical
+   et les treize venaient s'empiler sous la barre de titre, par-dessus l'en-tête
+   des colonnes. C'est ce qu'Anna a vu: « a mise en page esta meio truncada »,
+   CRILE et DieselReclame flottant au-dessus du tableau.
+
+   Ils collent à GAUCHE à la place, ce qu'une matrice large demande vraiment: on
+   fait défiler treize colonnes et l'on veut garder le nom de la ligne sous les
+   yeux. `top:auto` annule l'héritage vertical sans toucher à la règle générale,
+   qui reste juste pour tous les autres tableaux. */
 table.mat th.org{text-align:left;font-weight:600;font-size:13px;white-space:nowrap;
-  padding:5px 12px 5px 0;background:var(--papier);text-transform:none;letter-spacing:0}
+  padding:5px 12px 5px 0;background:var(--papier);text-transform:none;letter-spacing:0;
+  position:sticky;left:0;top:auto;z-index:6}
 table.mat th.org a{text-decoration:none}
 table.mat th.org a:hover{text-decoration:underline}
 table.mat td.c{padding:2px;text-align:center;border:1px solid var(--trait)}
@@ -503,6 +622,11 @@ table.mat td.tot,table.mat th.tot{text-align:center;font-size:12px;color:var(--d
   font-variant-numeric:tabular-nums;padding:4px 8px}
 table.mat td.tot.zero{color:#1c6b32}
 table.mat tfoot td.tot{border-top:2px solid var(--trait);font-weight:600}
+table.mat tfoot th.org{border-top:2px solid var(--trait)}
+/* La matrice ne doit jamais pousser le corps de page de côté: c'est `.tw` qui
+   défile, pas la fenêtre — sinon la barre de titre, collée en haut, part avec
+   elle et se coupe à droite. */
+.grille-adm{max-width:100%}
 .leg{padding:12px 26px 0;font-size:12.5px;color:var(--doux);max-width:900px}
 .leg .k{display:inline-block;min-width:20px;text-align:center;border:1px solid var(--trait);
   border-radius:3px;margin-right:2px}
