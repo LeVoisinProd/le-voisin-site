@@ -267,10 +267,43 @@ nav.pages a, nav.pages span { padding:5px 11px; border:1px solid var(--trait);
 nav.pages span.ici { background:var(--encre); color:var(--papier); border-color:var(--encre); }
 nav.pages .mut { border:0; color:var(--doux); }
 .vide { padding:44px 26px; color:var(--doux); }
+/* ── LA COPIE LOCALE SE DÉNONCE ELLE-MÊME ─────────────────────── [17.08.2026]
+   Troisième fois en deux jours qu'Anna lit la copie de test en croyant lire le
+   site, et chaque fois cela produit un rapport de panne qui n'en est pas un:
+   l'envoi d'e-mail « cassé » le 16 (la copie n'a pas de SMTP, exprès), les
+   « 86 dates » du 17 (la production en a 51), et l'écran Administration « tout
+   faux » (la copie porte des tâches générées AVANT la correction des
+   territoires du 16.08; la production est juste).
+
+   LE COÛT N'EST PAS LE MALENTENDU, C'EST CE QU'IL APPREND. Trois fausses
+   alertes de suite et l'on cesse de signaler ce qu'on voit — or c'est
+   exactement ce qu'on lui demande de faire.
+
+   ON NE PEUT PAS COMPTER SUR L'ADRESSE. « localhost:8080 » et
+   « le-voisin.com » se ressemblent dans une barre d'onglets à demi masquée, et
+   les deux pages sont identiques au pixel près. Il faut donc que la page le
+   dise, en grand, dans le champ de vision — pas dans un coin.
+
+   LE TEST PORTE SUR L'HÔTE ET NON SUR LA BASE, parce qu'il doit être vrai même
+   quand la copie locale pointe par erreur ailleurs: si l'on ouvre le site par
+   localhost, on n'est pas sur le site public, quoi qu'il serve. Et il ne peut
+   pas se déclencher en production — le-voisin.com n'est jamais localhost. */
+.local-avert { background:var(--orange); color:#fff; padding:7px 26px; font-size:13px;
+  font-weight:600; letter-spacing:.02em; grid-column:1 / -1; }
+.local-avert code { background:rgba(0,0,0,.18); padding:1px 6px; border-radius:3px;
+  font-weight:400; }
 </style>
 </head>
 <body>
 <div class="enveloppe">
+
+<?php
+$hote = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+$hote = (string)preg_replace('/:\d+$/', '', $hote);
+if (in_array($hote, ['localhost', '127.0.0.1', '[::1]', '::1'], true)): ?>
+  <div class="local-avert">Copie locale de test — ce ne sont pas les données du site.
+    Le vrai dashboard est sur <code>le-voisin.com/dashboard.php</code></div>
+<?php endif; ?>
 
 <aside>
   <a class="marque" href="/dashboard.php" aria-label="Le Voisin">
