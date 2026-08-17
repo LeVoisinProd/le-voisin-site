@@ -137,7 +137,7 @@ return [
     // Espace collaborateur
     'member_area'        => 'Espace collaborateur·rice',
     'member_login'       => 'Se connecter',
-    'member_login_intro' => 'Connectez-vous pour accéder à vos documents : contrats, fiches de salaire et documents de projet.',
+    'member_login_intro' => 'Connecte-toi pour accéder à tes documents : contrats, fiches de salaire et documents de projet.',
     'member_email'       => 'E-mail',
     'esp_cle_intro'      => 'Indique ton adresse e-mail : tu recevras une clé d’entrée, et un clic te fera entrer. Il n’y a pas de mot de passe.',
     'esp_cle_demander'   => 'Recevoir ma clé',
@@ -150,19 +150,19 @@ return [
     'esp_cle_autre'      => 'Ce n’est pas toi ? Utiliser une autre adresse.',
     'member_password'    => 'Mot de passe',
     'member_bad_login'   => 'E-mail ou mot de passe incorrect.',
-    'member_throttled'   => 'Trop de tentatives. Réessayez dans quelques minutes.',
+    'member_throttled'   => 'Trop de tentatives. Réessaie dans quelques minutes.',
     'member_logout'      => 'Déconnexion',
     // [V27-ACCES] Bandeau affiché quand l'administration regarde l'espace de
     // quelqu'un. Le ton est volontairement direct : on est chez une autre
     // personne, et il ne faut pas pouvoir l'oublier.
-    'member_visit_on'    => 'Vous regardez l’espace de',
+    'member_visit_on'    => 'Tu regardes l’espace de',
     /* [V37-FICHE-BUREAU] Le bandeau promettait que rien n'était modifié. Depuis
        que la fiche s'écrit aussi depuis le bureau, la phrase serait fausse — et
        une promesse fausse est pire qu'une absence de promesse. Ce qui reste vrai
        est dit : ce que le visiteur voit, et que la personne ne sera pas comptée
        comme s'étant connectée. Ce qu'il peut écrire est dit à l'endroit où il
        écrit, juste au-dessus du bouton. */
-    'member_visit_who'   => '%s — vous voyez exactement ce que cette personne voit en se connectant. Sa connexion n’est pas enregistrée.',
+    'member_visit_who'   => '%s — tu vois exactement ce que cette personne voit en se connectant. Sa connexion n’est pas enregistrée.',
     'member_visit_back'  => 'Fermer et revenir au CMS',
     /* Cette ligne ne parle plus de la fiche mais des dépôts et des statuts :
        un document déposé et un « bien reçu » disent que la personne a fait le
@@ -172,25 +172,25 @@ return [
        Il dit la règle entière, parce qu'elle n'est devinable ni de l'écran ni
        du bon sens : la case vide est une proposition, la case déjà répondue est
        remplacée. */
-    'member_visit_fiche' => 'Vous écrivez sur la fiche de cette personne. Les cases qu’elle n’a pas encore remplies lui seront proposées, et elle restera libre de les corriger ; celles auxquelles elle a déjà répondu seront remplacées par ce que vous écrivez. Le nom, l’adresse e-mail et le téléphone corrigent son compte, comme dans le CMS.',
+    'member_visit_fiche' => 'Tu écris sur la fiche de cette personne. Les cases qu’elle n’a pas encore remplies lui seront proposées, et elle restera libre de les corriger ; celles auxquelles elle a déjà répondu seront remplacées par ce que tu écris. Le nom, l’adresse e-mail et le téléphone corrigent son compte, comme dans le CMS.',
     'member_visit_save'  => 'Enregistrer cette fiche',
     'member_visit_no_email' => 'Tout a été enregistré, sauf l’adresse e-mail : elle est déjà celle d’une autre personne. L’adresse sert à se connecter, deux personnes ne peuvent pas avoir la même.',
     'member_hello'       => 'Bonjour',
-    'member_intro'       => 'Voici vos documents personnels. Les téléchargements vous sont réservés.',
+    'member_intro'       => 'Voici tes documents personnels. Les téléchargements te sont réservés.',
     'member_no_docs'     => 'Aucun document disponible pour le moment.',
     'member_download'    => 'Télécharger',
     'member_sign'        => 'Signer',
     'member_to_sign'     => 'À signer',
     'member_signed'      => 'Signé',
     'member_infos'       => 'Mes informations',
-    'member_infos_intro' => 'Remplissez et tenez à jour vos informations personnelles. Elles servent à vos contrats et à votre salaire.',
+    'member_infos_intro' => 'Remplis et tiens à jour tes informations personnelles. Elles servent à tes contrats et à ton salaire.',
     'member_photo_bio'   => 'Photo & bio',
     'member_photo'       => 'Photo de travail',
     'member_bio'         => 'Courte bio (%s caractères max.)',
     'member_save'        => 'Enregistrer',
-    'member_saved'       => 'Vos informations ont été enregistrées.',
+    'member_saved'       => 'Tes informations ont été enregistrées.',
     'member_back'        => 'Retour à mon espace',
-    'member_id_on_file'  => 'Un document est déjà enregistré — n\'en importez un nouveau que pour le remplacer.',
+    'member_id_on_file'  => 'Un document est déjà enregistré — n\'en importe un nouveau que pour le remplacer.',
     'member_my_docs'     => 'Mes documents',
 
     /* [V33-ESPACE-3] L'espace est fait de trois parties, et elles sont
@@ -199,9 +199,9 @@ return [
        raisons ni aux mêmes moments — d'où trois entrées plutôt qu'une seule
        liste où tout se mélange. */
     'member_part1'       => 'Mes informations personnelles',
-    'member_part1_i'     => 'Vos coordonnées, votre IBAN, vos pièces d’identité. C’est vous qui les tenez à jour, et elles servent à établir vos contrats et vos salaires.',
+    'member_part1_i'     => 'Tes coordonnées, ton IBAN, tes pièces d’identité. C’est toi qui les tiens à jour, et elles servent à établir tes contrats et tes salaires.',
     'member_part2'       => 'Mes documents de contractualisation',
-    'member_part2_i'     => 'Contrats, fiches de salaire et pièces administratives, rangés par association qui vous emploie.',
+    'member_part2_i'     => 'Contrats, fiches de salaire et pièces administratives, rangés par association qui t’emploie.',
     'member_part3'       => 'Mes projets et productions',
     'member_part3_i'     => 'Feuilles de route, billets de voyage, réservations d’hôtel et reçus de per diem, rangés par production.',
     'member_no_contrat'  => 'Aucun document de contractualisation pour le moment.',
@@ -214,7 +214,7 @@ return [
        selon la nomenclature du bureau, et c'est la seule façon d'obtenir des
        noms qui se rangent quand soixante-dix-sept personnes déposent. */
     'member_depot_h'     => 'Déposer une facture',
-    'member_depot_i'     => 'Votre facture arrive directement chez l’association concernée, et vous la retrouvez ici avec son état d’avancement.',
+    'member_depot_i'     => 'Ta facture arrive directement chez l’association concernée, et tu la retrouves ici avec son état d’avancement.',
     'member_depot_assoc' => 'À quelle association ?',
     'member_depot_mois'  => 'Pour quel mois ?',
     'member_depot_projet' => 'Pour quel projet ?',
@@ -223,10 +223,10 @@ return [
        en cours. Anna: « as vezes as pessoas fazem trabalhos de outras naturezas
        que nao estao ligadas a projetos que ja estao acontecendo. ou
        administrativos ». */
-    'member_depot_autre' => 'Autre — précisez',
+    'member_depot_autre' => 'Autre — précise',
     'member_depot_autre_ph' => 'Administratif, répétitions, travail ponctuel…',
-    'member_depot_autre_i' => 'Si votre pièce comptable ne correspond à aucun projet de la liste, ou s\'il s\'agit d\'administration, écrivez-le ici.',
-    'member_depot_fichier' => 'Votre facture',
+    'member_depot_autre_i' => 'Si ta pièce comptable ne correspond à aucun projet de la liste, ou s\'il s\'agit d\'administration, écris-le ici.',
+    'member_depot_fichier' => 'Ta facture',
     'member_depot_genre'  => 'De quoi s’agit-il ?',
     'member_depot_montant'    => 'Montant',
     'member_depot_montant_ph' => 'ex. 2100 ou 44.50',
@@ -235,7 +235,7 @@ return [
     'member_depot_g_facture' => 'Une facture, que nous te devons',
     'member_depot_g_frais'   => 'Un justificatif de dépense, à te rembourser',
     'member_depot_g_recu'    => 'Juste un reçu déjà payé, à classer',
-    'member_depot_aide'  => 'PDF, JPG, PNG, DOC ou DOCX, 25 Mo au maximum. Le nom du fichier est mis en forme automatiquement, vous n’avez pas à vous en occuper.',
+    'member_depot_aide'  => 'PDF, JPG, PNG, DOC ou DOCX, 25 Mo au maximum. Le nom du fichier est mis en forme automatiquement, tu n’as pas à t’en occuper.',
     'member_depot_go'    => 'Déposer la facture',
     /* Les trois onglets. Courts par nécessité : ils tiennent sur une seule
        ligne, y compris sur un téléphone. Le titre entier est répété dans la
@@ -246,8 +246,8 @@ return [
     // [12.08.2026] La quatrième partie : les paiements, séparés des contrats.
     'member_tab_paie'     => 'Paiements & remboursements',
     'member_part_paie'    => 'Mes paiements et remboursements',
-    'member_part_paie_i'  => 'Les factures et les justificatifs que vous nous envoyez, et où ils en sont. Vous déposez, nous marquons « payée », vous confirmez la réception.',
-    'member_no_paiement'  => 'Vous n\'avez encore rien envoyé. Déposez votre première facture ci-dessus.',
+    'member_part_paie_i'  => 'Les factures et les justificatifs que tu nous envoies, et où ils en sont. Tu déposes, nous marquons « payée », tu confirmes la réception.',
+    'member_no_paiement'  => 'Tu n\'as encore rien envoyé. Dépose ta première facture ci-dessus.',
 
     // Fiche personnelle imprimable  [V15-FICHE-PDF]
     // Ces libellés servent aussi à la fiche ouverte depuis le CMS : le
@@ -267,18 +267,18 @@ return [
 
     // Choix du mot de passe par lien
     'member_pw_title'    => 'Choisir mon mot de passe',
-    'member_pw_intro'    => 'Choisissez le mot de passe avec lequel vous vous connecterez, avec l’adresse %s.',
+    'member_pw_intro'    => 'Choisis le mot de passe avec lequel tu te connecteras, avec l’adresse %s.',
     'member_pw_new'      => 'Nouveau mot de passe',
-    'member_pw_again'    => 'Répétez le mot de passe',
+    'member_pw_again'    => 'Répète le mot de passe',
     'member_pw_help'     => 'Au moins 12 caractères. Personne ne pourra le relire ensuite, pas même l’administration : notez-le quelque part.',
     'member_pw_save'     => 'Enregistrer mon mot de passe',
     'member_pw_short'    => 'Le mot de passe doit compter au moins 12 caractères.',
     'member_pw_diff'     => 'Les deux mots de passe ne sont pas identiques.',
-    'member_pw_done'     => 'C’est fait. Vous pouvez maintenant vous connecter avec ce mot de passe.',
+    'member_pw_done'     => 'C’est fait. Tu peux maintenant te connecter avec ce mot de passe.',
     'member_pw_expired'  => 'Ce lien n’est plus valable : il a déjà servi, ou sa durée est dépassée.',
     'member_pw_off'      => 'Ce compte est désactivé pour le moment.',
-    'member_pw_ask'      => 'Demandez un nouveau lien à l’administration du Voisin.',
-    'member_pw_forgot'   => 'Mot de passe perdu ? Demandez un lien à l’administration : il vous permettra d’en choisir un nouveau vous-même.',
+    'member_pw_ask'      => 'Demande un nouveau lien à l’administration du Voisin.',
+    'member_pw_forgot'   => 'Mot de passe perdu ? Demande un lien à l’administration : il te permettra d’en choisir un nouveau toi-même.',
 
     // Formulaires
     'form_send'          => 'Envoyer',
