@@ -481,9 +481,66 @@ dash_haut('administration', $taches
   }
   asort($orgs, SORT_NATURAL | SORT_FLAG_CASE);
 
+  /* ── LES COLONNES SE GROUPENT PAR TERRITOIRE ─────────────────── [17.08.2026]
+     Anna: « faltou marcar preparer les contrats du mois de le voisin fr ».
+     Il ne manquait rien — la ligne du Voisin FR porte bien sa préparation de
+     contrats, vérifié en base. Elle avait lu la colonne d'à côté.
+
+     ET C'EST MA FAUTE, PAS LA SIENNE: quatre intitulés apparaissent DEUX FOIS
+     dans ce tableau, une version suisse et une française — « Préparer les
+     contrats du mois », « Fiches de salaire préparées », « Classement
+     comptable du mois » — et seule une étiquette de neuf pixels les
+     distinguait. Deux colonnes qui portent le même nom à trois centimètres
+     l'une de l'autre ne se distinguent pas, elles se confondent.
+
+     Une bande de territoire au-dessus les sépare. L'ordre suit celle-ci
+     plutôt que la catégorie: on cherche « ce que doit une association
+     française », pas « toutes les déclarations du mois toutes zones
+     confondues ». */
+  $NOM_TERR = ['CH'=>'Suisse — toutes', 'FR'=>'France', 'GE'=>'Genève', 'VD'=>'Vaud',
+               'BE'=>'Berne', 'VS'=>'Valais', 'ZH'=>'Zurich', 'TI'=>'Tessin', 'JU'=>'Jura',
+               ''=>'Toutes'];
+  /* Les cantons d'abord — ils ne concernent qu'une association ou deux et se
+     lisent vite — puis la Suisse entière, puis la France. */
+  $rangTerr = static function (string $t): int {
+      if ($t === '') return 3;
+      if ($t === 'CH') return 1;
+      if ($t === 'FR') return 2;
+      return 0;                      // un canton
+  };
+  uasort($cols, static function ($a, $b) use ($rangTerr) {
+      $ra = $rangTerr($a['terr']); $rb = $rangTerr($b['terr']);
+      if ($ra !== $rb) return $ra <=> $rb;
+      if ($a['terr'] !== $b['terr']) return strcmp($a['terr'], $b['terr']);
+      return strcmp((string)$a['cat'] . $a['libelle'], (string)$b['cat'] . $b['libelle']);
+  });
+  /* Combien de colonnes par bande, dans l'ordre où elles sortent. */
+  $bandes = [];
+  foreach ($cols as $c) {
+      $t = (string)$c['terr'];
+      if ($bandes && array_key_last($bandes) === $t) { $bandes[$t]++; continue; }
+      $bandes[$t] = ($bandes[$t] ?? 0) + 1;
+  }
+
   /* Le suivant dans le cycle. « sans objet » revient à « à faire »: on doit
      pouvoir se déjuger d'un clic, comme on s'est jugé d'un clic. */
   $SUIVANT = ['a_faire'=>'en_cours', 'en_cours'=>'fait', 'fait'=>'sans_objet', 'sans_objet'=>'a_faire'];
+
+  /* ── LE RETARD NE SE SIGNALE PAS AVANT LA MISE EN SERVICE ──── [17.08.2026]
+     Anna: « nao precisa deixar nada como atrasado, ainda nao estamos com isso
+     no ar ». Les obligations d'août ont été générées le 16 avec leurs jours
+     d'échéance — 1, 5, 10, 15 — et le 17 la moitié du tableau passait en
+     orange. Personne n'était en retard: personne ne s'en servait encore.
+
+     UN SIGNAL QUI CRIE AVANT D'AVOIR RAISON NE SERA PLUS CRU QUAND IL AURA
+     RAISON. C'est le même mécanisme que les trois P1 « en retard » du 10.08
+     qui étaient déjà faites, et qui ont coûté une matinée.
+
+     Le mécanisme reste, il attend une date. `admin_service_depuis` est vide
+     tant qu'on n'a pas commencé; le jour où le suivi devient réel, on y pose
+     la date et le retard se remet à parler — pour les échéances postérieures
+     à elle, jamais pour ce qui la précède. */
+  $enService = trim(Settings::get('admin_service_depuis'));
   /* « À faire » porte un signe et non le vide. Une case vide et une case sans
      objet se ressemblent trop de loin, et c'est précisément la distinction qui
      compte: l'une attend un geste, l'autre non. Le cercle ouvert se ferme en
@@ -495,6 +552,13 @@ dash_haut('administration', $taches
   <div class="tw grille-adm">
   <table class="mat">
     <thead>
+      <tr class="bandes">
+        <th class="coin"></th>
+        <?php foreach ($bandes as $t => $n): ?>
+          <th class="bande t-<?= e($t ?: 'x') ?>" colspan="<?= (int)$n ?>"><?= e($NOM_TERR[$t] ?? $t) ?></th>
+        <?php endforeach; ?>
+        <th></th>
+      </tr>
       <tr>
         <th class="coin">Association</th>
         <?php foreach ($cols as $mid => $c): ?>
@@ -518,7 +582,8 @@ dash_haut('administration', $taches
             <?php continue; endif;
             $etat = (string)$t['etat'];
             if ($etat === 'a_faire') $reste_o++;
-            $tard = $t['echeance'] && $etat === 'a_faire' && $t['echeance'] < $auj; ?>
+            $tard = $enService !== '' && $t['echeance'] && $etat === 'a_faire'
+                    && $t['echeance'] < $auj && $t['echeance'] >= $enService; ?>
           <td class="c e-<?= e($etat) ?><?= $tard ? ' tard' : '' ?>">
             <?php if ($peutEcrire): ?>
             <form method="post" action="/dashboard.php?e=administration&amp;m=<?= e($periode) ?>">
@@ -554,7 +619,7 @@ dash_haut('administration', $taches
      <span class="k e-en_cours">···</span> en cours ·
      <span class="k e-fait">✓</span> fait ·
      <span class="k e-sans_objet">—</span> sans objet ·
-     <span class="k tard">○</span> délai passé ·
+     <?php if ($enService !== ''): ?><span class="k tard">○</span> délai passé · <?php endif; ?>
      <span class="k vide">·</span> ne concerne pas cette association.
      Un clic fait tourner l'état. Le nom de l'association ouvre sa fiche, où vivent
      les déclarations trimestrielles et les comptes cantonaux.</p>
@@ -585,6 +650,12 @@ table.mat th.coin{text-align:left;vertical-align:bottom;min-width:190px;
   position:sticky;left:0;z-index:12;background:var(--fond2)}
 table.mat th.mc{width:62px;padding:6px 3px;vertical-align:bottom;background:var(--fond2);
   border-bottom:1px solid var(--trait);z-index:10}
+/* La bande de territoire. Elle porte un fond et un trait à gauche: sans l'un
+   des deux, deux bandes voisines se lisent comme une seule. */
+table.mat tr.bandes th.bande{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--doux);text-align:left;padding:3px 6px;background:var(--papier);
+  border-left:2px solid var(--trait);border-bottom:1px solid var(--trait);white-space:nowrap}
+table.mat tr.bandes th.coin{background:var(--papier);border:0}
 table.mat th.mc .lib{display:block;font-size:10px;line-height:1.25;font-weight:600;
   text-transform:none;letter-spacing:0;color:var(--encre);
   overflow-wrap:anywhere;hyphens:auto}
