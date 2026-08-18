@@ -66,6 +66,89 @@ $grille = function (string $type, string $titre, array $periodes)
 
 <div class="pane pane-laa">
   <?php $grille('laa', 'Déclaration trimestrielle LAA · LPP · AMPG', ['T1','T2','T3','T4']); ?>
+
+  <?php /* ── L'ATTESTATION D'AFFILIATION AU DEUXIÈME PILIER ──────── [18.08.2026]
+       Anna: « colocar um campo attestation d'affiliation année en cours (…)
+       deixar espaço para se escolher ano e depositar a atestação em pdf ».
+
+       CE N'EST PAS UN ÉTAT, C'EST UNE PIÈCE. La fiche dit déjà si la LPP est
+       souscrite; ça, c'est le PDF que la caisse émet chaque année et qu'on
+       redemande à chaque dossier de subvention et à chaque contrôle. Une case
+       à cocher ne le ressort pas quand on en a besoin.
+
+       UNE PAR AN, ET LES ANCIENNES RESTENT. Un contrôle porte sur l'exercice
+       qu'il contrôle, pas sur l'année en cours: écraser 2025 en déposant 2026
+       ferait perdre la seule preuve de 2025. Déposer deux fois LA MÊME année,
+       en revanche, remplace — on ne corrige pas une attestation, on en reçoit
+       une meilleure, et deux versions de la même année laisseraient quelqu'un
+       choisir la mauvaise devant un contrôle. */ ?>
+  <?php $lpp = OrgPieces::liste($id, 'lpp_affiliation'); $anCour = OrgPieces::anneeDefaut(); ?>
+  <div class="grille-h">
+    <h4>Attestation d’affiliation LPP</h4>
+    <p class="aide-b">Attestation d’affiliation à une institution de prévoyance du deuxième
+       pilier, émise chaque année par la caisse. Une par exercice — les anciennes restent.</p>
+
+    <?php if (!OrgPieces::dispo()): ?>
+      <p class="aide-b alerte">La table des pièces manque encore. Lancer <code>php db/migrer.php</code>.</p>
+    <?php else: ?>
+
+    <?php if ($lpp): ?>
+    <div class="tbl"><table>
+      <thead><tr><th>Année</th><th>Fichier</th><th>Note</th><th>Déposée</th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($lpp as $pc): ?>
+        <tr<?= (int)$pc['annee'] === $anCour ? ' class="ici"' : '' ?>>
+          <td><strong><?= (int)$pc['annee'] ?></strong><?= (int)$pc['annee'] === $anCour ? ' <span class="sec">année en cours</span>' : '' ?></td>
+          <td><a href="/dashboard.php?e=associations&amp;piece_dl=<?= (int)$pc['id'] ?>"><?=
+              e((string)$pc['fichier']) ?></a>
+            <span class="sec"><?= number_format((int)$pc['taille'] / 1024, 0, ',', ' ') ?> Ko</span></td>
+          <td class="sec"><?= e((string)$pc['note']) ?></td>
+          <td class="sec"><?= e(substr((string)$pc['cree_le'], 0, 10)) ?><?php
+              if ($pc['depose_par']): ?> · <?= e((string)$pc['depose_par']) ?><?php endif; ?></td>
+          <td class="d">
+            <?php if ($ecrit): ?>
+            <form method="post" action="/dashboard.php?e=associations&amp;o=<?= $id ?>&amp;mod=1"
+                  class="inline-form" onsubmit="return confirm('Retirer l’attestation <?= (int)$pc['annee'] ?> ? Le fichier est supprimé.')">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="piece" value="retirer">
+              <input type="hidden" name="ligne" value="<?= (int)$pc['id'] ?>">
+              <button type="submit" class="x">retirer</button>
+            </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+    <?php else: ?>
+      <p class="aide-b">Aucune attestation déposée.</p>
+    <?php endif; ?>
+
+    <?php if ($ecrit): ?>
+    <form method="post" action="/dashboard.php?e=associations&amp;o=<?= $id ?>&amp;mod=1"
+          enctype="multipart/form-data" class="ajl piece-f">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="piece" value="deposer">
+      <input type="hidden" name="type" value="lpp_affiliation">
+      <label>Année
+        <select name="annee">
+          <?php for ($a = $anCour + 1; $a >= $anCour - 6; $a--): ?>
+            <option value="<?= $a ?>"<?= $a === $anCour ? ' selected' : '' ?>><?= $a ?></option>
+          <?php endfor; ?>
+        </select>
+      </label>
+      <label class="fic">Fichier
+        <input type="file" name="fichier" accept=".pdf,.jpg,.jpeg,.png" required></label>
+      <label class="nt">Note
+        <input type="text" name="note" maxlength="300" placeholder="Caisse, n° de contrat…"></label>
+      <button type="submit">déposer</button>
+    </form>
+    <p class="aide-b">PDF, JPG ou PNG, 25 Mo au maximum. Le fichier est rangé hors du web —
+       il porte un numéro de contrat de prévoyance et ne doit pas être servi par adresse.</p>
+    <?php endif; ?>
+
+    <?php endif; ?>
+  </div>
 </div>
 
 <div class="pane pane-avs">

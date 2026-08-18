@@ -46,6 +46,62 @@ $CHAMPS = ['genre','nom','nom_legal','ide','registre','avs_employeur','ree','sir
     'email_mdp','instagram_mdp'];
 $err = $saisi = [];
 
+/* ══ LES PIÈCES ANNUELLES ═══════════════════════════════════════ [18.08.2026]
+   Anna: « colocar um campo attestation d'affiliation année en cours (…) deixar
+   espaço para se escolher ano e depositar a atestação em pdf. Attestation
+   d'affiliation de l'année en cours à une institution de prévoyance du
+   deuxième pilier — que é a LPP ».
+
+   TRAITÉ AVANT TOUT LE RESTE, et séparément du grand formulaire des cinq
+   onglets: un envoi de fichier est un `multipart/form-data`, et le HTML
+   interdit d'imbriquer un formulaire dans un autre. C'est la même raison qui
+   met déjà les grilles trimestrielles dans `_assoc_grilles.php`. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['piece'] ?? '') !== '') {
+    Auth::requireCsrf();
+    dash_exige_ecriture('associations');
+    $act = (string)$_POST['piece'];
+    $an  = (int)($_POST['annee'] ?? date('Y'));
+
+    if ($act === 'deposer' && $id > 0) {
+        $msg = OrgPieces::deposer($id, (string)($_POST['type'] ?? ''), $an,
+                                  $_FILES['fichier'] ?? ['error' => UPLOAD_ERR_NO_FILE],
+                                  (string)($_POST['note'] ?? ''),
+                                  (string)(Auth::user()['name'] ?? ''));
+        dash_flash($msg === '' ? 'Pièce déposée.' : $msg, $msg === '' ? '' : 'err');
+    } elseif ($act === 'retirer') {
+        /* On vérifie que la pièce appartient bien à CETTE association: l'écran
+           n'en montre pas d'autres, mais un POST fabriqué, si. */
+        $pc = OrgPieces::une((int)($_POST['ligne'] ?? 0));
+        if ($pc && (int)$pc['organisation_id'] === $id) {
+            OrgPieces::retirer((int)$pc['id']);
+            dash_flash('Pièce retirée.');
+        }
+    }
+    redirect('/dashboard.php?e=associations&o=' . $id . '&mod=1');
+}
+
+/* Le téléchargement d'une pièce. Elle vit dans `uploads/private`, qu'Apache
+   refuse de servir: c'est ici, après le contrôle du rôle, qu'elle sort. */
+if (($_GET['piece_dl'] ?? '') !== '') {
+    $pc = OrgPieces::une((int)$_GET['piece_dl']);
+    if (!$pc || dash_droit('associations', dash_role()) === '') { http_response_code(404); exit('Introuvable.'); }
+    $f = OrgPieces::chemin($pc);
+    if (!is_file($f)) { http_response_code(404); exit('Fichier introuvable.'); }
+    $mime = match (strtolower((string)$pc['ext'])) {
+        'pdf' => 'application/pdf',
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        default => 'application/octet-stream',
+    };
+    header('Content-Type: ' . $mime);
+    header('Content-Disposition: attachment; filename="' . addslashes((string)$pc['fichier']) . '"');
+    header('Content-Length: ' . filesize($f));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
+    readfile($f);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['decl'] ?? '') !== '' || ($_POST['is_act'] ?? '') !== '')) {
     Auth::requireCsrf();
     dash_exige_ecriture('associations');
@@ -464,6 +520,23 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 <?php endif; ?>
 
 <style>
+/* Le bloc des pièces annuelles, sous la grille trimestrielle. [18.08.2026] */
+.grille-h{margin:26px 0 10px}
+.grille-h h4{margin:0 0 4px;font-size:14px}
+.grille-h .alerte{color:var(--orange)}
+form.piece-f{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:12px 0 6px}
+form.piece-f label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--doux)}
+form.piece-f input,form.piece-f select{padding:7px 9px;font:inherit;font-size:14px;font-weight:400;
+  text-transform:none;letter-spacing:0;color:var(--encre);border:1px solid var(--trait);
+  border-radius:5px;background:var(--papier)}
+form.piece-f label.nt{flex:1 1 220px}
+form.piece-f label.nt input{width:100%}
+form.piece-f button{padding:8px 16px;font-size:13.5px}
+.grille-h tr.ici td{background:#fffbe9}
+.grille-h button.x{background:none;border:0;color:var(--orange);text-decoration:underline;
+  cursor:pointer;font-family:inherit;font-size:13px;padding:0}
+
 .neuf{margin-left:auto;padding:8px 16px;background:var(--jaune);color:#0d0d0d;
   border-radius:4px;text-decoration:none;font-size:13.5px;font-weight:600}
 .alerte{margin:16px 26px 0;padding:11px 16px;background:var(--fond2);
