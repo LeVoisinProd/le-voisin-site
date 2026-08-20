@@ -405,7 +405,39 @@ if ($id > 0) {
     .alerte{margin:0 0 18px;padding:11px 15px;background:var(--fond2);
       border-left:4px solid var(--orange);font-size:13.5px;max-width:80ch}
     .et{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--trait)}
+
+    /* ── LES GRILLES SE VOIENT SANS ENTRER EN ÉDITION ────────── [20.08.2026]
+       Elles étaient construites depuis le 16.08 et invisibles: `_assoc_grilles`
+       n'était inclus que dans la branche `mod=1`. Pour cocher une case T2 il
+       fallait donc ouvrir « modifier », c'est-à-dire annoncer qu'on va changer
+       la fiche entière alors qu'on vient marquer une déclaration envoyée.
+
+       Or CLIQUER UNE CASE EST DÉJÀ UNE ÉCRITURE, et elle a son propre
+       formulaire: le détour par l'édition n'ajoutait aucune sécurité, il
+       ajoutait un geste. Anna l'a signalé deux fois.
+
+       `.pane{display:block}` remis ici parce que `_assoc_barre.php` les cache
+       toutes sauf celle de l'onglet coché — et sur cette page il n'y a pas
+       d'onglets. Les quatre s'empilent donc, chacune sous son titre, ce qui
+       est la bonne forme pour une page qu'on lit de haut en bas. */
+    .grilles-lect{margin-top:30px;padding-top:22px;border-top:2px solid var(--encre)}
+    .grilles-lect .pane{display:block;margin-bottom:26px}
+    .grilles-lect h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+      color:var(--doux);margin:0 0 10px}
     </style>
+
+    <?php
+    /* `_assoc_grilles.php` attend ces trois-là. En lecture, `$ecrit` reste le
+       droit réel: qui ne peut pas écrire voit les grilles sans les cliquer. */
+    $ecrit = dash_droit('associations', dash_role()) === 'ecrit';
+    $annee = (int)($_GET['an'] ?? date('Y'));
+    if ($annee < 2000 || $annee > 2100) $annee = (int)date('Y');
+    ?>
+    <div class="grilles-lect">
+      <h3>Déclarations et pièces — <?= $annee ?></h3>
+      <?php require __DIR__ . '/_assoc_grilles.php'; ?>
+    </div>
+
     <?php dash_bas(); return;
 }
 
