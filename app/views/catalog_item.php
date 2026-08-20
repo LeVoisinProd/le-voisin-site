@@ -94,17 +94,6 @@ $annee = (int)($item['year_creation'] ?? 0);
 
              Le formulaire revalide ce paramètre contre la liste réelle: rien de
              ce qui vient de l'URL n'est réaffiché sur parole. */ ?>
-        <?php $tFr = trim((string)($item['title_fr'] ?? '')) ?: trim((string)($item['title_en'] ?? '')); ?>
-        <?php if ($tFr !== ''): ?>
-        <div class="cat-cta">
-          <div>
-            <strong><?= e(t('booking_cta')) ?></strong>
-            <p><?= e(t('booking_cta_sub')) ?></p>
-          </div>
-          <a class="cat-cta-b" href="<?= e(url('/demande.php')) ?>?projet=<?= rawurlencode($tFr) ?>">
-            <?= e(t('booking_cta_b')) ?></a>
-        </div>
-        <?php endif; ?>
 
         <?php /* [12.08.2026] SEULEMENT les vidéos réservées au Catalogue.
 
@@ -137,6 +126,24 @@ $annee = (int)($item['year_creation'] ?? 0);
         <div class="rich cat-distribution">
           <h2 class="sub"><?= e(t('distribution')) ?></h2>
           <?= f($item, 'distribution') ?>
+        </div>
+        <?php endif; ?>
+
+        <?php /* [19.08.2026] L'appel à programmer se tient EN BAS, après les
+                 crédits, et non plus sous la vidéo. Anna : « é a última parte
+                 da página ». On regarde, on lit qui fait quoi, et c'est
+                 seulement là qu'on demande une date : placé sous la vidéo, il
+                 coupait la lecture pour proposer d'acheter avant d'avoir
+                 montré la distribution. */ ?>
+        <?php $tFr = trim((string)($item['title_fr'] ?? '')) ?: trim((string)($item['title_en'] ?? '')); ?>
+        <?php if ($tFr !== ''): ?>
+        <div class="cat-cta">
+          <div>
+            <strong><?= e(t('booking_cta')) ?></strong>
+            <p><?= e(t('booking_cta_sub')) ?></p>
+          </div>
+          <a class="cat-cta-b" href="<?= e(url('/demande.php')) ?>?projet=<?= rawurlencode($tFr) ?>">
+            <?= e(t('booking_cta_b')) ?></a>
         </div>
         <?php endif; ?>
       </div>

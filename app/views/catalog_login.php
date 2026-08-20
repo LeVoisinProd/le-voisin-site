@@ -39,7 +39,17 @@
         <p><button class="btn big" type="submit"><?= e(t('cat_entrer')) ?></button></p>
       </form>
 
-      <p class="muted cat-porte-aide"><?= e(t('cat_porte_aide')) ?></p>
+      <?php /* [19.08.2026] « Écrivez-nous » est un lien, et ne l'était pas.
+               Un programmateur sans mot de passe lisait une invitation à écrire
+               sans adresse où écrire : il lui fallait deviner la page contact,
+               et celui qui est venu par un lien direct vers le Catalogue n'a
+               jamais vu le reste du site. Même adresse que la fiche spectacle,
+               réglable dans le CMS et à défaut celle d'Anna, et un objet
+               pré-rempli pour qu'on sache d'où vient la demande. */ ?>
+      <?php $catMail = trim((string)setting('catalogue_email', '')) ?: 'anna@le-voisin.com'; ?>
+      <?php $catLien = '<a href="mailto:' . e($catMail) . '?subject=' . rawurlencode(t('cat_porte_sujet')) . '">'
+                     . e(t('cat_porte_aide_lien')) . '</a>'; ?>
+      <p class="muted cat-porte-aide"><?= sprintf(e(t('cat_porte_aide')), $catLien) ?></p>
 
     <?php endif; ?>
   </div>

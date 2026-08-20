@@ -27,6 +27,22 @@ require __DIR__ . '/app/bootstrap.php';
 
 I18n::init();
 
+/* [19.08.2026] La langue, exactement comme catalogue.php : cette page n'a pas
+   d'adresse par langue, donc elle se choisit par paramètre et se garde en
+   session. La clef de session est CELLE DU CATALOGUE, volontairement : on
+   arrive ici depuis une fiche du Catalogue, et changer de langue en passant le
+   lien serait le même défaut que d'avoir deux mises en page.
+
+   Avant cette date le formulaire était écrit en français dans le fichier. Tant
+   que la page n'avait pas de menu cela ne se voyait pas ; depuis qu'elle porte
+   l'en-tête du site, un visiteur anglophone lisait un menu anglais au-dessus
+   d'un formulaire français. */
+session_boot();
+$lg = strtolower(trim((string)($_GET['lang'] ?? '')));
+if (in_array($lg, I18n::$langs, true)) $_SESSION['lv_cat_lang'] = $lg;
+$lg = (string)($_SESSION['lv_cat_lang'] ?? '');
+I18n::setLang(in_array($lg, I18n::$langs, true) ? $lg : I18n::browserLang());
+
 $message = '';
 $erreur  = false;
 $envoye  = false;
@@ -58,21 +74,41 @@ if (!$envoye && ($_GET['projet'] ?? '') !== '' && !isset($v['projet'])) {
     foreach ($spectacles as $sp) if (strcasecmp((string)$sp, $demande) === 0) { $v['projet'] = (string)$sp; break; }
 }
 
-$titre = 'Demande de booking';
+$titre = t('dem_titre');
+
+/* [19.08.2026] Cette page passe désormais par layout.php, l'enveloppe du site,
+   et non plus par app/page_publique.php. Anna : « colocar a mesma mise en page
+   da pagina catalogue nesta pagina ». Le formulaire est le prolongement d'une
+   fiche du Catalogue (c'est de là qu'on y arrive), et deux mises en page
+   différentes de part et d'autre d'un lien donnent l'impression d'avoir changé
+   de site.
+
+   `module` vaut « catalog » pour une seule raison : c'est ce qui pose le
+   noindex dans layout.php, que l'ancienne enveloppe posait aussi. Le
+   comportement d'indexation ne change donc pas.
+
+   app/page_publique.php reste en place et sert toujours le portail
+   d'advancing : il n'est pas touché. */
+$page = [
+    'id' => 0, 'module' => 'catalog', 'template' => 'standard',
+    'title_fr' => $titre, 'title_en' => $titre,
+    'body_fr' => '', 'body_en' => '',
+    'slug_fr' => 'demande.php', 'slug_en' => 'demande.php',
+];
 
 ob_start();
 ?>
+<section class="section demande">
+  <div class="wrap narrow">
+    <h1><?= e($titre) ?></h1>
 
 <?php if ($envoye): ?>
   <div class="msg"><?= e($message) ?></div>
-  <p>Nous lisons chaque demande. Si votre projet de date avance de votre côté
-     entre-temps, écrivez-nous: cela nous aide à donner la priorité.</p>
+  <p><?= e(t('dem_merci')) ?></p>
 
 <?php else: ?>
 
-  <p class="chapo">Vous souhaitez programmer un de nos spectacles. Ce formulaire
-     remplace l'e-mail: il nous arrive au même endroit que toutes les autres
-     demandes, ce qui veut dire qu'il ne se perd pas.</p>
+  <p class="chapo"><?= e(t('dem_chapo')) ?></p>
 
   <?php if ($message): ?><div class="msg <?= $erreur ? 'err' : '' ?>"><?= e($message) ?></div><?php endif; ?>
 
@@ -83,47 +119,47 @@ ob_start();
              remplit tout ce qu'il trouve, une personne ne doit jamais le voir
              ni l'entendre. */ ?>
     <div class="piege" aria-hidden="true">
-      <label for="site_web">Ne rien écrire ici</label>
+      <label for="site_web"><?= e(t('dem_piege')) ?></label>
       <input type="text" id="site_web" name="site_web" tabindex="-1" autocomplete="off">
     </div>
 
-    <h2>Le spectacle</h2>
+    <h2><?= e(t('dem_s_spectacle')) ?></h2>
 
     <div class="ch">
-      <label for="projet">Quel spectacle vous intéresse</label>
+      <label for="projet"><?= e(t('dem_projet')) ?></label>
       <input type="text" id="projet" name="projet" list="l-spectacles"
              value="<?= e((string)($v['projet'] ?? '')) ?>"
-             placeholder="Le titre, ou ce dont vous vous souvenez">
+             placeholder="<?= e(t('dem_projet_ph')) ?>">
       <?php if ($spectacles): ?>
         <datalist id="l-spectacles">
           <?php foreach ($spectacles as $s): ?><option value="<?= e($s) ?>"><?php endforeach; ?>
         </datalist>
-        <p class="cons">La liste propose nos spectacles, mais vous pouvez écrire autre chose.</p>
+        <p class="cons"><?= e(t('dem_projet_cons')) ?></p>
       <?php endif; ?>
     </div>
 
     <div class="ch">
-      <label for="date_souhaitee">Une date, si vous en avez une</label>
+      <label for="date_souhaitee"><?= e(t('dem_date')) ?></label>
       <input type="date" id="date_souhaitee" name="date_souhaitee"
              value="<?= e((string)($v['date_souhaitee'] ?? '')) ?>">
     </div>
 
     <div class="ch">
-      <label for="date_texte">Ou la période, dans vos mots</label>
+      <label for="date_texte"><?= e(t('dem_periode')) ?></label>
       <input type="text" id="date_texte" name="date_texte"
              value="<?= e((string)($v['date_texte'] ?? '')) ?>"
-             placeholder="par exemple : une semaine en mars 2027, plutôt en début de mois">
-      <p class="cons">Mieux vaut une période honnête qu'une date inventée.</p>
+             placeholder="<?= e(t('dem_periode_ph')) ?>">
+      <p class="cons"><?= e(t('dem_periode_cons')) ?></p>
     </div>
 
     <div class="ch deux">
       <div>
-        <label for="representations">Combien de représentations</label>
+        <label for="representations"><?= e(t('dem_repr')) ?></label>
         <input type="number" id="representations" name="representations" min="1" max="99"
                value="<?= e((string)($v['representations'] ?? '')) ?>">
       </div>
       <div>
-        <label for="budget">Le budget dont vous disposez</label>
+        <label for="budget"><?= e(t('dem_budget')) ?></label>
         <div class="avec">
           <input type="text" id="budget" name="budget" value="<?= e((string)($v['budget'] ?? '')) ?>">
           <select name="devise" aria-label="Devise">
@@ -131,89 +167,124 @@ ob_start();
             <option value="CHF" <?= ($v['devise'] ?? '') === 'CHF' ? 'selected' : '' ?>>CHF</option>
           </select>
         </div>
-        <p class="cons">Même approximatif. Cela nous évite de vous proposer hors budget.</p>
+        <p class="cons"><?= e(t('dem_budget_cons')) ?></p>
       </div>
     </div>
 
-    <h2>Le lieu</h2>
+    <h2><?= e(t('dem_s_lieu')) ?></h2>
 
     <div class="ch">
-      <label for="venue">Le lieu</label>
+      <label for="venue"><?= e(t('dem_lieu')) ?></label>
       <input type="text" id="venue" name="venue" value="<?= e((string)($v['venue'] ?? '')) ?>">
     </div>
 
     <div class="ch deux">
       <div>
-        <label for="ville">Ville</label>
+        <label for="ville"><?= e(t('dem_ville')) ?></label>
         <input type="text" id="ville" name="ville" value="<?= e((string)($v['ville'] ?? '')) ?>">
       </div>
       <div>
-        <label for="pays">Pays</label>
+        <label for="pays"><?= e(t('dem_pays')) ?></label>
         <input type="text" id="pays" name="pays" value="<?= e((string)($v['pays'] ?? '')) ?>">
       </div>
     </div>
 
     <div class="ch">
-      <label for="venue_url">Site du lieu</label>
+      <label for="venue_url"><?= e(t('dem_site')) ?></label>
       <input type="text" id="venue_url" name="venue_url" value="<?= e((string)($v['venue_url'] ?? '')) ?>">
     </div>
 
-    <h2>Vous</h2>
+    <h2><?= e(t('dem_s_vous')) ?></h2>
 
     <div class="ch deux">
       <div>
-        <label for="contact_nom">Votre nom <span class="ob">·</span></label>
+        <label for="contact_nom"><?= e(t('dem_nom')) ?> <span class="ob">·</span></label>
         <input type="text" id="contact_nom" name="contact_nom" required
                value="<?= e((string)($v['contact_nom'] ?? '')) ?>">
       </div>
       <div>
-        <label for="contact_role">Votre fonction</label>
+        <label for="contact_role"><?= e(t('dem_fonction')) ?></label>
         <input type="text" id="contact_role" name="contact_role"
                value="<?= e((string)($v['contact_role'] ?? '')) ?>">
       </div>
     </div>
 
     <div class="ch">
-      <label for="structure">La structure</label>
+      <label for="structure"><?= e(t('dem_structure')) ?></label>
       <input type="text" id="structure" name="structure" value="<?= e((string)($v['structure'] ?? '')) ?>">
     </div>
 
     <div class="ch deux">
       <div>
-        <label for="contact_email">E-mail <span class="ob">·</span></label>
+        <label for="contact_email"><?= e(t('dem_email')) ?> <span class="ob">·</span></label>
         <input type="email" id="contact_email" name="contact_email" required
                value="<?= e((string)($v['contact_email'] ?? '')) ?>">
       </div>
       <div>
-        <label for="contact_tel">Téléphone</label>
+        <label for="contact_tel"><?= e(t('dem_tel')) ?></label>
         <input type="text" id="contact_tel" name="contact_tel"
                value="<?= e((string)($v['contact_tel'] ?? '')) ?>">
       </div>
     </div>
 
     <div class="ch">
-      <label for="message">Ce que vous voulez nous dire</label>
+      <label for="message"><?= e(t('dem_message')) ?></label>
       <textarea id="message" name="message" rows="5"><?= e((string)($v['message'] ?? '')) ?></textarea>
-      <p class="cons">Le contexte du festival ou de la saison, les contraintes de plateau,
-         ce qui vous a fait penser à ce spectacle.</p>
+      <p class="cons"><?= e(t('dem_message_cons')) ?></p>
     </div>
 
-    <button type="submit">Envoyer la demande</button>
-    <p class="pied">Les deux champs marqués <span class="ob">·</span> sont nécessaires:
-       sans eux nous ne saurions pas à qui répondre.</p>
+    <button type="submit"><?= e(t('dem_envoyer')) ?></button>
+    <p class="pied"><?= e(t('dem_pied_a')) ?> <span class="ob">·</span> <?= e(t('dem_pied_b')) ?></p>
   </form>
 <?php endif; ?>
 
 <style>
+/* Les règles de forme venaient de app/page_publique.php, qui avait sa propre
+   feuille. En passant sous layout.php elles sont reprises ici, exprimées avec
+   les variables du site : la police, le noir et le gris sont ceux du thème,
+   plus ceux de l'ancienne enveloppe. */
+.demande .ch{padding:15px 0;border-bottom:var(--trait) solid var(--line)}
+.demande label{display:block;font-weight:600;font-size:15.5px;margin-bottom:5px}
+.demande .ob{color:var(--error);font-weight:700}
+.demande .cons{font-size:13.5px;color:var(--grey);margin:0 0 8px}
+.demande .chapo{font-size:17px;line-height:1.45;padding-bottom:16px;
+  border-bottom:var(--trait) solid var(--line);margin-bottom:20px}
+.demande .msg{background:var(--wash);border-left:3px solid var(--ink);
+  padding:12px 15px;margin:0 0 22px}
+.demande .msg.err{border-left-color:var(--error)}
+.demande .pied{margin-top:14px;font-size:13px;color:var(--grey)}
+.demande input[type=text],.demande input[type=number],.demande input[type=date],
+.demande input[type=time],.demande textarea,.demande select{
+  width:100%;padding:9px 11px;font:inherit;font-size:15px;
+  border:var(--trait) solid var(--line);border-radius:5px;
+  background:var(--paper);color:var(--ink)}
+.demande textarea{resize:vertical}
+.demande input:focus,.demande textarea:focus,.demande select:focus{
+  outline:var(--trait-fort) solid var(--ink);outline-offset:1px;border-color:transparent}
+.demande button{margin-top:26px;padding:11px 26px;font:inherit;font-weight:600;
+  font-size:15px;border:0;border-radius:5px;background:var(--ink);
+  color:var(--paper);cursor:pointer}
+.demande button:hover{opacity:.88}
+.demande button:focus-visible{outline:var(--trait-fort) solid var(--ink);outline-offset:2px}
+.demande h2{font-size:15px;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--grey);margin:34px 0 4px;font-weight:600}
+
 .piege{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .ch.deux{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .ch.deux .ch{padding:0;border:0}
 .avec{display:flex;gap:6px}
 .avec input{flex:1}
 .avec select{width:auto}
-.msg.err{border-left-color:#e2653a}
 @media (max-width:520px){.ch.deux{grid-template-columns:1fr}}
 </style>
+
+  </div>
+</section>
 <?php
-$corps = (string)ob_get_clean();
-require __DIR__ . '/app/page_publique.php';
+require_once LV_APP . '/views/partials/helpers.php';
+$content = (string)ob_get_clean();
+$meta = [
+    'title' => $titre . ' — ' . setting('site_name', 'Le Voisin'),
+    'desc'  => '', 'url' => '', 'og' => '', 'alt' => [],
+];
+include LV_APP . '/views/layout.php';

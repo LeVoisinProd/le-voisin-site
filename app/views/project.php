@@ -43,6 +43,20 @@
 
     <div class="fiche-media"><?= media_carousel($gallery, $cover) ?></div>
 
+    <?php /* [19.08.2026] Le crédit photo s'imprime enfin. Le champ « Crédit
+             photo » existait sur la fiche projet, dans la base et dans le CMS,
+             et aucune vue ne l'affichait : on pouvait le remplir avec soin sans
+             que personne ne le lise jamais. Créditer un photographe n'est pas
+             une politesse, c'est ce qui est convenu avec lui.
+
+             Le champ est au projet et non à chaque image : si le carrousel
+             mélange plusieurs photographes, il faut les nommer tous dans la
+             même ligne. */ ?>
+    <?php $credit = trim((string)($project['photo_credit'] ?? '')); ?>
+    <?php if ($credit !== ''): ?>
+    <p class="fiche-credit">© <?= e($credit) ?></p>
+    <?php endif; ?>
+
     <?php
     // [V31-DEUXPOINTS] Le tri des lignes sans réponse d'abord — il se repère
     // aux deux points —, le retrait des deux points ensuite. Jamais l'inverse.
