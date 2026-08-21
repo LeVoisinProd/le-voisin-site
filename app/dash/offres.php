@@ -30,6 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        pdf desde esta página ». L'offre gardait le nom du fichier dans une note
        et rien d'autre: elle disait qu'un devis existait sans permettre de
        l'ouvrir. */
+    /* CRÉER UNE OFFRE À LA MAIN. [Anna, 21.08.2026] « criar a possibilidade
+       de criar uma nova, na mão ».
+
+       Le formulaire avait été retiré le 17.08 — « quem vai fazer isso é a
+       Iris » — et `Offers::creerAuBureau()` était restée dans la bibliothèque
+       pour elle. Elle sert des deux côtés: Iris colle un courriel, on saisit à
+       la main quand l'occasion vient par téléphone. Rien à réécrire.
+
+       `ip` vaut « bureau » et non une adresse: la distinction sert le jour où
+       l'on se demande si une ligne a été remplie par le lieu ou recopiée par
+       nous. */
+    if ($act === 'creer') {
+        $nid = Offers::creerAuBureau($_POST);
+        if ($nid > 0) { dash_flash('Offre créée.'); redirect('/dashboard.php?e=offres&o=' . $nid); }
+        dash_flash('Il faut au moins un nom de contact.', 'err');
+        redirect('/dashboard.php?e=offres&neuf=1');
+    }
+
     if ($act === 'fichier' && $oid > 0) {
         try {
             OfferFiles::deposer($oid, $_FILES['piece'] ?? ['error' => UPLOAD_ERR_NO_FILE],
@@ -115,6 +133,52 @@ dash_haut('offres', $sousTitre);
      poussant la page à déborder. Quatre écrans étaient dans ce cas — offres,
      personnel, projets, calendrier — et c'est le même oubli à chaque fois. */ ?>
 <div class="zone">
+
+<?php if (($_GET['neuf'] ?? '') === '1' && $peutEcrire): ?>
+  <?php /* LES MÊMES CHAMPS QUE CE QUE LA PAGE MONTRE, et dans le même ordre:
+       ce qu'on saisit doit ressembler à ce qu'on relira. Seul le nom du
+       contact est exigé — c'est la seule chose sans laquelle une offre ne veut
+       rien dire; tout le reste s'apprend en discutant et se complète après. */ ?>
+  <div class="fil-o"><a href="/dashboard.php?e=offres">← toutes les offres</a></div>
+  <h2 class="gros">Nouvelle offre</h2>
+  <form method="post" action="/dashboard.php?e=offres" class="neuve">
+    <?= Auth::csrfField() ?>
+    <input type="hidden" name="act" value="creer">
+
+    <div class="tb">Le spectacle et le lieu</div>
+    <label>Spectacle<input type="text" name="projet" placeholder="Bestiarium"></label>
+    <label>Lieu<input type="text" name="venue" placeholder="Le Pommier"></label>
+    <label>Site du lieu<input type="url" name="venue_url" placeholder="https://…"></label>
+    <label>Ville<input type="text" name="ville"></label>
+    <label>Pays<input type="text" name="pays" placeholder="CH, FR, DE…" maxlength="64"></label>
+
+    <div class="tb">Quand, combien</div>
+    <label>Date souhaitée<input type="date" name="date_souhaitee"></label>
+    <label>Ou en toutes lettres<input type="text" name="date_texte"
+           placeholder="Saison 2027-2028, dates à définir"></label>
+    <label>Représentations<input type="number" name="representations" min="1" step="1"></label>
+    <label>Budget annoncé<input type="text" name="budget" placeholder="3700"></label>
+    <label>Devise
+      <select name="devise"><option value="CHF">CHF</option><option value="EUR">EUR</option></select></label>
+
+    <div class="tb">Qui écrit</div>
+    <label>Nom <b class="req">*</b><input type="text" name="contact_nom" required></label>
+    <label>Rôle<input type="text" name="contact_role" placeholder="programmation"></label>
+    <label>Courriel<input type="email" name="contact_email"></label>
+    <label>Téléphone<input type="text" name="contact_tel"></label>
+    <label>Structure<input type="text" name="structure"></label>
+
+    <div class="tb">Ce qu'ils écrivent</div>
+    <label class="large">Message<textarea name="message" rows="5"
+           placeholder="Collez ici le courriel ou ce qui a été dit au téléphone"></textarea></label>
+    <label class="large">Note interne<textarea name="notes_internes" rows="2"
+           placeholder="Ce qui ne sort pas de l’équipe"></textarea></label>
+
+    <div class="act"><button type="submit">créer l’offre</button>
+      <a class="sec2" href="/dashboard.php?e=offres">annuler</a></div>
+  </form>
+  <?php dash_bas(); return; ?>
+<?php endif; ?>
 
 <?php if ($une): ?>
   <?php
@@ -285,12 +349,18 @@ dash_haut('offres', $sousTitre);
 <?php endif; ?>
 
 
-<div class="filtres">
-  <a href="/dashboard.php?e=offres" class="<?= $filtre === '' ? 'ici' : '' ?>">toutes (<?= $total ?>)</a>
-  <?php foreach ($STATUTS as $k => $lib): if (!$n[$k]) continue; ?>
-    <a href="/dashboard.php?e=offres&amp;f=<?= $k ?>" class="<?= $filtre === $k ? 'ici' : '' ?>"><?= e($lib) ?> (<?= $n[$k] ?>)</a>
-  <?php endforeach; ?>
-</div>
+<?php /* LES ONGLETS D'ÉTAT S'EN VONT: LA COLONNE LE DIT DÉJÀ.
+     [Anna, 21.08.2026] « não adianta fazer 2 páginas, uma reçue e outra en
+     discussion, o état já vai dizer isso », « está duplicado isso ».
+
+     Ils étaient là avant le menu de colonne. Depuis, « État » a son propre
+     menu, avec le compte de chaque valeur et le tri — la même information, au
+     même endroit que la donnée, et sans recharger la page. Deux chemins vers
+     le même tri font douter de savoir lequel fait autorité.
+
+     `$filtre` reste lu dans l'adresse: un lien déjà envoyé ou un marque-page
+     avec `?f=acceptee` continue de fonctionner. Ce qui disparaît est la barre,
+     pas la possibilité. */ ?>
 
 <?php if (!$offres): ?>
   <p class="vide">Aucun devis ni demande<?= $filtre ? ' dans cet état' : '' ?> en cours.
@@ -312,6 +382,9 @@ dash_haut('offres', $sousTitre);
      spectacle, dont le porteur vit dans `projet_prod`. La stocker en ferait
      une deuxième vérité, qui se tromperait le jour où une pièce change de
      porteur. */ ?>
+<?php if ($peutEcrire): ?>
+<p class="barre-neuf"><a class="neuf" href="/dashboard.php?e=offres&amp;neuf=1">+ nouvelle offre</a></p>
+<?php endif; ?>
 <?php require __DIR__ . '/_filtre_colonnes.php'; ?>
 <div class="tw"><table class="tofr" data-filtres>
   <thead><tr>
@@ -369,6 +442,22 @@ dash_haut('offres', $sousTitre);
 <style>
 .tofr td{vertical-align:top}
 .tofr .cp{font-size:11.5px;color:var(--doux)}
+.neuve{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;max-width:900px;margin:0 0 8px}
+.neuve .tb{grid-column:1/-1;margin:14px 0 0;font-size:12px;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--doux);border-bottom:1px solid var(--trait);padding-bottom:5px}
+.neuve label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--doux)}
+.neuve label.large{grid-column:1/-1}
+.neuve input,.neuve select,.neuve textarea{padding:8px 10px;font:inherit;font-size:14px;
+  font-weight:400;text-transform:none;letter-spacing:0;color:var(--encre);
+  border:1px solid var(--trait);border-radius:5px;box-sizing:border-box;width:100%}
+.neuve .req{color:#c8452f}
+.neuve .act{grid-column:1/-1;display:flex;gap:12px;align-items:center;margin-top:18px;
+  padding-top:16px;border-top:1px solid var(--trait)}
+.neuve .act button{padding:9px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier)}
+.neuve .act .sec2{color:var(--doux);font-size:13.5px;text-decoration:none}
+@media (max-width:760px){ .neuve{grid-template-columns:1fr} }
 .pieces-o{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--trait)}
 .pieces-o h4{margin:0 0 8px;font-size:13px}
 .pieces-o .n{color:var(--doux);font-size:12px}

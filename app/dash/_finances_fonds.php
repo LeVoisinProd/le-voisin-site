@@ -125,7 +125,7 @@ form.filtres.fonds button,form.filtres.fonds .vider{white-space:nowrap}
       <th>Institution / bailleur</th><th>Projet</th>
       <th>Type</th><th class="d">Demandé</th>
       <th class="d">Accordé</th>
-      <th>Statut</th><th>Délai</th><th>Réponse</th><th data-f="non"></th>
+      <th>Statut</th><th>Délai</th><th>Réponse</th><th data-f="non"></th><!-- colonne des boutons: pas une donnee -->
     </tr></thead>
     <tbody>
     <?php foreach ($dem as $d): $did = (int)$d['id'];

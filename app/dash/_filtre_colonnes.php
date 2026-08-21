@@ -232,11 +232,18 @@ th:hover .fc-b{opacity:.85}
         if (th.getAttribute('data-f') === 'non') return;
 
         var toutes = lignes.map(function (l) { return texte(l.cells[i]) || VIDE; });
-        /* Une colonne d'une seule valeur n'a rien à filtrer ni à trier. */
+        /* TOUTES LES COLONNES ONT LEUR MENU. [Anna, 21.08.2026] « o filtro tem
+           que estar em todas as colunas, não só em algumas ».
+
+           J'avais écarté les colonnes d'une seule valeur: rien à filtrer, donc
+           pas de flèche. C'était juste techniquement et faux à l'usage — une
+           colonne sans flèche ressemble à une colonne cassée, et l'on ne sait
+           pas si c'est parce qu'elle n'a qu'une valeur ou parce que l'écran a
+           un défaut. Un menu qui ne propose qu'une valeur le dit lui-même, en
+           une seconde, et le tri reste. */
         var distinctes = {};
         toutes.forEach(function (v) { distinctes[v] = (distinctes[v] || 0) + 1; });
         var valeurs = Object.keys(distinctes);
-        if (valeurs.length < 2) return;
         valeurs.sort(function (a, b) { return a.localeCompare(b, 'fr', { numeric: true }); });
 
         var b = document.createElement('button');
