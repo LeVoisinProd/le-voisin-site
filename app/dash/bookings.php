@@ -243,6 +243,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('/dashboard.php?e=bookings&v=prix');
     }
 
+    /* LES NOTES SE CORRIGENT DEPUIS L'APERÇU. [Anna, 21.08.2026] « laisser
+       cette partie éditable ». C'est la même raison que pour les grilles des
+       associations le 20.08: écrire une note est déjà une écriture, et elle a
+       son propre formulaire. Passer par « modifier » obligeait à ouvrir la
+       fiche entière — donc à annoncer qu'on va tout changer — pour ajouter une
+       ligne qu'on vient d'apprendre au téléphone.
+
+       DEUX FORMULAIRES ET NON UN. Les deux natures de notes n'ont pas le même
+       destinataire: l'une part avec l'artiste, l'autre jamais. Un seul bouton
+       enregistrerait les deux d'un coup, et un copier-coller malheureux dans
+       la mauvaise case partirait sans qu'on l'ait relu. */
+    $note = (string)($_POST['bnote'] ?? '');
+    if ($note !== '' && $id > 0) {
+        $col = $note === 'artiste' ? 'notes_artiste'
+             : ($note === 'internes' ? 'notes_internes' : '');
+        if ($col !== '') {
+            DB::update('booking', [$col => trim((string)($_POST['texte'] ?? ''))],
+                       'id = ?', [$id]);
+            dash_flash($note === 'artiste'
+                ? 'Notes artiste enregistrées. L\'artiste les voit.'
+                : 'Notes internes enregistrées. Elles ne sortent pas de l\'équipe.');
+        }
+        redirect('/dashboard.php?e=bookings&b=' . $id);
+    }
+
     /* Les fichiers de la date. */
     $actB = (string)($_POST['bfic'] ?? '');
     if ($actB !== '' && $id > 0) {
@@ -769,15 +794,30 @@ if ($id > 0) {
       <?php /* Les deux natures de notes, et la distinction est le point:
                l'une part avec l'artiste, l'autre jamais. Une seule colonne
                obligerait à se relire avant chaque partage. */ ?>
+      <?php $peutNote = dash_droit('bookings', dash_role()) === 'ecrit'; ?>
       <div class="notes">
-        <div class="bloc">
-          <h3>Notes artiste <span class="n">visibles par l'artiste</span></h3>
-          <p><?= $b['notes_artiste'] ? nl2br(e($b['notes_artiste'])) : '<span class="n">rien</span>' ?></p>
-        </div>
-        <div class="bloc int">
-          <h3>Notes internes <span class="n">l'équipe seulement</span></h3>
-          <p><?= $b['notes_internes'] ? nl2br(e($b['notes_internes'])) : '<span class="n">rien</span>' ?></p>
-        </div>
+        <?php foreach ([
+              ['artiste',  'notes_artiste',  'Notes artiste',  "visibles par l'artiste", ''],
+              ['internes', 'notes_internes', 'Notes internes', "l'équipe seulement",     ' int'],
+            ] as [$cle, $col, $titre, $sous, $cls]): ?>
+          <div class="bloc<?= $cls ?>">
+            <h3><?= e($titre) ?> <span class="n"><?= e($sous) ?></span></h3>
+            <?php if ($peutNote): ?>
+              <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>" class="fnote">
+                <?= Auth::csrfField() ?>
+                <input type="hidden" name="bnote" value="<?= e($cle) ?>">
+                <textarea name="texte" rows="4"
+                  placeholder="<?= $cle === 'artiste'
+                    ? 'Ce que l’artiste doit savoir: horaires, accès, contacts sur place…'
+                    : 'Ce qui ne sort pas de l’équipe: négociation, doutes, relances…' ?>"><?=
+                  e((string)$b[$col]) ?></textarea>
+                <div class="fnote-act"><button type="submit">enregistrer</button></div>
+              </form>
+            <?php else: ?>
+              <p><?= $b[$col] ? nl2br(e($b[$col])) : '<span class="n">rien</span>' ?></p>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
       </div>
 
       <?php /* LES FICHIERS DE LA DATE. [16.08.2026]
@@ -1565,6 +1605,21 @@ if ($id > 0) {
    l'image d'avant ». Un `float` plutôt qu'une colonne: la fiche, les notes et
    les fichiers continuent de couler à sa gauche et remplissent la place, au
    lieu de laisser une bande blanche sous une carte pleine largeur. */
+/* Le champ de note prend la largeur de son bloc et grandit si l'on tire
+   dessus. Le bouton reste à droite, discret: on écrit plus souvent qu'on
+   n'enregistre, et un bouton noir plein sous chaque note ferait deux appels à
+   l'action pour une page qui n'en a pas. */
+.fnote{margin:0}
+.fnote textarea{width:100%;box-sizing:border-box;padding:8px 10px;font:inherit;
+  font-size:13.5px;line-height:1.45;border:1px solid var(--trait);border-radius:5px;
+  background:var(--papier);color:var(--encre);resize:vertical;min-height:74px}
+.fnote textarea:focus{outline:2px solid var(--jaune,#FFD24D);outline-offset:-1px}
+.fnote-act{display:flex;justify-content:flex-end;margin-top:7px}
+.fnote-act button{padding:5px 13px;font:inherit;font-size:12.5px;font-weight:600;
+  cursor:pointer;border:1px solid var(--trait);border-radius:5px;
+  background:transparent;color:var(--encre)}
+.fnote-act button:hover{border-color:var(--encre);background:var(--fond2)}
+
 .carte{position:relative;float:right;width:420px;max-width:46%;
   margin:0 0 20px 26px;border:1px solid var(--trait);
   border-radius:8px;overflow:hidden;background:var(--fond2)}
