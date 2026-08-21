@@ -505,7 +505,31 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($err) echo '<div class="flash err">Rien n\'a été enregistré: '
                  . count($err) . ' champ(s) à corriger. Ce que vous aviez saisi est conservé.</div>';
     ?>
-    <div class="fil"><a href="/dashboard.php?e=bookings<?= $id > 0 ? '&amp;b=' . $id : '' ?>">← retour</a></div>
+    <?php
+    /* LES MÊMES FLÈCHES ICI, ET C'EST ICI QU'ELLES SERVENT. [Anna, 21.08.2026]
+       Je les avais mises sur l'aperçu seulement, en écartant le formulaire au
+       motif qu'une flèche à côté de champs non enregistrés fait perdre la
+       saisie. Anna: « nao vejo as setas » — elle corrige dans le formulaire,
+       évidemment: c'est le seul écran où l'on change quelque chose.
+
+       Le risque était réel, il se répare au lieu de s'éviter: les flèches
+       demandent confirmation si un champ a bougé, et se taisent sinon. Le
+       garde est en bas de page, il compare l'état du formulaire à son état
+       d'origine. Sans JavaScript les flèches marchent quand même — on perd
+       l'avertissement, pas la navigation. */
+    $vz  = $id > 0 ? bookings_voisins($id) : ['prec'=>null,'suiv'=>null,'rang'=>0,'total'=>0];
+    $ctx = bookings_contexte();
+    $lienMod = fn(?int $n) => '/dashboard.php?e=bookings&amp;b=' . (int)$n . '&amp;mod=1' . $ctx;
+    ?>
+    <div class="fil"><a href="/dashboard.php?e=bookings<?= $id > 0 ? '&amp;b=' . $id : '' ?><?= $ctx ?>">← retour</a>
+      <?php if ($vz['prec'] !== null): ?>
+        <a class="pas" href="<?= $lienMod($vz['prec']) ?>">← précédent</a>
+      <?php elseif ($id > 0): ?><span class="pas mort">← précédent</span><?php endif; ?>
+      <?php if ($vz['rang']): ?><span class="rang"><?= $vz['rang'] ?> / <?= $vz['total'] ?></span><?php endif; ?>
+      <?php if ($vz['suiv'] !== null): ?>
+        <a class="pas" href="<?= $lienMod($vz['suiv']) ?>">suivant →</a>
+      <?php elseif ($id > 0): ?><span class="pas mort">suivant →</span><?php endif; ?>
+    </div>
     <form class="saisie" method="post"
           action="/dashboard.php?e=bookings<?= $id > 0 ? '&amp;b=' . $id : '' ?>&amp;mod=1">
       <?= Auth::csrfField() ?>
@@ -568,8 +592,27 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
       </div>
     </form>
-    <style>.fil { padding:12px 26px 0; font-size:13px; }
-           .fil a { color:var(--doux); text-decoration:none; }</style>
+    <style>.fil { padding:12px 26px 0; font-size:13px; display:flex; gap:16px; align-items:baseline; }
+           .fil a { color:var(--doux); text-decoration:none; }
+           .fil .pas { color:var(--encre); font-weight:600; }
+           .fil .pas.mort { color:var(--doux); opacity:.35; }
+           .fil .rang { color:var(--doux); font-variant-numeric:tabular-nums; }</style>
+    <script>
+    /* Prévenir avant de quitter une saisie en cours, et seulement alors: une
+       confirmation qui se déclenche à chaque fois n'est plus lue au bout de
+       trois clics. */
+    (function () {
+      var f = document.querySelector('form.saisie');
+      if (!f) return;
+      var depart = new FormData(f), sale = false;
+      f.addEventListener('input', function () { sale = true; });
+      document.querySelectorAll('.fil a.pas, .fil a').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          if (sale && !confirm('Des champs ont été modifiés et ne sont pas enregistrés. Quitter quand même ?')) e.preventDefault();
+        });
+      });
+    })();
+    </script>
     <?php
     dash_bas();
     return;
