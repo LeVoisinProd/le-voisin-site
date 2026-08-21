@@ -102,6 +102,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['bx'] ?? '') !== '' && ($_G
             if ($j !== '') { Bexio::poserJeton($oid, $j); dash_flash('Jeton enregistré. Essayez-le.'); }
             else            { dash_flash('Rien n\'a été changé: le champ était vide.'); }
         }
+    } elseif ($_POST['bx'] === 'comptes') {
+        /* LE COMPTE ET LA TAXE SE CHOISISSENT DANS UNE LISTE, jamais tapés: on
+           ne demande à personne de retenir un identifiant technique, et une
+           faute de frappe sur un nombre à trois chiffres ne se voit pas. On
+           garde aussi le LIBELLÉ, pour relire le réglage sans rappeler bexio
+           à chaque ouverture de fiche. */
+        $oo  = DB::one('SELECT * FROM organisation WHERE id = ?', [$oid]) ?: [];
+        $cid = (int)($_POST['bx_compte'] ?? 0);
+        $tid = (int)($_POST['bx_taxe'] ?? 0);
+        $nomC = $nomT = null;
+        foreach (Bexio::comptes($oo) as $x) if ($x['id'] === $cid) $nomC = $x['libelle'];
+        foreach (Bexio::taxes($oo)   as $x) if ($x['id'] === $tid) $nomT = $x['libelle'];
+        DB::update('organisation', [
+            'bexio_compte' => $cid ?: null, 'bexio_compte_nom' => $nomC,
+            'bexio_taxe'   => $tid ?: null, 'bexio_taxe_nom'   => $nomT,
+        ], 'id = ?', [$oid]);
+        dash_flash($cid && $tid
+            ? 'Compte et taxe enregistrés: ' . $nomC . ' · ' . $nomT
+            : 'Il faut choisir un compte ET une taxe.', $cid && $tid ? '' : 'err');
+
     } elseif ($_POST['bx'] === 'essai') {
         $o = DB::one('SELECT * FROM organisation WHERE id = ?', [$oid]);
         $r = Bexio::essai($o ?: []);
@@ -532,6 +552,16 @@ if ($id > 0) {
     .bx code{font-size:12px;background:var(--papier);padding:1px 5px;border-radius:3px}
     .bx-ok{color:#1c5c2e}
     .bx-att{color:#8a6a00}
+    .bx-h{margin:18px 0 8px;font-size:13px;padding-top:14px;border-top:1px solid var(--trait)}
+    .bx-lien{color:var(--encre);font-size:12.5px}
+    .bx-f2{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:0 0 8px}
+    .bx-f2 label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--doux);
+      text-transform:uppercase;letter-spacing:.06em}
+    .bx-f2 select{min-width:230px;max-width:340px;padding:7px 9px;font:inherit;font-size:13px;
+      text-transform:none;letter-spacing:0;color:var(--encre);
+      border:1px solid var(--trait);border-radius:5px}
+    .bx-f2 button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+      border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
     .bx-f{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
     .bx-f input[type=password]{flex:1;min-width:220px;padding:7px 9px;font:inherit;font-size:13px;
       border:1px solid var(--trait);border-radius:5px;box-sizing:border-box}
@@ -662,7 +692,7 @@ if ($id > 0) {
          facture émise chez la mauvaise association ne s'annule pas d'un
          bouton: elle porte un numéro et demande une note de crédit. On voit
          donc chez qui l'on est avant d'écrire quoi que ce soit. */ ?>
-    <div class="bl bx">
+    <div class="bl bx" id="bx">
       <h3>bexio</h3>
       <?php $bxOk = Bexio::configure($o); $bxCompta = ($o['gestion'] ?? 'complete') !== 'diffusion'; ?>
       <?php if (!$bxCompta && !$bxOk): ?>
@@ -701,6 +731,58 @@ if ($id > 0) {
       <?php endif; ?>
       <p class="n">Le jeton est chiffré dans la base, comme les IBAN. Il n'est jamais réaffiché:
          un champ laissé vide ne l'efface pas.</p>
+
+      <?php /* OÙ VA L'ARGENT D'UNE FACTURE, ET AVEC QUELLE TAXE. Une position
+           de facture bexio exige un compte et un taux, et ces identifiants
+           n'ont de sens que dans CETTE comptabilité: le « 3404 Cachet
+           spectacle » du Voisin CH porte le numéro 246, celui d'une autre
+           association en portera un autre. Les coder en dur écrirait dans le
+           mauvais compte sans que rien ne proteste.
+
+           LES LISTES NE SE CHARGENT QUE QUAND ON CONFIGURE. Les appeler à
+           chaque ouverture de fiche ajouterait deux allers-retours vers bexio
+           pour une information qui ne change jamais. Le réglage déjà posé se
+           relit depuis la base, sans appel. */ ?>
+      <?php $bxConf = ($_GET['bx_conf'] ?? '') === '1'; ?>
+      <h4 class="bx-h">Compte et taxe des factures</h4>
+      <?php if ($o['bexio_compte'] && !$bxConf): ?>
+        <p class="bx-ok"><?= e((string)$o['bexio_compte_nom']) ?><br>
+           <span class="n"><?= e((string)$o['bexio_taxe_nom']) ?></span></p>
+        <p><a class="bx-lien" href="/dashboard.php?e=associations&amp;o=<?= $id ?>&amp;bx_conf=1#bx">changer</a></p>
+      <?php elseif (!$bxConf): ?>
+        <p class="bx-att">Pas encore choisis. Une facture ne peut pas partir sans eux.</p>
+        <p><a class="bx-lien" href="/dashboard.php?e=associations&amp;o=<?= $id ?>&amp;bx_conf=1#bx">choisir</a></p>
+      <?php else: ?>
+        <?php $lc = Bexio::comptes($o); $lt = Bexio::taxes($o); ?>
+        <?php if (!$lc): ?>
+          <p class="bx-att">bexio n’a renvoyé aucun compte de produit. Essayez la connexion.</p>
+        <?php else: ?>
+        <form method="post" action="/dashboard.php?e=associations&amp;o=<?= $id ?>" class="bx-f2">
+          <?= Auth::csrfField() ?>
+          <input type="hidden" name="bx" value="comptes">
+          <label>Compte de produit
+            <select name="bx_compte" required>
+              <option value="">— choisir —</option>
+              <?php foreach ($lc as $x): ?>
+                <option value="<?= (int)$x['id'] ?>"<?= (int)$o['bexio_compte'] === $x['id'] ? ' selected' : '' ?>><?=
+                  e($x['libelle']) ?></option>
+              <?php endforeach; ?>
+            </select></label>
+          <label>Taxe
+            <select name="bx_taxe" required>
+              <option value="">— choisir —</option>
+              <?php foreach ($lt as $x): ?>
+                <option value="<?= (int)$x['id'] ?>"<?= (int)$o['bexio_taxe'] === $x['id'] ? ' selected' : '' ?>><?=
+                  e($x['libelle']) ?></option>
+              <?php endforeach; ?>
+            </select></label>
+          <button type="submit">enregistrer</button>
+        </form>
+        <p class="n"><?= count($lc) ?> comptes de produit et <?= count($lt) ?> taxes actives,
+           lus chez bexio à l’instant. Seuls les comptes 3xxx sont proposés: une recette ne
+           se pose pas sur un compte de charge.</p>
+        <?php endif; ?>
+      <?php endif; ?>
       <?php endif; ?>
     </div>
 

@@ -107,6 +107,61 @@ class Bexio
     }
 
     /**
+     * Les comptes de produits, pour choisir où va un prix de cession.
+     *
+     * ON NE MONTRE QUE LES 3xxx. Le plan de comptes en compte deux cents; les
+     * charges, les actifs et les comptes de bilan n'ont rien à faire dans une
+     * liste où l'on choisit un compte de RECETTE. Se tromper de classe est
+     * l'erreur la plus facile et la plus coûteuse à défaire.
+     *
+     * @return array<int,array{id:int, libelle:string}>
+     */
+    public static function comptes(array $org): array
+    {
+        $j = self::jeton($org);
+        if ($j === '') return [];
+        [$c, $r] = self::appel($j, '/2.0/accounts?limit=500');
+        if ($c !== 200 || !is_array($r)) return [];
+
+        $out = [];
+        foreach ($r as $a) {
+            $no = (string)($a['account_no'] ?? '');
+            if ($no === '' || $no[0] !== '3') continue;
+            $out[] = ['id' => (int)$a['id'],
+                      'libelle' => $no . ' · ' . (string)($a['name'] ?? '')];
+        }
+        usort($out, fn($x, $y) => strcmp($x['libelle'], $y['libelle']));
+        return $out;
+    }
+
+    /**
+     * Les taux de TVA actifs.
+     *
+     * `/3.0/taxes` ET NON `/2.0`: le second répond 404 sur les comptes
+     * d'aujourd'hui. Mesuré, pas supposé.
+     *
+     * @return array<int,array{id:int, libelle:string}>
+     */
+    public static function taxes(array $org): array
+    {
+        $j = self::jeton($org);
+        if ($j === '') return [];
+        [$c, $r] = self::appel($j, '/3.0/taxes?limit=100');
+        if ($c !== 200 || !is_array($r)) return [];
+
+        $out = [];
+        foreach ($r as $t) {
+            if (empty($t['is_active'])) continue;
+            $pc = $t['percentage'] ?? $t['value'] ?? null;
+            $out[] = ['id' => (int)$t['id'],
+                      'libelle' => trim(((string)($t['code'] ?? '')) . ' · '
+                                 . ($pc === null ? '' : rtrim(rtrim(number_format((float)$pc, 2, ',', ''), '0'), ',') . ' %')
+                                 . ' ' . (string)($t['display_name'] ?? $t['name'] ?? ''))];
+        }
+        return $out;
+    }
+
+    /**
      * Un appel, et le corps décodé.
      *
      * @return array{0:int, 1:mixed}
