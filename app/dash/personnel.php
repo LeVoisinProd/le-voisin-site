@@ -170,6 +170,14 @@ dash_haut('personnel');
 </nav>
 <?php dash_flash_html(); ?>
 
+<?php /* LA GOUTTIÈRE DE 26 PX, QUI MANQUAIT. [Anna, 21.08.2026] « il y a encore
+     des choses collées au menu ». Quatre écrans n'enveloppaient rien dans
+     `.zone` — offres, personnel, projets, calendrier — et c'était le même
+     oubli: le contenu commençait à zéro, donc sous la barre noire, et les
+     tableaux poussaient la page à déborder vers la droite. */ ?>
+<div class="zone">
+
+
 <?php
 // ═══════════════════════════════════════════════════════════════════════════
 // ONGLET EMPLOYÉ·E·S
@@ -516,4 +524,6 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .note p{margin:.5em 0}
 h3{margin:26px 26px 10px;font-size:15px}
 </style>
+</div><!-- .zone -->
+
 <?php dash_bas(); ?>

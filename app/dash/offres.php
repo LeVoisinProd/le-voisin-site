@@ -63,6 +63,14 @@ $sousTitre = $n['nouvelle'] > 0
 dash_haut('offres', $sousTitre);
 ?>
 
+<?php /* LA GOUTTIÈRE DE 26 PX, QUI MANQUAIT À TOUT L'ÉCRAN. [Anna, 21.08.2026]
+     « il y a encore des choses collées au menu ». Cet écran n'enveloppait rien
+     dans `.zone`: les onglets « toutes / en discussion » commençaient à zéro,
+     donc sous la barre noire, et le tableau s'étalait jusqu'au bord droit en
+     poussant la page à déborder. Quatre écrans étaient dans ce cas — offres,
+     personnel, projets, calendrier — et c'est le même oubli à chaque fois. */ ?>
+<div class="zone">
+
 <div class="filtres">
   <a href="/dashboard.php?e=offres" class="<?= $filtre === '' ? 'ici' : '' ?>">toutes (<?= $total ?>)</a>
   <?php foreach ($STATUTS as $k => $lib): if (!$n[$k]) continue; ?>
@@ -250,5 +258,7 @@ dash_haut('offres', $sousTitre);
 .et{font-size:12px;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid var(--trait)}
 @media (max-width:640px){.corps-o dl{grid-template-columns:1fr}.corps-o dt{padding-top:8px}}
 </style>
+
+</div><!-- .zone -->
 
 <?php dash_bas();

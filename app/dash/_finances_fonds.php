@@ -115,11 +115,17 @@ form.filtres.fonds button,form.filtres.fonds .vider{white-space:nowrap}
 
 
 <?php if ($dem): ?>
-  <div class="tw"><table>
+  <?php /* Les colonnes à peu de valeurs passent en liste, les autres en texte.
+       Les filtres de la barre du haut restent: eux changent la REQUÊTE et
+       donc les trois totaux affichés au-dessus; ceux-ci trient ce qui est
+       déjà là. [21.08.2026] */ ?>
+  <div class="tw"><table data-filtres>
     <thead><tr>
-      <th>Pr.</th><th>Association</th><th>Institution / bailleur</th><th>Projet</th>
-      <th>Type</th><th class="d">Demandé</th><th class="d">Accordé</th>
-      <th>Statut</th><th>Délai</th><th>Réponse</th><th></th>
+      <th data-f="choix">Pr.</th><th data-f="choix">Association</th>
+      <th>Institution / bailleur</th><th>Projet</th>
+      <th data-f="choix">Type</th><th class="d" data-f="non">Demandé</th>
+      <th class="d" data-f="non">Accordé</th>
+      <th data-f="choix">Statut</th><th>Délai</th><th>Réponse</th><th data-f="non"></th>
     </tr></thead>
     <tbody>
     <?php foreach ($dem as $d): $did = (int)$d['id'];

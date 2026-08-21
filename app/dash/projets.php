@@ -305,6 +305,12 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
 </form>
 <?php dash_flash_html(); ?>
 
+<?php /* LA GOUTTIÈRE DE 26 PX, QUI MANQUAIT. [Anna, 21.08.2026] « il y a encore
+     des choses collées au menu ». Quatre écrans n'enveloppaient rien dans
+     `.zone` — offres, personnel, projets, calendrier — et c'était le même
+     oubli: le contenu commençait à zéro, donc sous la barre noire, et les
+     tableaux poussaient la page à déborder vers la droite. */ ?>
+<div class="zone">
 
 <div class="tw"><table>
   <?php /* L'ORDRE EST CELUI D'ANNA. [17.08.2026] « projet + porteur + type +
@@ -427,4 +433,6 @@ tr.passe{opacity:.55}
 .alerte{margin:16px 26px 0;padding:11px 16px;background:var(--fond2);
   border-left:4px solid var(--orange);font-size:13.5px;max-width:82ch}
 </style>
+</div><!-- .zone -->
+
 <?php dash_bas(); ?>

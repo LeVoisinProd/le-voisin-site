@@ -330,6 +330,8 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
   </select>
 </form>
 
+<?php require __DIR__ . '/_filtre_colonnes.php'; ?>
+
 <?php if ($vue === 'fonds'): ?>
 <div class="zone">
   <?php $ecrit = dash_droit('finances', dash_role()) === 'ecrit';
@@ -338,12 +340,19 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
 
 <?php elseif ($vue === 'releve'): ?>
 <div class="zone">
-  <div class="tw"><table class="rel">
+  <?php /* LES COLONNES DE CHIFFRES NE SE FILTRENT PAS: on ne cherche pas une
+       date en tapant son montant, et une case de plus sur chacune ne ferait
+       qu'encombrer la ligne. Encaissement et Versement en liste déroulante —
+       ils n'ont que quatre valeurs, et « payé » se choisit plus vite qu'il ne
+       se tape. [21.08.2026] */ ?>
+  <div class="tw"><table class="rel" data-filtres>
     <thead><tr>
       <th>Date</th><th>Projet</th><th>Lieu</th>
-      <th class="d">Cachets</th><th class="d">Frais LV</th><th class="d">Frais annexes</th>
-      <th class="d">Frais de prod</th><th class="d">À notre charge</th>
-      <th class="d">Prix de cession</th><th>Encaissement</th><th>Versement</th>
+      <th class="d" data-f="non">Cachets</th><th class="d" data-f="non">Frais LV</th>
+      <th class="d" data-f="non">Frais annexes</th>
+      <th class="d" data-f="non">Frais de prod</th><th class="d" data-f="non">À notre charge</th>
+      <th class="d" data-f="non">Prix de cession</th>
+      <th data-f="choix">Encaissement</th><th data-f="choix">Versement</th>
     </tr></thead>
     <tbody>
     <?php
@@ -360,10 +369,10 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
         <td class="sec"><?= e($r['venue'] ?? '') ?><?php if ($r['ville']): ?>
           <div class="sec"><?= e($r['ville']) ?></div><?php endif; ?></td>
         <?php foreach (['cachet','booking','voyage','autres','a_nous'] as $k): ?>
-          <td class="d<?= $k==='a_nous' ? ' neg' : '' ?>"><?=
+          <td class="d<?= $k==='a_nous' ? ' neg' : '' ?>" data-v="<?= (float)$r[$k] ?>"><?=
             (float)$r[$k] ? $fmt($r[$k]) : '<span class="tiret">·</span>' ?></td>
         <?php endforeach; ?>
-        <td class="d fort"><?= $r['prix_cession'] !== null
+        <td class="d fort" data-v="<?= (float)$r['prix_cession'] ?>"><?= $r['prix_cession'] !== null
             ? $fmt($r['prix_cession']) . ' ' . e($r['devise']) : '<span class="tiret">·</span>' ?></td>
         <?php foreach ([['encaissement',$ETATS_ENC],['versement',$ETATS_VER]] as [$col,$choix]): ?>
         <td>
@@ -386,9 +395,9 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
     <tfoot><tr>
       <td colspan="3"><strong>Total</strong></td>
       <?php foreach (['cachet','booking','voyage','autres','a_nous'] as $k): ?>
-        <td class="d"><strong><?= $T[$k] ? $fmt($T[$k]) : '' ?></strong></td>
+        <td class="d" data-somme><strong><?= $T[$k] ? $fmt($T[$k]) : '' ?></strong></td>
       <?php endforeach; ?>
-      <td class="d"><strong><?= $fmt($T['prix']) ?></strong></td>
+      <td class="d" data-somme><strong><?= $fmt($T['prix']) ?></strong></td>
       <td colspan="2"></td>
     </tr></tfoot>
   </table></div>
