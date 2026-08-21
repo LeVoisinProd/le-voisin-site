@@ -169,6 +169,7 @@ dash_haut('personnel');
   <?php endforeach; ?>
 </nav>
 <?php dash_flash_html(); ?>
+<?php require __DIR__ . '/_filtre_colonnes.php'; ?>
 
 <?php /* LA GOUTTIÈRE DE 26 PX, QUI MANQUAIT. [Anna, 21.08.2026] « il y a encore
      des choses collées au menu ». Quatre écrans n'enveloppaient rien dans
@@ -251,10 +252,11 @@ if ($onglet === 'emp'):
   <p class="vide">Personne ne correspond.</p>
 <?php else: ?>
 <div class="tw">
-<table>
+<table data-filtres>
   <thead><tr>
-    <th>Nom</th><th>Fonction</th><th>Association</th><th>Type</th>
-    <th class="n">Engagements</th><th>Contact</th>
+    <th>Nom</th><th data-f="choix">Fonction</th><th data-f="choix">Association</th>
+    <th data-f="choix">Type</th>
+    <th class="n" data-f="non">Engagements</th><th>Contact</th>
   </tr></thead>
   <tbody>
   <?php foreach ($gens as $g):
@@ -304,11 +306,13 @@ elseif ($onglet === 'eng'):
   <p class="vide">Aucun engagement.</p>
 <?php else: ?>
 <div class="tw">
-<table>
+<table data-filtres>
   <thead><tr>
-    <th>Personne</th><th>Projet</th><th>Association</th>
-    <th>Début</th><th>Fin</th><th class="n">Jours</th><th class="n">Heures</th>
-    <th class="n">Mensuel</th><th class="n">Horaire</th><th>État</th>
+    <th>Personne</th><th data-f="choix">Projet</th><th data-f="choix">Association</th>
+    <th>Début</th><th>Fin</th><th class="n" data-f="non">Jours</th>
+    <th class="n" data-f="non">Heures</th>
+    <th class="n" data-f="non">Mensuel</th><th class="n" data-f="non">Horaire</th>
+    <th data-f="choix">État</th>
   </tr></thead>
   <tbody>
   <?php foreach ($engs as $g): ?>
@@ -367,11 +371,11 @@ elseif ($onglet === 'sal'):
 </div>
 
 <div class="tw">
-<table>
+<table data-filtres>
   <thead><tr>
-    <th>Association</th><th class="n">Personnes</th>
-    <th class="n">Avec tarif mensuel</th><th class="n">Total mensuel</th>
-    <th class="n">Avec tarif horaire</th><th class="n">Horaire moyen</th>
+    <th>Association</th><th class="n" data-f="non">Personnes</th>
+    <th class="n" data-f="non">Avec tarif mensuel</th><th class="n" data-f="non">Total mensuel</th>
+    <th class="n" data-f="non">Avec tarif horaire</th><th class="n" data-f="non">Horaire moyen</th>
   </tr></thead>
   <tbody>
   <?php $tm = 0; foreach ($parOrg as $r): $tm += (float)$r['m']; ?>
@@ -421,8 +425,9 @@ elseif ($onglet === 'temps'):
   <p class="vide">Aucun engagement ne porte d'heures.</p>
 <?php else: ?>
 <div class="tw">
-<table>
-  <thead><tr><th>Personne</th><th>Projet</th><th>Période</th><th class="n">Heures</th><th class="n">Jours</th></tr></thead>
+<table data-filtres>
+  <thead><tr><th>Personne</th><th data-f="choix">Projet</th><th>Période</th>
+    <th class="n" data-f="non">Heures</th><th class="n" data-f="non">Jours</th></tr></thead>
   <tbody>
   <?php foreach ($avecHeures as $g): ?>
     <tr>
@@ -459,8 +464,9 @@ else:
 
 <h3>L'équipe</h3>
 <div class="tw">
-<table>
-  <thead><tr><th>Nom</th><th>Rôle</th><th>Courriel</th><th>Téléphone</th><th>Compte</th></tr></thead>
+<table data-filtres>
+  <thead><tr><th>Nom</th><th data-f="choix">Rôle</th><th>Courriel</th><th>Téléphone</th>
+    <th data-f="choix">Compte</th></tr></thead>
   <tbody>
   <?php foreach ($bureau as $b):
       $c = $parMail[mb_strtolower((string)$b['email'])] ?? null; ?>
@@ -481,8 +487,8 @@ else:
 
 <h3>Les comptes du dashboard</h3>
 <div class="tw">
-<table>
-  <thead><tr><th>Courriel</th><th>Nom</th><th>Rôle</th><th>Dernière entrée</th></tr></thead>
+<table data-filtres>
+  <thead><tr><th>Courriel</th><th>Nom</th><th data-f="choix">Rôle</th><th>Dernière entrée</th></tr></thead>
   <tbody>
   <?php foreach ($comptes as $c): ?>
     <tr>

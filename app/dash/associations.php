@@ -571,7 +571,8 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 
 
 <?php if (!$lignes): ?><p class="vide">Aucune fiche.</p><?php else: ?>
-<div class="tw"><table>
+<?php require __DIR__ . '/_filtre_colonnes.php'; ?>
+<div class="tw"><table data-filtres>
   <?php /* ── LES CINQ COLONNES ─────────────────────────────────────────────
        [16.08.2026] Choisies par Anna: nom, direction, ville et canton,
        discipline, statut.
@@ -593,8 +594,13 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
        qui décide des obligations sociales et de l'attestation A1. Une colonne
        muette quatorze fois sur dix-sept mérite quand même sa place quand les
        trois autres fois changent le travail. */ ?>
-  <thead><tr><th>Nom</th><th>Direction</th><th>Ville, canton</th><th>Pays</th>
-    <th>Discipline</th><th>Statut</th></tr></thead>
+  <?php /* Ce qui a peu de valeurs passe en liste — pays, discipline, statut,
+       canton se choisissent plus vite qu'ils ne se tapent. Le nom et la
+       direction restent en texte: dix-huit noms propres ne font pas une liste
+       qu'on parcourt. [Anna, 21.08.2026] */ ?>
+  <thead><tr><th>Nom</th><th>Direction</th><th data-f="choix">Ville, canton</th>
+    <th data-f="choix">Pays</th>
+    <th data-f="choix">Discipline</th><th data-f="choix">Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
     <tr>

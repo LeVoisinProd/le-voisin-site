@@ -125,7 +125,10 @@ define('LV_FILTRE_COLONNES', true);
         sel.innerHTML = '<option value="">tous</option>';
         lignes.forEach(function (l) {
           var t = (texte(l.cells[i]) || '').trim();
-          if (t && t !== '·' && vues.indexOf(t) === -1) vues.push(t);
+          /* Les marques de vide n'entrent pas dans la liste: « — » et « · »
+             veulent dire « rien », et proposer de filtrer sur rien fait une
+             option qu'on choisit une fois, par curiosité, et jamais plus. */
+          if (t && t !== '·' && t !== '—' && t !== '-' && vues.indexOf(t) === -1) vues.push(t);
         });
         vues.sort(function (a, b) { return a.localeCompare(b, 'fr'); });
         vues.forEach(function (v) {
