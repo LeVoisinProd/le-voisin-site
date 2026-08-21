@@ -34,12 +34,31 @@ $SOURCES = ['rappel' => 'rappel', 'administration' => 'administration', 'fonds' 
             'encaissement' => 'encaissement', 'pipeline' => 'pipeline'];
 ?>
 
-<p class="ag-bascule"><a href="/dashboard.php?e=calendrier">Les dates</a>
-  <strong>Les rappels</strong></p>
+<?php /* Le compte des retards manquait sur cette vue-ci: on ne voyait plus
+     combien il en restait une fois entré dedans, ce qui est le moment où l'on
+     en a le plus besoin. */ ?>
+<?php $enRet = Rappels::enRetard(); ?>
+<div class="onglets">
+  <a href="/dashboard.php?e=calendrier">Les dates</a>
+  <a href="/dashboard.php?e=calendrier&amp;v=rappels" class="ici">Les rappels<?php
+    if ($enRet): ?> <span class="cpt"><?= $enRet ?></span><?php endif; ?></a>
+</div>
 <style>
-.ag-bascule{display:flex;gap:16px;align-items:center;margin:0 0 12px;font-size:13.5px}
-.ag-bascule a{color:var(--doux);text-decoration:none}
-.ag-bascule a:hover{color:var(--encre)}
+/* LE MÊME BANDEAU D'ONGLETS QUE PARTOUT AILLEURS. [Anna, 21.08.2026]
+   « ta muito colado ». Le Calendrier était le seul écran à s'être fait un
+   sélecteur à lui: un paragraphe sans marge latérale, donc collé au bord
+   gauche pendant que tout le dashboard respecte 26 px, et pris en sandwich
+   entre le filet du titre et la barre de filtres. Bookings, Administration
+   et la fiche de production utilisent tous `.onglets`; celui-ci aussi
+   maintenant, avec le soulignement jaune qui dit où l'on est. */
+.onglets{display:flex;gap:2px;padding:14px 26px 0;border-bottom:1px solid var(--trait)}
+.onglets a{padding:9px 15px;font-size:13.5px;text-decoration:none;white-space:nowrap;
+  border-bottom:3px solid transparent;color:var(--doux);
+  display:flex;gap:8px;align-items:center}
+.onglets a.ici{color:var(--encre);border-bottom-color:var(--jaune);font-weight:600}
+.onglets a:hover{color:var(--encre)}
+.onglets .cpt{padding:1px 8px;border-radius:9px;background:#c8452f;color:#fff;
+  font-size:11.5px;font-weight:600}
 </style>
 
 <form class="filtres" method="get" action="/dashboard.php">
