@@ -229,9 +229,21 @@ td .sec { color:var(--doux); font-size:12.5px; }
    émettent — quatrième fois aujourd'hui qu'un style posé dans une feuille
    partielle ne rend pas là où on l'attend. */
 .barre-neuf { margin:0; padding:14px 26px; border-bottom:1px solid var(--trait);
-        background:var(--fond2); }
+        background:var(--fond2); text-align:right; }
+/* LA BARRE DE RECHERCHE EST À DROITE. [Anna, 21.08.2026] « colocar os campos
+   de recherche alinhados à direita », « e todos os outros do site ».
+
+   ET IL FAUT NEUTRALISER LES `margin-left:auto`. Plusieurs écrans poussaient
+   leur bouton « + nouveau » à droite par une marge automatique; cette marge
+   absorbe tout l'espace libre, donc `justify-content:flex-end` seul n'aurait
+   rien déplacé — les champs seraient restés à gauche et j'aurais cru avoir
+   corrigé. La règle plus spécifique la désarme, quel que soit l'ordre des
+   feuilles: c'est la spécificité qui tranche, pas la position. */
 form.filtres { padding:14px 26px; border-bottom:1px solid var(--trait); display:flex;
-        gap:10px; flex-wrap:wrap; align-items:center; background:var(--fond2); }
+        gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end;
+        background:var(--fond2); }
+form.filtres .neuf, form.filtres .vider { margin-left:0; }
+.barre-neuf { text-align:right; }
 input[type=search], input[type=text], input[type=date], input[type=datetime-local],
 input[type=number], input[type=email], input[type=tel], input[type=url],
 input[type=password], textarea, select, button { font-family:inherit; }

@@ -691,11 +691,18 @@ dash_haut('contacts', e($sst));
 <?php dash_flash_html(); ?>
 <style>
 .filtres.deux-lignes{display:block}
-.fl-haut{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+/* À DROITE COMME PARTOUT, MAIS SANS ÉCRASER LE CHAMP. [Anna, 21.08.2026]
+   « colocar os campos de recherche alinhados à direita, e todos os outros ».
+   La règle d'origine faisait remplir toute la largeur au champ, et elle avait
+   sa raison — « un champ court invite à taper court », sur huit mille cinq
+   cents fiches. Le compromis garde un champ large, plafonné, poussé à droite
+   avec le reste. */
+.fl-haut{display:flex;align-items:center;gap:10px;margin-bottom:9px;justify-content:flex-end}
+.fl-bas{justify-content:flex-end}
 /* Le champ prend toute la place restante: c'est le geste principal, et un
    champ court invite à taper court. `min-width:0` sinon un flex-item refuse de
    passer sous sa largeur intrinsèque et pousse les boutons hors de l'écran. */
-.fl-haut input[type=search]{flex:1 1 auto;min-width:0}
+.fl-haut input[type=search]{flex:0 1 460px;min-width:0}
 .fl-haut button{white-space:nowrap}
 /* `margin-left:0` annule le `margin-left:auto` d'origine: c'est le conteneur
    qui pousse maintenant, et laisser les deux ferait un trou entre le bouton et
