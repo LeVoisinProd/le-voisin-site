@@ -111,7 +111,11 @@ img { max-width: 100%; }
    disparaît décale les autres sous le curseur, et on clique sur « Retour »
    en croyant avancer d'une fiche. */
 .page-head .btn.mort { opacity: .3; pointer-events: none; }
-.page-head .rang { color: var(--grey); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.page-head .rang { color: var(--grey); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Les flèches sont petites: elles servent souvent mais ne sont pas l'action
+   principale de la page, qui reste Enregistrer. « Retour à la liste » garde
+   sa taille — c'est la sortie, et une sortie se trouve sans chercher. */
+.page-head .actions .btn.small { padding: 5px 13px; font-size: 11px; letter-spacing: .05em; }
 h1 { font-size: 26px; margin: 0; text-transform: uppercase; letter-spacing: .03em; }
 h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .12em; margin: 0 0 16px; border-bottom: var(--trait) solid var(--ink); padding-bottom: 8px; }
 .crumb { color: var(--grey); font-weight: 400; font-size: 16px; text-transform: none; letter-spacing: 0; }
