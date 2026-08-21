@@ -277,31 +277,24 @@ $parPhase = DB::pdo()->query("SELECT phase, COUNT(*) n FROM projet_prod GROUP BY
 
 dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' · ' . $ms . ' ms');
 ?>
+<?php /* LES FILTRES QUE LE MENU DE COLONNE REMPLACE SONT PARTIS.
+     [Anna, 21.08.2026] « este tipo de filtro acaba de colocar os outros
+     filtros em desuso, pode tirar ».
+
+     CE QUI RESTE N'EST PAS UN FILTRE, C'EST UN CHOIX DE JEU DE DONNÉES: par
+     défaut cet écran ne montre pas tout, et le menu de colonne ne voit que ce
+     qui est rendu. Retirer ce sélecteur ne masquerait pas des lignes, il les
+     rendrait inatteignables. */ ?>
 <form class="filtres" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="projets">
-  <input type="search" name="q" value="<?= e($q) ?>" placeholder="Titre, responsable">
-  <select name="ph">
-    <option value="">Toutes les phases</option>
-    <?php foreach ($PHASES as $k => $v): ?>
-      <option value="<?= $k ?>"<?= $phase === $k ? ' selected' : '' ?>><?=
-        e($v) ?> (<?= $parPhase[$k] ?? 0 ?>)</option>
-    <?php endforeach; ?>
-  </select>
-  <select name="ty">
-    <option value="">Tous les types</option>
-    <?php foreach ($TYPES as $id => $t): ?>
-      <option value="<?= $id ?>"<?= $typeId === $id ? ' selected' : '' ?>><?=
-        e($t['nom']) ?> (<?= $t['n'] ?>)</option>
-    <?php endforeach; ?>
-  </select>
   <select name="st">
     <option value="tous"<?= $etat==='tous'?' selected':'' ?>>tous, y compris les passés</option>
     <option value="current"<?= $etat==='current'?' selected':'' ?>>en cours</option>
     <option value="former"<?= $etat==='former'?' selected':'' ?>>passés</option>
   </select>
   <button type="submit">Chercher</button>
-  <?php if ($q!==''||$phase!==''||$etat!=='current'||$typeId): ?>
-    <a class="vider" href="/dashboard.php?e=projets">tout effacer</a><?php endif; ?>
+  <?php if ($etat !== 'current'): ?>
+    <a class="vider" href="/dashboard.php?e=projets">revenir aux projets en cours</a><?php endif; ?>
 </form>
 <?php dash_flash_html(); ?>
 
@@ -312,7 +305,8 @@ dash_haut('projets', count($lignes) . ' projet' . (count($lignes)>1?'s':'') . ' 
      tableaux poussaient la page à déborder vers la droite. */ ?>
 <div class="zone">
 
-<div class="tw"><table>
+<?php require __DIR__ . '/_filtre_colonnes.php'; ?>
+<div class="tw"><table data-filtres>
   <?php /* L'ORDRE EST CELUI D'ANNA. [17.08.2026] « projet + porteur + type +
        annee + duree + budget + dates + phase ». Il suit la façon dont on lit
        une ligne à voix haute — quelle pièce, portée par qui, de quel genre —

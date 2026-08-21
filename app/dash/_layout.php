@@ -221,6 +221,15 @@ th { background:var(--fond2); font-size:11.5px; text-transform:uppercase;
      position:sticky; top:0; z-index:10; }
 tbody tr:hover { background:var(--fond2); }
 td .sec { color:var(--doux); font-size:12.5px; }
+/* UNE BARRE DU HAUT QUI N'EST PLUS UN FORMULAIRE. [21.08.2026] Quand le menu
+   de colonne a remplacé les filtres, il n'est resté sur certains écrans qu'un
+   bouton « + nouvelle fiche »: plus rien à soumettre, donc plus de `<form>`,
+   donc la règle `form.filtres` ne l'atteignait plus et le bouton se collait au
+   menu. La règle vit ici parce que c'est le seul fichier que tous les écrans
+   émettent — quatrième fois aujourd'hui qu'un style posé dans une feuille
+   partielle ne rend pas là où on l'attend. */
+.barre-neuf { margin:0; padding:14px 26px; border-bottom:1px solid var(--trait);
+        background:var(--fond2); }
 form.filtres { padding:14px 26px; border-bottom:1px solid var(--trait); display:flex;
         gap:10px; flex-wrap:wrap; align-items:center; background:var(--fond2); }
 input[type=search], input[type=text], input[type=date], input[type=datetime-local],

@@ -1742,15 +1742,18 @@ if (($_GET['v'] ?? '') === 'prix') {
 dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total>1?'s':'') . ' · ' . $ms . ' ms');
 ?>
 
+<?php /* LES FILTRES QUE LE MENU DE COLONNE REMPLACE SONT PARTIS.
+     [Anna, 21.08.2026] « este tipo de filtro acaba de colocar os outros
+     filtros em desuso, pode tirar ». Statut, phase, type, et la recherche
+     libre: toutes ces colonnes ont leur menu, avec en plus le compte de
+     chaque valeur et le tri.
+
+     CE QUI RESTE N'EST PAS UN FILTRE, C'EST UN CHOIX DE JEU DE DONNÉES. Le
+     menu de colonne ne voit que les lignes déjà rendues; ce qui décide
+     LESQUELLES sont rendues doit rester. Le retirer ne masquerait pas des
+     lignes, il les rendrait inatteignables. */ ?>
 <form class="filtres" method="get" action="/dashboard.php">
   <input type="hidden" name="e" value="bookings">
-  <input type="search" name="q" value="<?= e($q) ?>" placeholder="Lieu, projet, artiste, ville, client">
-  <select name="s">
-    <option value="">Tous les statuts</option>
-    <?php foreach ($ETIQ as $k => $v): ?>
-      <option value="<?= $k ?>"<?= $statut === $k ? ' selected' : '' ?>><?= e($v) ?> (<?= $parStatut[$k] ?? 0 ?>)</option>
-    <?php endforeach; ?>
-  </select>
   <select name="a">
     <option value="">Toutes les années</option>
     <?php foreach ($annees as $x): ?>

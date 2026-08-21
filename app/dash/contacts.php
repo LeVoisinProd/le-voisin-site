@@ -715,7 +715,14 @@ dash_haut('contacts', e($sst));
     La recherche par index ignore les mots de moins de <?= FT_MIN ?> lettres.<?php endif; ?></p>
 <?php else: ?>
 <div class="tw">
-<table>
+<?php require __DIR__ . '/_filtre_colonnes.php'; ?>
+<?php /* LE MENU DE COLONNE NE VOIT QUE LA PAGE, ET LA RECHERCHE RESTE POUR ÇA.
+     [Anna, 21.08.2026] Huit mille cinq cent trente-deux contacts, cinquante par
+     page: le menu trie et filtre ce qui est affiché, la barre du haut est la
+     seule chose qui atteint les huit mille quatre cent quatre-vingts autres.
+     Les retirer ici — comme on l'a fait sur les écrans qui tiennent en une
+     page — couperait l'accès au reste du fichier. */ ?>
+<table data-filtres>
   <thead><tr>
     <th>Nom</th><th>Fonction</th><th>Structure</th><th>Lieu</th><th>Catégorie</th><th>Contact</th>
   </tr></thead>

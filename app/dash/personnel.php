@@ -212,38 +212,25 @@ if ($onglet === 'emp'):
                        WHERE supprime_le IS NULL AND employe_id IS NOT NULL GROUP BY employe_id") as $r)
         $nbEng[(int)$r['employe_id']] = (int)$r['n'];
 ?>
-<form class="filtres deux-lignes" method="get" action="<?= e(url('/dashboard.php')) ?>">
+<?php /* LES FILTRES QUE LE MENU DE COLONNE REMPLACE SONT PARTIS.
+     [Anna, 21.08.2026] « este tipo de filtro acaba de colocar os outros
+     filtros em desuso, pode tirar ». Association, type et recherche libre:
+     ces colonnes ont leur menu, avec le compte de chaque valeur et le tri.
+
+     LA VUE RESTE, PARCE QU'ELLE N'EST PAS UN FILTRE: par défaut cet écran ne
+     montre que les personnes actives, et le menu de colonne ne voit que ce
+     qui est rendu. La retirer ne masquerait pas les inactives, elle les
+     rendrait inatteignables. */ ?>
+<form class="filtres" method="get" action="<?= e(url('/dashboard.php')) ?>">
   <input type="hidden" name="e" value="personnel">
-  <div class="fl-haut">
-    <input type="search" name="q" value="<?= e($q) ?>"
-           placeholder="Nom, courriel, fonction, ville" autofocus>
-    <button type="submit">Chercher</button>
-    <a class="neuf" href="<?= e(url('/dashboard.php?e=personnel&neuf=1')) ?>">+ nouvelle personne</a>
-  </div>
-  <div class="fl-bas">
-    <select name="org">
-      <option value="">Toutes les associations</option>
-      <?php foreach ($orgs as $o): ?>
-        <option value="<?= (int)$o['id'] ?>"<?= $org === (int)$o['id'] ? ' selected' : '' ?>><?=
-          e((string)$o['nom']) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <select name="type">
-      <option value="">Tous les types</option>
-      <?php foreach ($lesTypes as $t): ?>
-        <option value="<?= e((string)$t['t']) ?>"<?= $type === $t['t'] ? ' selected' : '' ?>><?=
-          e((string)$t['t']) ?> (<?= (int)$t['n'] ?>)</option>
-      <?php endforeach; ?>
-    </select>
-    <select name="vue">
+  <input type="hidden" name="t" value="<?= e($onglet) ?>">
+  <select name="vue">
       <option value="actifs"<?=   $vue === 'actifs'   ? ' selected' : '' ?>>Actives et actifs</option>
       <option value="inactifs"<?= $vue === 'inactifs' ? ' selected' : '' ?>>Inactives et inactifs</option>
       <option value="tous"<?=     $vue === 'tous'     ? ' selected' : '' ?>>Tout le monde</option>
     </select>
-    <?php if ($q !== '' || $org || $type !== '' || $vue !== 'actifs'): ?>
-      <a class="vider" href="<?= e(url('/dashboard.php?e=personnel')) ?>">tout effacer</a>
-    <?php endif; ?>
-  </div>
+  <button type="submit">Voir</button>
+  <a class="neuf" href="<?= e(url('/dashboard.php?e=personnel&neuf=1')) ?>">+ nouvelle personne</a>
 </form>
 
 <p class="cpt"><?= count($gens) ?> sur <?= $total ?></p>
