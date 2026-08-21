@@ -200,6 +200,16 @@ main { min-width:0; }
    La règle ne s'applique qu'à ceux qui dépassent, c'est-à-dire aux listes, et
    laisse tranquilles les petits tableaux à l'intérieur des fiches. */
 .tw { overflow:auto; max-height:calc(100vh - var(--h-tete) - 10px); }
+/* UNE TABLE HORS `.zone` PORTE SA GOUTTIÈRE ELLE-MÊME. [Anna, 21.08.2026]
+   « nada nunca nenhum texto tem que ficar colado no menu ». Audit fait dans un
+   navigateur sur les seize écrans: quatre laissaient encore du texte à la
+   frontière exacte du menu, et c'étaient tous des en-têtes de tableau — la
+   liste des Événements, celle des Contacts, celle des Associations. Leur `.tw`
+   n'est pas dans une `.zone`, et rien d'autre ne leur donnait de marge.
+
+   La règle vise `.tw` dont le parent n'est PAS une zone: celles qui y sont
+   tiennent déjà leur gouttière de la zone, et une double marge se verrait. */
+:not(.zone) > .tw { padding-left:26px; padding-right:26px; }
 table { border-collapse:collapse; width:100%; font-size:14px; }
 th, td { padding:8px 14px; border-bottom:1px solid var(--trait); text-align:left;
          vertical-align:top; }
@@ -275,12 +285,40 @@ a.vider { color:var(--doux); font-size:13px; }
 /* Le lien de suppression reste à l'opposé des boutons: il ne doit jamais se
    trouver sous le doigt qui vise « Enregistrer ». */
 .actions .sup { margin-right:auto; margin-left:0; }
+/* `.sup` ÉTAIT UN LIEN, C'EST DEVENU UN BOUTON. [21.08.2026] Le lien
+   fabriquait son formulaire en JavaScript et se cassait à l'échappement du
+   champ CSRF; il est maintenant un `submit` du formulaire de la fiche. Sans
+   ces règles il sortirait avec l'aspect gris du système, à côté d'un
+   « Enregistrer » noir: le geste le plus dangereux de la page aurait l'air du
+   plus banal. Il garde donc l'allure d'un lien discret, en rouge, à l'opposé
+   du bouton d'enregistrement. */
+button.sup { background:none; border:0; padding:0; font:inherit; font-size:13.5px;
+        color:#c8452f; cursor:pointer; text-decoration:underline;
+        text-underline-offset:2px; }
+button.sup:hover { color:#9c3524; }
+button.sup:focus-visible { outline:2px solid #c8452f; outline-offset:3px; }
 nav.pages { padding:16px 26px; display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
 nav.pages a, nav.pages span { padding:5px 11px; border:1px solid var(--trait);
         border-radius:4px; text-decoration:none; font-size:13px; }
 nav.pages span.ici { background:var(--encre); color:var(--papier); border-color:var(--encre); }
 nav.pages .mut { border:0; color:var(--doux); }
 .vide { padding:44px 26px; color:var(--doux); }
+
+/* LE MESSAGE DE CONFIRMATION VIT ICI, PAS DANS LA FEUILLE DES FORMULAIRES.
+   [Anna, 21.08.2026] « nada nunca nenhum texto tem que ficar colado no menu ».
+
+   Il était défini dans `dash_form_style()`, appelée par CINQ écrans, alors que
+   `dash_flash_html()` est utilisée par ONZE. Sur les six autres le message
+   sortait sans une seule règle: pas de marge, pas de fond, collé à la barre
+   noire. C'est ce qu'Anna a vu après avoir collé son jeton bexio.
+
+   Une règle qui vit dans une feuille que la page n'émet pas ne se voit pas à
+   la relecture — c'est le troisième cas aujourd'hui, après le style des
+   grilles d'association et celui de la carte. Le remède est le même: la règle
+   habite le fichier que tout le monde charge. */
+.flash { margin:16px 26px 0; padding:11px 16px; font-size:13.5px;
+        border-left:4px solid var(--jaune); background:var(--fond2); }
+.flash.err { border-left-color:var(--orange); }
 /* ── LA COPIE LOCALE SE DÉNONCE ELLE-MÊME ─────────────────────── [17.08.2026]
    Troisième fois en deux jours qu'Anna lit la copie de test en croyant lire le
    site, et chaque fois cela produit un rapport de panne qui n'en est pas un:

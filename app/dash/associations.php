@@ -534,6 +534,17 @@ if ($id > 0) {
          règle de 26 px que tous les autres écrans, et elle ne se réinvente pas. */ ?>
     <div class="zone">
 
+    <div class="grilles-lect">
+      <h3>Déclarations et pièces — <?= $annee ?></h3>
+      <?php require __DIR__ . '/_assoc_grilles.php'; ?>
+    </div>
+
+    <?php /* LES DEUX BLOCS DE RÉGLAGE EN BAS DE PAGE. [Anna, 21.08.2026]
+         « colocar a parte de conexão com bexio e o calendário no final da
+         página ». Ils étaient entre la fiche et les déclarations, c'est-à-dire
+         au milieu de ce qu'on vient lire: on ouvre une association pour voir
+         ses coordonnées et ses obligations, pas pour coller un jeton. Un
+         réglage se pose une fois et se relit rarement; sa place est après. */ ?>
     <?php /* LE JETON BEXIO, SUR LA FICHE DE L'ASSOCIATION QU'IL OUVRE.
          [Anna, 21.08.2026] « fazemos o api avec bexio ? »
 
@@ -593,11 +604,6 @@ if ($id > 0) {
          ni prix, ni client, ni note interne, seulement la date, le spectacle et le lieu. Si
          elle fuite, changez le jeton dans Paramètres: tous les abonnements se coupent d'un
          coup et se recollent avec la nouvelle adresse.</p>
-    </div>
-
-    <div class="grilles-lect">
-      <h3>Déclarations et pièces — <?= $annee ?></h3>
-      <?php require __DIR__ . '/_assoc_grilles.php'; ?>
     </div>
 
     </div><!-- .zone -->

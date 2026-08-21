@@ -100,9 +100,6 @@ function dash_form_style(): void
         padding-top:18px; border-top:1px solid var(--trait); }
     .actions .sec2 { color:var(--doux); font-size:13.5px; text-decoration:none; }
     .actions .sup { margin-left:auto; color:var(--orange); font-size:13px; text-decoration:none; }
-    .flash { margin:16px 26px 0; padding:11px 16px; font-size:13.5px;
-        border-left:4px solid var(--jaune); background:var(--fond2); }
-    .flash.err { border-left-color:var(--orange); }
     </style>
     <?php
 }

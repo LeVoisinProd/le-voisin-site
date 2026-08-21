@@ -191,7 +191,8 @@ $SOURCES = ['rappel' => 'rappel', 'administration' => 'administration', 'fonds' 
    les cocher se fait dans leur écran, et ils disparaissent d'ici tout seuls.</p>
 
 <style>
-.rp-neuf{margin:0 0 20px;border:1px solid var(--trait);border-radius:6px;background:var(--fond2)}
+/* Le dépliant est au-dessus de la zone: il porte sa gouttière lui-même. */
+.rp-neuf{margin:0 26px 20px;border:1px solid var(--trait);border-radius:6px;background:var(--fond2)}
 .rp-neuf>summary{padding:10px 14px;cursor:pointer;font-weight:600;font-size:13.5px}
 .rp-neuf[open]>summary{border-bottom:1px solid var(--trait)}
 .rp-neuf form{padding:14px}

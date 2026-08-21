@@ -231,11 +231,27 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit"><?= $cid > 0 ? 'Enregistrer' : 'Créer' ?></button>
         <a class="sec2" href="/dashboard.php?e=contacts<?= $cid > 0 ? '&amp;c=' . $cid : '' ?>">annuler</a>
         <?php if ($cid > 0): ?>
-        <a class="sup" href="#" onclick="if(confirm('Supprimer ce contact ? Il restera en base.')){
-             var f=document.createElement('form');f.method='post';
-             f.action='/dashboard.php?e=contacts&c=<?= $cid ?>&mod=1';
-             f.innerHTML='<?= addslashes(Auth::csrfField()) ?><input name=action value=supprimer>';
-             document.body.appendChild(f);f.submit();}return false;">supprimer</a>
+        <?php /* UN BOUTON DE FORMULAIRE, ET NON UN FORMULAIRE FABRIQUÉ EN JAVASCRIPT.
+                     [Anna, 21.08.2026] « corrigir o botão effacer ».
+        
+                     Ce lien construisait un formulaire à la volée et y collait le
+                     champ CSRF passé par `addslashes()`. Or `addslashes()` échappe
+                     pour une chaîne JavaScript, pas pour un ATTRIBUT HTML: les
+                     guillemets du champ fermaient le `onclick` au milieu, et la fin du
+                     code s'affichait en clair à côté d'une boîte de saisie orpheline.
+                     C'est ce qu'Anna a vu.
+        
+                     La correction n'est pas de mieux échapper, c'est de ne rien
+                     fabriquer: on est déjà dans le formulaire de la fiche. Un bouton
+                     `name=action value=supprimer` le soumet avec le bon champ, et le
+                     CSRF est celui du formulaire, écrit une seule fois.
+        
+                     `formnovalidate` parce qu'une fiche incomplète doit pouvoir être
+                     supprimée: sans lui, un champ requis vide empêcherait l'envoi et
+                     le bouton ne ferait rien, sans dire pourquoi. */ ?>
+        <button type="submit" class="sup" name="action" value="supprimer"
+                formnovalidate
+                onclick="return confirm(&#39;Supprimer ce contact ? Il restera en base.&#39;)">supprimer</button>
         <?php endif; ?>
       </div>
     </form>
