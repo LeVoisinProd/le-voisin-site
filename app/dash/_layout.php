@@ -110,6 +110,8 @@ aside { background:var(--barre); color:#e8e8e8; padding:18px 0 40px;
 aside .marque { display:block; padding:2px 18px 20px; font-size:14px; font-weight:600;
         letter-spacing:.02em; text-decoration:none; color:#e8e8e8; border-left:0; }
 aside .marque img { display:block; width:100%; max-width:132px; height:auto; }
+aside .marque .sous { display:block; margin-top:5px; font-weight:400; font-size:10px;
+        letter-spacing:.14em; text-transform:uppercase; color:#9a9a94; }
 /* AUCUN FILTRE. Le logo porte son propre fond: bloc noir avec « LE » en blanc,
    bloc jaune avec « VOISIN » en noir. Un invert() posé le 16.08.2026 pour le
    « faire ressortir » a tourné le jaune de la marque en bleu. Une image qui
@@ -117,6 +119,7 @@ aside .marque img { display:block; width:100%; max-width:132px; height:auto; }
 @media (max-width:820px) {
   aside .marque { padding:4px 12px 8px; }
   aside .marque img { max-width:92px; }
+  aside .marque .sous { font-size:9px; margin-top:3px; }
 }
 aside .groupe { padding:16px 18px 5px; font-size:10.5px; text-transform:uppercase;
         letter-spacing:.09em; color:#8a8a8a; }
@@ -333,6 +336,12 @@ if (in_array($hote, ['localhost', '127.0.0.1', '[::1]', '::1'], true)): ?>
     } else {
         echo 'LE&nbsp;VOISIN';
     }
+    /* DIRE LEQUEL DES DEUX ON REGARDE. [Anna, 21.08.2026]
+       Le CMS et le tableau de bord portent le même logo depuis aujourd'hui, et
+       à côté de « Administration » sous celui du CMS, celui-ci ne disait rien.
+       Deux barres noires identiques, deux onglets ouverts: on ne sait plus
+       lequel on a devant soi. */
+    echo '<span class="sous">Dashboard</span>';
     ?>
   </a>
   <div class="rail">
