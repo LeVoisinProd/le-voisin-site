@@ -759,7 +759,23 @@ class ProdFiche
         return [
             'equipe' => [
                 ['id' => self::gid(), 'role' => 'Mise en scène / Jeu', 'nom' => '',
-                 'paie' => '5000', 'jours_fixes' => '2',   'suit_jeu' => '1'],
+                 'paie' => '5000', 'jours_fixes' => '1',   'suit_jeu' => '1'],
+                /* UN JOUR FIXE, PAS DEUX, ET LA DIFFÉRENCE EST UNE ERREUR DE
+                   LECTURE QUE J'AI FAITE. [Anna, 21.08.2026]
+
+                   « colocar sempre 2 dias de trabalho para a Annina e 2 para a
+                   tech » : ce sont DEUX JOURS AU TOTAL pour une date, pas deux
+                   jours fixes auxquels s'ajouteraient les jours de jeu. Anna l'a
+                   redit en montrant sa feuille — « para uma apresentacao sao 2
+                   dias de trabalho » — où une représentation donne bien C20 = 2.
+
+                   Le compte, pour une date : 1 jour fixe + 1 jour de jeu = 2.
+                   Pour une série, le jour fixe reste unique et les jours de jeu
+                   suivent, pondérés à 1.5 quand deux représentations tombent le
+                   même jour.
+
+                   Lu à l'envers, cela gonflait chaque devis de 354 CHF et faisait
+                   passer une date isolée de 2 002 à 2 711 CHF. */
                 ['id' => self::gid(), 'role' => 'Technique', 'nom' => '',
                  'paie' => '5000', 'jours_fixes' => '1',   'suit_jeu' => '1'],
                 ['id' => self::gid(), 'role' => 'Administration', 'nom' => '',
