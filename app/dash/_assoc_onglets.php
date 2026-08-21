@@ -38,6 +38,9 @@ declare(strict_types=1);
        ['placeholder'=>'Association (CH), SARL, association loi 1901…']);
     ch('date_creation', 'Date de création', $v('date_creation'), $err, ['type'=>'date']);
     ch('statut', 'Statut', $v('statut') ?: 'actif', $err, ['type'=>'select','choix'=>$STATUTS]);
+    ch('gestion', 'Ce que nous faisons', $v('gestion') ?: 'complete', $err,
+       ['type'=>'select','choix'=>$GESTIONS,
+        'aide'=>'« Diffusion seulement » retire la demande de jeton bexio: pas de comptabilité, pas de jeton']);
     ch('discipline', 'Discipline', $v('discipline'), $err);
     ch('debut_collab', 'Début de collaboration', $v('debut_collab'), $err, ['type'=>'date']);
 

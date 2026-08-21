@@ -121,11 +121,11 @@ form.filtres.fonds button,form.filtres.fonds .vider{white-space:nowrap}
        déjà là. [21.08.2026] */ ?>
   <div class="tw"><table data-filtres>
     <thead><tr>
-      <th data-f="choix">Pr.</th><th data-f="choix">Association</th>
+      <th>Pr.</th><th>Association</th>
       <th>Institution / bailleur</th><th>Projet</th>
-      <th data-f="choix">Type</th><th class="d" data-f="non">Demandé</th>
-      <th class="d" data-f="non">Accordé</th>
-      <th data-f="choix">Statut</th><th>Délai</th><th>Réponse</th><th data-f="non"></th>
+      <th>Type</th><th class="d">Demandé</th>
+      <th class="d">Accordé</th>
+      <th>Statut</th><th>Délai</th><th>Réponse</th><th data-f="non"></th>
     </tr></thead>
     <tbody>
     <?php foreach ($dem as $d): $did = (int)$d['id'];
@@ -138,8 +138,8 @@ form.filtres.fonds button,form.filtres.fonds .vider{white-space:nowrap}
           <?php if ($d['canton']): ?><span class="np"><?= e((string)$d['canton']) ?></span><?php endif; ?></td>
         <td class="sec"><?= e((string)($d['proj'] ?? '')) ?></td>
         <td class="sec"><?= e((string)($d['type'] ?? '')) ?></td>
-        <td class="d"><?= $d['demande'] !== null ? $fm($d['demande']) . ' ' . e($d['devise']) : '—' ?></td>
-        <td class="d"><?= $d['accorde'] !== null && (float)$d['accorde'] > 0
+        <td class="d" data-v="<?= (float)($d['demande'] ?? 0) ?>"><?= $d['demande'] !== null ? $fm($d['demande']) . ' ' . e($d['devise']) : '—' ?></td>
+        <td class="d" data-v="<?= (float)($d['accorde'] ?? 0) ?>"><?= $d['accorde'] !== null && (float)$d['accorde'] > 0
             ? '<strong>' . $fm($d['accorde']) . '</strong> ' . e($d['devise']) : '—' ?></td>
         <td><span class="st st-<?= e($d['statut']) ?>"><?= e($STATUTS_F[$d['statut']] ?? $d['statut']) ?></span></td>
         <td class="sec <?= $ret ? 'retard' : '' ?>">

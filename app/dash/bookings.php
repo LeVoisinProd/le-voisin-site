@@ -1821,11 +1821,11 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
          filtre pas. Le pays a trois valeurs et le statut quatre: les taper
          serait plus lent que les choisir. Les deux colonnes d'argent ne se
          filtrent pas — on ne cherche pas une date par son montant. */ ?>
-    <th class="c-nom" data-f="choix">Performance name</th><th class="c-venue">Venue</th>
-    <th class="c-date">Date</th><th data-f="choix">Artist</th>
-    <th class="c-h" data-f="non">Time</th><th class="d" data-f="non">Performance Fee</th>
-    <th class="c-pays" data-f="choix">Country</th><th class="c-ville">City</th>
-    <th data-f="choix">Status</th><th class="d" data-f="non">Booking Fee</th>
+    <th class="c-nom">Performance name</th><th class="c-venue">Venue</th>
+    <th class="c-date">Date</th><th>Artist</th>
+    <th class="c-h">Time</th><th class="d">Performance Fee</th>
+    <th class="c-pays">Country</th><th class="c-ville">City</th>
+    <th>Status</th><th class="d">Booking Fee</th>
   </tr></thead>
   <tbody>
   <?php foreach ($lignes as $r):
@@ -1855,12 +1855,16 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
       <td><?= e($r['artiste'] ?? '') ?></td>
       <td class="nb sec c-h"><?= $r['heure'] && $r['heure'] !== '00:00:00'
             ? e(substr((string)$r['heure'], 0, 5)) : '' ?></td>
-      <td class="d nb"><?= (float)$r['prix_cession'] > 0
+      <?php /* LA VALEUR BRUTE, POUR QUE LE TRI SOIT NUMÉRIQUE. [21.08.2026]
+           Sans elle le menu trierait « CHF 900 » après « CHF 1'234 », parce
+           qu'il n'aurait que le texte formaté à comparer — et c'est dans les
+           colonnes d'argent que l'erreur se paie. */ ?>
+      <td class="d nb" data-v="<?= (float)$r['prix_cession'] ?>"><?= (float)$r['prix_cession'] > 0
             ? e($r['devise']) . ' ' . number_format((float)$r['prix_cession'], 2, ',', ' ') : '' ?></td>
       <td class="sec c-pays"><?= e($r['pays'] ?? '') ?></td>
       <td><?= e($r['ville'] ?? '') ?></td>
       <td><span class="et <?= e($r['statut']) ?>"><?= e($ETIQ[$r['statut']] ?? $r['statut']) ?></span></td>
-      <td class="d nb"><?= (float)($r['frais_booking'] ?? 0) > 0
+      <td class="d nb" data-v="<?= (float)($r['frais_booking'] ?? 0) ?>"><?= (float)($r['frais_booking'] ?? 0) > 0
             ? e($r['devise']) . ' ' . number_format((float)$r['frais_booking'], 2, ',', ' ')
               . ((float)($r['frais_booking_taux'] ?? 0) > 0
                  ? '<div class="sec">' . rtrim(rtrim(number_format((float)$r['frais_booking_taux'], 2, ',', ' '), '0'), ',') . ' %</div>'

@@ -41,6 +41,23 @@ const CANTONS = ['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE
 $STATUTS = ['actif' => 'actif', 'pause' => 'en pause', 'termine' => 'terminé'];
 $GENRES  = ['association' => 'association', 'artiste' => 'artiste'];
 
+/* CE QUE LE VOISIN FAIT POUR ELLE, ET CE QU'IL NE FAIT PAS. [Anna, 21.08.2026]
+   « tem assos que eu nao me ocupo da contabilidade entao nao vai ter token ».
+
+   La colonne `gestion` existait depuis la reprise et n'était NI affichée NI
+   modifiable: une donnée juste pour les deux La Secousse, morte pour les
+   treize autres, que personne ne pouvait corriger. Elle décide maintenant ce
+   que le bloc bexio demande — et surtout ce qu'il ne demande pas.
+
+   C'est la même règle qu'ailleurs: un champ vide n'est pas toujours un
+   manque. Une association dont nous ne tenons pas la comptabilité n'aura
+   jamais de jeton, et un écran qui continue de le réclamer apprend à ignorer
+   ses propres alertes. */
+$GESTIONS = [
+    'complete'  => 'complète — administration et comptabilité',
+    'diffusion' => 'diffusion seulement — pas de comptabilité chez nous',
+];
+
 $id = (int)($_GET['o'] ?? 0);
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -220,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($saisi['nom'] === '') $err['nom'] = 'Sans nom, la fiche ne se retrouve pas.';
     if (!isset($GENRES[$saisi['genre']]))     $saisi['genre']  = 'artiste';
+    if (!isset($GESTIONS[$saisi['gestion'] ?? ''])) $saisi['gestion'] = 'complete';
     if (!isset($STATUTS[$saisi['statut']]))   $saisi['statut'] = 'actif';
     if ($saisi['devise_defaut'] === '')       $saisi['devise_defaut'] = 'CHF';
 
@@ -374,6 +392,7 @@ if ($id > 0) {
       $l('Discipline', $o['discipline']);
       $l('Direction artistique', $o['direction']);
       $l('Début de collaboration', $o['debut_collab']);
+      $l('Ce que nous faisons', $GESTIONS[$o['gestion']] ?? $o['gestion']);
       $l('IDE', $o['ide']);
       $l('Registre', $o['registre']);
       $l('AVS employeur', $o['avs_employeur']);
@@ -578,7 +597,12 @@ if ($id > 0) {
          donc chez qui l'on est avant d'écrire quoi que ce soit. */ ?>
     <div class="bl bx">
       <h3>bexio</h3>
-      <?php $bxOk = Bexio::configure($o); ?>
+      <?php $bxOk = Bexio::configure($o); $bxCompta = ($o['gestion'] ?? 'complete') !== 'diffusion'; ?>
+      <?php if (!$bxCompta && !$bxOk): ?>
+        <p class="n">Nous ne tenons pas la comptabilité de cette association: elle n'a pas
+           de jeton, et c'est normal. Pour en poser un, changez d'abord
+           « Ce que nous faisons » dans <a href="/dashboard.php?e=associations&amp;o=<?= $id ?>&amp;mod=1">modifier</a>.</p>
+      <?php else: ?>
       <?php if ($bxOk && $o['bexio_societe']): ?>
         <p class="bx-ok">Jeton en place · comptabilité <strong><?= e((string)$o['bexio_societe']) ?></strong>
           <span class="n">essayé le <?= e(date('d.m.Y à H:i', strtotime((string)$o['bexio_teste_a']))) ?></span></p>
@@ -610,6 +634,7 @@ if ($id > 0) {
       <?php endif; ?>
       <p class="n">Le jeton est chiffré dans la base, comme les IBAN. Il n'est jamais réaffiché:
          un champ laissé vide ne l'efface pas.</p>
+      <?php endif; ?>
     </div>
 
     <div class="bl agenda-ics">
@@ -715,9 +740,9 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
        canton se choisissent plus vite qu'ils ne se tapent. Le nom et la
        direction restent en texte: dix-huit noms propres ne font pas une liste
        qu'on parcourt. [Anna, 21.08.2026] */ ?>
-  <thead><tr><th>Nom</th><th>Direction</th><th data-f="choix">Ville, canton</th>
-    <th data-f="choix">Pays</th>
-    <th data-f="choix">Discipline</th><th data-f="choix">Statut</th></tr></thead>
+  <thead><tr><th>Nom</th><th>Direction</th><th>Ville, canton</th>
+    <th>Pays</th>
+    <th>Discipline</th><th>Statut</th></tr></thead>
   <tbody>
   <?php foreach ($lignes as $r): ?>
     <tr>

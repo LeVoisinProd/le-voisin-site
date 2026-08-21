@@ -348,11 +348,11 @@ dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count
   <div class="tw"><table class="rel" data-filtres>
     <thead><tr>
       <th>Date</th><th>Projet</th><th>Lieu</th>
-      <th class="d" data-f="non">Cachets</th><th class="d" data-f="non">Frais LV</th>
-      <th class="d" data-f="non">Frais annexes</th>
-      <th class="d" data-f="non">Frais de prod</th><th class="d" data-f="non">À notre charge</th>
-      <th class="d" data-f="non">Prix de cession</th>
-      <th data-f="choix">Encaissement</th><th data-f="choix">Versement</th>
+      <th class="d">Cachets</th><th class="d">Frais LV</th>
+      <th class="d">Frais annexes</th>
+      <th class="d">Frais de prod</th><th class="d">À notre charge</th>
+      <th class="d">Prix de cession</th>
+      <th>Encaissement</th><th>Versement</th>
     </tr></thead>
     <tbody>
     <?php
