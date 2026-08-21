@@ -157,8 +157,17 @@ if (($_GET['piece_dl'] ?? '') !== '') {
         'png' => 'image/png',
         default => 'application/octet-stream',
     };
+    /* `attachment` PAR DÉFAUT, `inline` SEULEMENT POUR UNE IMAGE DEMANDÉE À
+       L'ÉCRAN. [21.08.2026] Le logo s'affiche dans la fiche: servi en pièce
+       jointe il déclencherait un téléchargement au lieu de se montrer. Mais on
+       n'ouvre pas un PDF dans le navigateur pour autant — une attestation se
+       range, elle ne se feuillette pas — et un `inline` généreux sur un type
+       inconnu est exactement ce qui fait servir un document exécutable. */
+    $vue = ($_GET['vue'] ?? '') === '1'
+        && in_array(strtolower((string)$pc['ext']), ['jpg', 'jpeg', 'png'], true);
     header('Content-Type: ' . $mime);
-    header('Content-Disposition: attachment; filename="' . addslashes((string)$pc['fichier']) . '"');
+    header('Content-Disposition: ' . ($vue ? 'inline' : 'attachment')
+         . '; filename="' . addslashes((string)$pc['fichier']) . '"');
     header('Content-Length: ' . filesize($f));
     header('X-Content-Type-Options: nosniff');
     header('Cache-Control: private, no-store');
@@ -505,6 +514,17 @@ if ($id > 0) {
        toutes sauf celle de l'onglet coché — et sur cette page il n'y a pas
        d'onglets. Les quatre s'empilent donc, chacune sous son titre, ce qui
        est la bonne forme pour une page qu'on lit de haut en bas. */
+    .logo-a{max-width:800px}
+    .logo-a h3{margin:0 0 8px}
+    .logo-a .n{color:var(--doux);font-size:12.5px;margin:0 0 10px}
+    /* Le damier derrière le logo: sans lui, un PNG blanc sur fond blanc paraît
+       vide et l'on croit que le dépôt a échoué. */
+    .logo-vue{display:flex;gap:16px;align-items:flex-start;margin:0 0 12px}
+    .logo-vue img{max-width:220px;max-height:110px;padding:8px;border:1px solid var(--trait);
+      border-radius:6px;background-color:#fff;
+      background-image:linear-gradient(45deg,#eee 25%,transparent 25%,transparent 75%,#eee 75%),
+        linear-gradient(45deg,#eee 25%,transparent 25%,transparent 75%,#eee 75%);
+      background-size:14px 14px;background-position:0 0,7px 7px}
     .bx{max-width:800px}
     .bx h3{margin:0 0 8px}
     .bx p{margin:0 0 10px;font-size:13.5px}
@@ -583,6 +603,53 @@ if ($id > 0) {
          au milieu de ce qu'on vient lire: on ouvre une association pour voir
          ses coordonnées et ses obligations, pas pour coller un jeton. Un
          réglage se pose une fois et se relit rarement; sa place est après. */ ?>
+    <?php /* LE LOGO DE L'ASSOCIATION. [Anna, 21.08.2026] « na ficha associação
+         mettre un champ pour télécharger le logo de l'asso ».
+
+         IL PASSE PAR LE MÊME MÉCANISME QUE LES ATTESTATIONS, et non par un
+         second: même dépôt, même téléchargement protégé, même suppression.
+         Ce qui change est qu'il n'a pas d'exercice — un logo n'existe pas
+         « pour 2026 » — d'où la distinction `annuel` posée dans `OrgPieces`.
+
+         IL S'AFFICHE, ET C'EST TOUT L'INTÉRÊT. Un fichier déposé qu'on ne voit
+         pas ne se vérifie jamais: on découvre au moment d'imprimer un devis
+         qu'on a chargé la mauvaise version, ou un carré blanc sur blanc. */ ?>
+    <?php $logo = OrgPieces::liste($id, 'logo'); $logo = $logo[0] ?? null; ?>
+    <div class="bl logo-a">
+      <h3>Logo</h3>
+      <?php if ($logo): ?>
+        <div class="logo-vue">
+          <img src="/dashboard.php?e=associations&amp;piece_dl=<?= (int)$logo['id'] ?>&amp;vue=1"
+               alt="Logo de <?= e((string)$o['nom']) ?>">
+          <div>
+            <p class="n"><?= e($logo['fichier']) ?> ·
+               <?= number_format((int)$logo['taille'] / 1024, 0, ',', ' ') ?> Ko ·
+               déposé le <?= e(date('d.m.Y', strtotime((string)$logo['cree_le']))) ?></p>
+            <form method="post" action="/dashboard.php?e=associations&amp;o=<?= $id ?>"
+                  onsubmit="return confirm('Retirer le logo ? Le fichier est supprimé.')">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="piece" value="retirer">
+              <input type="hidden" name="ligne" value="<?= (int)$logo['id'] ?>">
+              <button type="submit" class="sup">retirer</button>
+            </form>
+          </div>
+        </div>
+      <?php else: ?>
+        <p class="n">Aucun logo. Il sert sur les devis et les factures de cette association.</p>
+      <?php endif; ?>
+      <form method="post" action="/dashboard.php?e=associations&amp;o=<?= $id ?>"
+            enctype="multipart/form-data" class="ajl">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="piece" value="deposer">
+        <input type="hidden" name="type" value="logo">
+        <label class="fic">Fichier <input type="file" name="fichier" accept=".jpg,.jpeg,.png" required></label>
+        <button type="submit"><?= $logo ? 'remplacer' : 'déposer' ?></button>
+      </form>
+      <p class="n">PNG ou JPG, 25 Mo au maximum. Le PNG garde la transparence, ce qui
+         compte sur un devis. Ni PDF ni SVG: le premier n'est pas une image, le second
+         est un document exécutable qu'on ne sert pas.</p>
+    </div>
+
     <?php /* LE JETON BEXIO, SUR LA FICHE DE L'ASSOCIATION QU'IL OUVRE.
          [Anna, 21.08.2026] « fazemos o api avec bexio ? »
 

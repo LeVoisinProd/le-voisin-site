@@ -22,13 +22,41 @@ declare(strict_types=1);
 
 final class OrgPieces
 {
-    /** Les pièces connues. Le libellé est celui qu'Anna a dicté. */
+    /** Les pièces connues. Le libellé est celui qu'Anna a dicté.
+     *
+     * `annuel` DISTINGUE DEUX NATURES DE PIÈCE, et ce n'est pas un détail de
+     * rangement. Une attestation LPP existe PAR EXERCICE: celle de 2025 et
+     * celle de 2026 cohabitent, et l'ancienne reste parce qu'un contrôle peut
+     * la demander. Un logo n'a pas d'exercice: il y en a un, le nouveau
+     * remplace l'ancien, et garder une pile de versions ne servirait qu'à
+     * hésiter. [21.08.2026]
+     */
     public const TYPES = [
         'lpp_affiliation' => [
             'fr' => 'Attestation d’affiliation à une institution de prévoyance du deuxième pilier (LPP)',
             'en' => 'Certificate of affiliation to a second-pillar pension institution (LPP)',
+            'annuel' => true,
+            'formats' => ['pdf', 'jpg', 'jpeg', 'png'],
+        ],
+        /* LE LOGO DE L'ASSOCIATION. Anna, 21.08.2026: « na ficha associação
+           mettre un champ pour télécharger le logo de l'asso ».
+
+           NI PDF NI SVG. Un logo sert à être posé sur un devis ou une facture,
+           et ces deux formats-là s'y posent mal: le PDF n'est pas une image et
+           le SVG est un document exécutable qu'on ne veut pas servir. PNG pour
+           la transparence, JPG pour le reste. */
+        'logo' => [
+            'fr' => 'Logo de l’association',
+            'en' => 'Association logo',
+            'annuel' => false,
+            'formats' => ['jpg', 'jpeg', 'png'],
         ],
     ];
+
+    public static function estAnnuel(string $type): bool
+    {
+        return (bool)(self::TYPES[$type]['annuel'] ?? true);
+    }
 
     private static ?bool $table = null;
 
@@ -89,14 +117,17 @@ final class OrgPieces
         if (!self::dispo())                       return 'La table des pièces manque: lancer php db/migrer.php.';
         if (!isset(self::TYPES[$type]))           return 'Type de pièce inconnu.';
         if ($orgId <= 0)                          return 'Association inconnue.';
-        if ($annee < 2000 || $annee > 2100)       return 'Année invalide.';
+        if (!self::estAnnuel($type)) $annee = 0;
+        elseif ($annee < 2000 || $annee > 2100)   return 'Année invalide.';
         if ((int)($file['error'] ?? 1) !== UPLOAD_ERR_OK) return 'Le fichier n’est pas arrivé.';
         if ((int)($file['size'] ?? 0) <= 0)       return 'Le fichier est vide.';
         if ((int)$file['size'] > 25 * 1024 * 1024) return 'Le fichier dépasse 25 Mo.';
 
         $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
-        if (!in_array($ext, ['pdf', 'jpg', 'jpeg', 'png'], true))
-            return 'Format accepté: PDF, JPG ou PNG.';
+        $ok  = self::TYPES[$type]['formats'] ?? ['pdf', 'jpg', 'jpeg', 'png'];
+        if (!in_array($ext, $ok, true))
+            return 'Format accepté: ' . strtoupper(implode(', ', array_unique(
+                array_map(fn($x) => $x === 'jpeg' ? 'jpg' : $x, $ok)))) . '.';
 
         $org = DB::one('SELECT nom FROM organisation WHERE id = ?', [$orgId]);
         if (!$org) return 'Association inconnue.';
@@ -104,7 +135,9 @@ final class OrgPieces
         /* Le nom porte l'association, l'objet et l'année: on le reconnaît hors
            du site, dans une pièce jointe ou sur un bureau. */
         $sigle = preg_replace('/[^A-Za-z0-9]+/', '', (string)$org['nom']) ?: 'ASSO';
-        $nom   = sprintf('%d_%s_%s.%s', $annee, mb_substr($sigle, 0, 24), $type, $ext);
+        $nom   = $annee > 0
+            ? sprintf('%d_%s_%s.%s', $annee, mb_substr($sigle, 0, 24), $type, $ext)
+            : sprintf('%s_%s.%s', mb_substr($sigle, 0, 24), $type, $ext);
 
         $dir = self::racine() . '/' . $orgId;
         if (!is_dir($dir)) mkdir($dir, 0775, true);
