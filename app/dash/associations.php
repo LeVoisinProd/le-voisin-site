@@ -379,6 +379,25 @@ if ($id > 0) {
       $l('AVS employeur', $o['avs_employeur']);
       $l('REE', $o['ree']);
       $l('SIRET', $o['siret']);
+      /* LES IDENTIFIANTS FRANÇAIS MANQUAIENT À LA FICHE. [Anna, 21.08.2026]
+         « porque as fichas das assos baseadas na França não têm todos os
+         campos de info ». Les quatre suisses — IDE, Registre, AVS employeur,
+         REE — étaient là depuis le début; côté français seul le SIRET l'était.
+         `rna`, `urssaf`, `audiens` et la TVA existent dans la table depuis la
+         reprise et n'étaient imprimés nulle part: une association française
+         pouvait donc être renseignée sans que rien ne le montre.
+
+         Comme tout le reste de cette fiche, une ligne vide ne s'affiche pas:
+         les treize fiches suisses ne gagnent aucune ligne creuse. */
+      $l('RNA', $o['rna'], 'répertoire national des associations');
+      $l('URSSAF', $o['urssaf']);
+      $l('Audiens', $o['audiens'], 'retraite et prévoyance du spectacle');
+      /* `tva_fr` EST UN enum('non','oui'), PAS UN BOOLÉEN. La chaîne « non »
+         est vraie en PHP: testée comme un drapeau, elle affichait
+         « assujettie » sur les treize fiches suisses, c'est-à-dire l'inverse
+         de la vérité. On compare donc à « oui », jamais à la vérité de la
+         valeur. */
+      $l('TVA (FR)', $o['tva_fr_num'] ?: ($o['tva_fr'] === 'oui' ? 'assujettie' : ''));
       $l('Pays', trim(($o['pays'] ?? '') . ' ' . ($o['canton'] ? '· ' . $o['canton'] : '')));
       /* Quatre champs et non un. [16.08.2026] L'adresse arrivait de la reprise
          en un bloc multi-ligne et s'empilait dans une cellule prévue pour une
