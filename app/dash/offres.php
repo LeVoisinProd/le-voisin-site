@@ -26,6 +26,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $act = (string)($_POST['act'] ?? '');
     $oid = (int)($_POST['offre'] ?? 0);
 
+    /* LE DEVIS S'ATTACHE À L'OFFRE. [Anna, 21.08.2026] « eu preciso baixar o
+       pdf desde esta página ». L'offre gardait le nom du fichier dans une note
+       et rien d'autre: elle disait qu'un devis existait sans permettre de
+       l'ouvrir. */
+    if ($act === 'fichier' && $oid > 0) {
+        try {
+            OfferFiles::deposer($oid, $_FILES['piece'] ?? ['error' => UPLOAD_ERR_NO_FILE],
+                                (string)(Auth::user()['name'] ?? ''));
+            dash_flash('Pièce déposée.');
+        } catch (Throwable $e) { dash_flash($e->getMessage(), 'err'); }
+        redirect('/dashboard.php?e=offres&o=' . $oid);
+    }
+    if ($act === 'fichier_sup' && $oid > 0) {
+        OfferFiles::supprimer((int)($_POST['ligne'] ?? 0), $oid);
+        dash_flash('Pièce retirée.');
+        redirect('/dashboard.php?e=offres&o=' . $oid);
+    }
+
     if ($act === 'statut' && $oid > 0) {
         $cp = trim((string)($_POST['contre_prix'] ?? ''));
         Offers::statut($oid, (string)($_POST['st'] ?? ''),
@@ -46,6 +64,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         dash_flash('Conversion impossible.', 'err');
     }
     redirect('/dashboard.php?e=offres');
+}
+
+/* LE TÉLÉCHARGEMENT, AVANT TOUT AFFICHAGE. En pièce jointe et jamais en
+   `inline`: un devis porte un prix négocié, il se range, il ne se feuillette
+   pas dans un onglet qui reste ouvert. */
+if (($_GET['piece_dl'] ?? '') !== '') {
+    $pf = OfferFiles::un((int)$_GET['piece_dl']);
+    if (!$pf || dash_droit('offres', dash_role()) === '') { http_response_code(404); exit('Introuvable.'); }
+    $chemin = OfferFiles::chemin($pf);
+    if (!is_file($chemin)) { http_response_code(404); exit('Fichier introuvable.'); }
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . addslashes((string)$pf['titre']) . '"');
+    header('Content-Length: ' . filesize($chemin));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
+    readfile($chemin);
+    exit;
 }
 
 $filtre  = (string)($_GET['f'] ?? '');
@@ -166,6 +201,56 @@ dash_haut('offres', $sousTitre);
         <?php endif; ?>
       </dl>
 
+      <?php /* LES PIÈCES DE L'OFFRE — le devis en premier. [Anna, 21.08.2026]
+           Elles se déposent et se reprennent ici parce que c'est ici qu'on
+           répond au lieu: aller chercher le PDF sur le Drive au moment
+           d'écrire est exactement le détour qui fait envoyer la mauvaise
+           version. Le fichier est rangé hors du web — un devis porte un prix
+           négocié et le nom d'un programmateur. */ ?>
+      <?php $pieces = OfferFiles::liste($oid); ?>
+      <div class="pieces-o">
+        <h4>Devis et pièces<?= $pieces ? ' · ' . count($pieces) : '' ?></h4>
+        <?php if ($pieces): ?>
+          <ul class="pl">
+            <?php foreach ($pieces as $pf): ?>
+              <li>
+                <a href="/dashboard.php?e=offres&amp;piece_dl=<?= (int)$pf['id'] ?>"><?=
+                  e((string)$pf['titre']) ?></a>
+                <span class="n"><?= e(OfferFiles::poids((int)$pf['taille'])) ?> ·
+                  <?= e(date('d.m.Y', strtotime((string)$pf['cree_a']))) ?><?php
+                  if ($pf['depose_par']): ?> · <?= e((string)$pf['depose_par']) ?><?php endif; ?></span>
+                <?php if ($peutEcrire): ?>
+                  <form method="post" action="/dashboard.php?e=offres" class="inline"
+                        onsubmit="return confirm('Retirer cette pièce ? Le fichier est supprimé.')">
+                    <?= Auth::csrfField() ?>
+                    <input type="hidden" name="act" value="fichier_sup">
+                    <input type="hidden" name="offre" value="<?= $oid ?>">
+                    <input type="hidden" name="ligne" value="<?= (int)$pf['id'] ?>">
+                    <button type="submit" class="x">×</button>
+                  </form>
+                <?php endif; ?>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php else: ?>
+          <p class="n">Aucune pièce. Le devis produit pour ce lieu se dépose ici: on l’a
+             sous la main au moment de répondre, sans passer par le Drive.</p>
+        <?php endif; ?>
+        <?php if ($peutEcrire): ?>
+          <form method="post" action="/dashboard.php?e=offres" enctype="multipart/form-data" class="ajl">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="act" value="fichier">
+            <input type="hidden" name="offre" value="<?= $oid ?>">
+            <label class="fic">Fichier <input type="file" name="piece"
+                   accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.odt" required></label>
+            <button type="submit">déposer</button>
+          </form>
+          <p class="n">PDF, image, Word ou ODT · 25 Mo au maximum. Deux fichiers du même nom
+             ne s’écrasent pas: le second est suffixé, parce qu’une version corrigée ne doit
+             pas faire disparaître celle qui a été envoyée.</p>
+        <?php endif; ?>
+      </div>
+
       <?php if ($peutEcrire && !$o['booking_id']): ?>
         <form method="post" action="/dashboard.php?e=offres" class="ajl">
           <?= Auth::csrfField() ?>
@@ -227,7 +312,8 @@ dash_haut('offres', $sousTitre);
      spectacle, dont le porteur vit dans `projet_prod`. La stocker en ferait
      une deuxième vérité, qui se tromperait le jour où une pièce change de
      porteur. */ ?>
-<div class="tw"><table class="tofr">
+<?php require __DIR__ . '/_filtre_colonnes.php'; ?>
+<div class="tw"><table class="tofr" data-filtres>
   <thead><tr>
     <th>Reçue</th><th>Spectacle</th><th>Association</th><th>Lieu</th>
     <th>Ville, pays</th><th>Quand</th><th class="d">Prix</th><th>État</th>
@@ -283,6 +369,19 @@ dash_haut('offres', $sousTitre);
 <style>
 .tofr td{vertical-align:top}
 .tofr .cp{font-size:11.5px;color:var(--doux)}
+.pieces-o{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--trait)}
+.pieces-o h4{margin:0 0 8px;font-size:13px}
+.pieces-o .n{color:var(--doux);font-size:12px}
+.pieces-o .pl{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:5px}
+.pieces-o .pl li{display:flex;gap:10px;align-items:baseline;font-size:13.5px}
+.pieces-o .pl a{color:var(--encre)}
+.pieces-o .pl form{margin:0}
+.pieces-o .pl .x{border:0;background:none;color:var(--doux);cursor:pointer;font-size:15px;padding:0 4px}
+.pieces-o .pl .x:hover{color:#c8452f}
+.pieces-o .ajl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
+.pieces-o .fic{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--doux)}
+.pieces-o button[type=submit]{padding:6px 14px;font:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
 .filtres{display:flex;gap:14px;flex-wrap:wrap;padding:0 0 18px;font-size:13.5px}
 /* Le fil de la fiche. Les fleches gardent leur place aux extremites: un bouton
    qui disparait decale les autres sous le curseur. */
