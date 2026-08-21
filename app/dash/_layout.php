@@ -91,9 +91,20 @@ a { color:inherit; }
    débordement de la fenêtre des tableaux existait déjà — ce n'est pas la
    réduction qui l'introduit. */
 .enveloppe { display:grid; grid-template-columns:212px minmax(0,1fr); min-height:100vh;
-        zoom:0.9; }
+        zoom:0.9;
+        /* LE NOIR VA JUSQU'EN BAS. [Anna, 21.08.2026] « o menu tem que ficar
+           preto até o final ». L'`aside` est `sticky` avec `height:100vh`: il
+           mesure exactement une hauteur d'écran, et sous cette hauteur il n'y
+           avait rien à peindre — sur une page longue, la colonne virait au
+           blanc à mi-chemin.
+
+           C'est la GRILLE qui porte la couleur, pas l'élément. Un dégradé net
+           à 212 px peint la première colonne sur toute la hauteur, quelle que
+           soit la longueur de la page, sans toucher au défilement du menu ni
+           à sa position collante. */
+        background:linear-gradient(to right, var(--barre) 212px, transparent 212px); }
 @media (max-width:820px) {
-  .enveloppe { grid-template-columns:1fr; }
+  .enveloppe { grid-template-columns:1fr; background:none; }
   /* Sur petit écran le sous-titre passe à la ligne: la barre est plus haute, et
      les en-têtes de tableau doivent descendre d'autant. */
   :root { --h-tete:84px; }

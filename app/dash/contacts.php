@@ -26,7 +26,7 @@ $cid = (int)($_GET['c'] ?? 0);
 // ENREGISTRER
 // ═══════════════════════════════════════════════════════════════════════════
 
-$CH_CONTACT = ['nom','prenom','nom_famille','fonction','structure','categorie',
+$CH_CONTACT = ['nom','prenom','nom_famille','nom_artistique','fonction','structure','categorie',
                'ville_struct','pays_struct','region','adresse','cp','ville','dept','pays',
                'email1','email2','email_pro1','tel1','tel_pro1','site',
                'mots_cles','description','participations','notes',
@@ -167,6 +167,16 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
            'aide'=>'Ce qui apparaît dans les listes. Souvent le nom de la structure']);
         ch('prenom', 'Prénom', $v('prenom'), $err);
         ch('nom_famille', 'Nom de famille', $v('nom_famille'), $err);
+        /* LE NOM SOUS LEQUEL LA PERSONNE TRAVAILLE. [Anna, 21.08.2026] « na
+           fiche contact não tem nom artistique », « tem que ter todas as casas
+           iguais ao espace utilisateur ». L'espace collaborateur le demande
+           depuis le 14.08 et le carnet ne l'avait pas: le seul nom connu était
+           celui du contrat, et c'est sous celui-là qu'on annonçait quelqu'un
+           dans un programme. Facultatif, comme en ligne: la plupart n'en ont
+           qu'un, et une case obligatoire remplie pour s'en débarrasser ne vaut
+           rien. */
+        ch('nom_artistique', 'Nom artistique ou nom d\'usage', $v('nom_artistique'), $err,
+           ['aide'=>'Le nom sous lequel la personne travaille et sous lequel on l\'annonce. À laisser vide s\'il est le même que ci-dessus']);
         /* Le pronom n'est pas un ornement: écrire à un programmateur en se
            trompant est le genre de faute qui ferme une porte avant la première
            phrase. 236 fiches le portent déjà. */
@@ -293,6 +303,12 @@ if ($cid > 0) {
         <?php endif; ?>
         <div>
           <h2 class="gros"><?= e($k['nom']) ?></h2>
+            <?php /* Le nom d'usage sous le nom affiché, et non à sa place: les
+                 deux servent, et lequel est lequel doit se voir. */ ?>
+            <?php if (!empty($k['nom_artistique'])): ?>
+              <p class="sst2"><strong><?= e((string)$k['nom_artistique']) ?></strong>
+                <span class="pron">nom d’usage</span></p>
+            <?php endif; ?>
           <?php if ($k['prenom'] || $k['nom_famille'] || $k['pronom']): ?>
             <p class="sst2"><?= e(trim(($k['prenom'] ?? '') . ' ' . ($k['nom_famille'] ?? ''))) ?><?php
               if ($k['pronom']): ?> <span class="pron"><?= e((string)$k['pronom']) ?></span><?php endif; ?></p>

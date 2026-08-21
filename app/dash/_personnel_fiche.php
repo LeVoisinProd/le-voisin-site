@@ -55,6 +55,53 @@ $engs = $neuf ? [] : DB::all(
 
 $nom = trim(($p['prenom'] ?? '') . ' ' . ($p['nom'] ?? ''));
 dash_haut('personnel', $neuf ? 'nouvelle personne' : e($nom));
+
+/* PRÉCÉDENT ET SUIVANT, COMME AILLEURS. [Anna, 21.08.2026] « na parte
+   personnel colocar tb os botões de próximo e anterior ». Quatre-vingt-onze
+   fiches à relire une par une, c'est quatre-vingt-dix retours par la liste.
+
+   L'ORDRE EST CELUI DE LA LISTE — `nom, prenom` — et la VUE est reprise dans
+   l'adresse: partir des inactifs et se retrouver chez les actifs vaudrait à
+   peine mieux que rien. On lit la colonne des identifiants entière plutôt que
+   « le premier après celui-ci »: deux personnes du même nom de famille
+   existent, et une comparaison sur une clef qui se répète saute des fiches.
+
+   Les flèches sont ici, au-dessus du formulaire, et le garde-fou est celui du
+   navigateur: `beforeunload` prévient si un champ a bougé. */
+$vueF = (string)($_GET['vue'] ?? 'actifs');
+$wF = ['supprime_le IS NULL'];
+if ($vueF === 'actifs')   $wF[] = 'actif = 1';
+if ($vueF === 'inactifs') $wF[] = 'actif = 0';
+$idsF = $neuf ? [] : array_map('intval', DB::pdo()
+    ->query('SELECT id FROM rh_employe WHERE ' . implode(' AND ', $wF) . ' ORDER BY nom, prenom')
+    ->fetchAll(PDO::FETCH_COLUMN));
+$iF = $neuf ? false : array_search($pid, $idsF, true);
+$ctxF = $vueF !== 'actifs' ? '&amp;vue=' . rawurlencode($vueF) : '';
+$lienF = fn($n) => url('/dashboard.php?e=personnel&p=' . (int)$n) . $ctxF;
+?>
+<?php if (!$neuf): ?>
+<div class="fil-p">
+  <a href="<?= e(url('/dashboard.php?e=personnel') . $ctxF) ?>">← toutes les personnes</a>
+  <?php if ($iF !== false): ?>
+    <?php if (isset($idsF[$iF - 1])): ?>
+      <a class="pas" href="<?= $lienF($idsF[$iF - 1]) ?>">← précédent</a>
+    <?php else: ?><span class="pas mort">← précédent</span><?php endif; ?>
+    <span class="rang"><?= $iF + 1 ?> / <?= count($idsF) ?></span>
+    <?php if (isset($idsF[$iF + 1])): ?>
+      <a class="pas" href="<?= $lienF($idsF[$iF + 1]) ?>">suivant →</a>
+    <?php else: ?><span class="pas mort">suivant →</span><?php endif; ?>
+  <?php endif; ?>
+</div>
+<style>
+.fil-p{display:flex;gap:16px;align-items:baseline;padding:12px 26px 0;font-size:13px}
+.fil-p a{color:var(--doux);text-decoration:none}
+.fil-p a:hover{color:var(--encre)}
+.fil-p .pas{color:var(--encre);font-weight:600}
+.fil-p .pas.mort{color:var(--doux);opacity:.35}
+.fil-p .rang{color:var(--doux);font-variant-numeric:tabular-nums}
+</style>
+<?php endif; ?>
+<?php
 dash_form_style();
 dash_flash_html();
 ?>
