@@ -1938,8 +1938,7 @@ table td, table th { vertical-align:top; }
 .lien-px:hover{border-color:var(--encre)}
 .lien-px .cpt{padding:1px 8px;border-radius:9px;background:var(--jaune);color:#0d0d0d;
   font-size:11.5px}
-.neuf { margin-left:auto; padding:8px 16px; background:var(--jaune); color:#0d0d0d;
-        border-radius:4px; text-decoration:none; font-size:13.5px; font-weight:600; }
+
 .alerte { margin:16px 26px 0; padding:12px 16px; background:var(--fond2);
           border-left:4px solid var(--orange); font-size:13.5px; max-width:80ch; }
 </style>

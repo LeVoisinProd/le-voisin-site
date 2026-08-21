@@ -362,6 +362,14 @@ dash_haut('offres', $sousTitre);
      avec `?f=acceptee` continue de fonctionner. Ce qui disparaît est la barre,
      pas la possibilité. */ ?>
 
+<?php /* LE BOUTON EST AVANT LE TEST « AUCUNE OFFRE », ET C'EST TOUT LE
+     POINT. Placé dans la branche qui affiche le tableau, il disparaissait
+     quand la liste était vide — donc au seul moment où il est indispensable:
+     on ne pouvait pas créer la première. [21.08.2026] */ ?>
+<?php if ($peutEcrire): ?>
+<p class="barre-neuf"><a class="neuf" href="/dashboard.php?e=offres&amp;neuf=1">+ nouvelle offre</a></p>
+<?php endif; ?>
+
 <?php if (!$offres): ?>
   <p class="vide">Aucun devis ni demande<?= $filtre ? ' dans cet état' : '' ?> en cours.
      <?php if (!$filtre): ?><br><span class="sec">Deux portes alimentent cette page:
@@ -382,9 +390,6 @@ dash_haut('offres', $sousTitre);
      spectacle, dont le porteur vit dans `projet_prod`. La stocker en ferait
      une deuxième vérité, qui se tromperait le jour où une pièce change de
      porteur. */ ?>
-<?php if ($peutEcrire): ?>
-<p class="barre-neuf"><a class="neuf" href="/dashboard.php?e=offres&amp;neuf=1">+ nouvelle offre</a></p>
-<?php endif; ?>
 <?php require __DIR__ . '/_filtre_colonnes.php'; ?>
 <div class="tw"><table class="tofr" data-filtres>
   <thead><tr>

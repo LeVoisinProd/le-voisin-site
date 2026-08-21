@@ -178,7 +178,6 @@ dash_haut('personnel');
      tableaux poussaient la page à déborder vers la droite. */ ?>
 <div class="zone">
 
-
 <?php
 // ═══════════════════════════════════════════════════════════════════════════
 // ONGLET EMPLOYÉ·E·S
@@ -503,8 +502,7 @@ else:
 .fl-haut{display:flex;align-items:center;gap:10px;margin-bottom:9px}
 .fl-haut input[type=search]{flex:1 1 auto;min-width:0}
 .fl-haut button{white-space:nowrap}
-.neuf{margin-left:0;padding:8px 16px;background:var(--jaune);color:#0d0d0d;
-  border-radius:4px;text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
+
 .fl-bas{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .cpt{font-size:13px;color:var(--doux);margin:0 0 10px}
 tr.off td{opacity:.55}

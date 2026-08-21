@@ -76,7 +76,22 @@ a { color:inherit; }
 
 /* La disposition: un rail de navigation à gauche, le contenu à droite. Sur
    petit écran le rail passe au-dessus et défile à l'horizontale. */
-.enveloppe { display:grid; grid-template-columns:212px minmax(0,1fr); min-height:100vh; }
+/* TOUT L'ÉCRAN À 90 %. [Anna, 21.08.2026] « to achando que tem que diminuir a
+   fonte de tudo, pois está muito difícil de visualizar tudo ».
+
+   POURQUOI `zoom` ET NON UNE REPASSE SUR LES TAILLES. Le dashboard porte 399
+   déclarations `font-size` en pixels, réparties sur seize fichiers. Les
+   diviser une à une changerait le texte sans toucher aux marges, aux hauteurs
+   de ligne ni aux paddings: on lirait plus petit dans des cases restées
+   grandes, et l'on n'en verrait pas davantage. `zoom` réduit tout ensemble,
+   tient en une ligne, et se retire en une ligne.
+
+   MESURÉ AVANT D'APPLIQUER, dans un navigateur à 1700×1000: les Événements
+   passent de 11 lignes visibles à 17, les Contacts de 11 à 14. Et le léger
+   débordement de la fenêtre des tableaux existait déjà — ce n'est pas la
+   réduction qui l'introduit. */
+.enveloppe { display:grid; grid-template-columns:212px minmax(0,1fr); min-height:100vh;
+        zoom:0.9; }
 @media (max-width:820px) {
   .enveloppe { grid-template-columns:1fr; }
   /* Sur petit écran le sous-titre passe à la ligne: la barre est plus haute, et
@@ -230,6 +245,20 @@ td .sec { color:var(--doux); font-size:12.5px; }
    partielle ne rend pas là où on l'attend. */
 .barre-neuf { margin:0; padding:14px 26px; border-bottom:1px solid var(--trait);
         background:var(--fond2); text-align:right; }
+/* LE BOUTON JAUNE, DÉFINI UNE FOIS. [Anna, 21.08.2026] « ela não tem a cara
+   dos outros botões, arruma isso para ficar amarelo ».
+
+   Il était écrit dans CINQ écrans — associations, bookings, contacts,
+   calendrier, personnel — à l'identique, et pas dans les Offres: le bouton y
+   sortait donc en lien nu. C'est la cinquième fois aujourd'hui qu'une règle
+   posée dans une feuille partielle ne rend pas là où on l'attend, et la
+   cinquième fois que le remède est le même: la règle habite le seul fichier
+   que tout le monde charge. Les cinq copies sont retirées; elles étaient
+   identiques au `white-space` près, gardé ici parce qu'un bouton d'action ne
+   doit jamais se couper en deux lignes. */
+.neuf { padding:8px 16px; background:var(--jaune); color:#0d0d0d; border-radius:4px;
+        text-decoration:none; font-size:13.5px; font-weight:600; white-space:nowrap; }
+.neuf:hover { filter:brightness(.94); }
 /* LA BARRE DE RECHERCHE EST À DROITE. [Anna, 21.08.2026] « colocar os campos
    de recherche alinhados à direita », « e todos os outros do site ».
 

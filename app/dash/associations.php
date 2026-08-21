@@ -395,7 +395,6 @@ if ($id > 0) {
     $st->execute([$id]);
     $datesN = (int)$st->fetchColumn();
 
-
     dash_haut('associations', e($GENRES[$o['genre']]) . ' · ' . e($STATUTS[$o['statut']] ?? ''));
     ?>
     <div class="fil"><a href="/dashboard.php?e=associations">← toutes les fiches</a>
@@ -857,7 +856,6 @@ dash_haut('associations', count($lignes) . ' fiche' . (count($lignes)>1?'s':'') 
 <p class="barre-neuf"><a class="neuf" href="/dashboard.php?e=associations&amp;mod=1">+ nouvelle fiche</a></p>
 <?php dash_flash_html(); ?>
 
-
 <?php if (!$lignes): ?><p class="vide">Aucune fiche.</p><?php else: ?>
 <?php require __DIR__ . '/_filtre_colonnes.php'; ?>
 <div class="tw"><table data-filtres>
@@ -935,8 +933,6 @@ form.piece-f button{padding:8px 16px;font-size:13.5px}
 .grille-h button.x{background:none;border:0;color:var(--orange);text-decoration:underline;
   cursor:pointer;font-family:inherit;font-size:13px;padding:0}
 
-.neuf{margin-left:auto;padding:8px 16px;background:var(--jaune);color:#0d0d0d;
-  border-radius:4px;text-decoration:none;font-size:13.5px;font-weight:600}
 .alerte{margin:16px 26px 0;padding:11px 16px;background:var(--fond2);
   border-left:4px solid var(--orange);font-size:13.5px;max-width:82ch}
 .et{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--trait);white-space:nowrap}

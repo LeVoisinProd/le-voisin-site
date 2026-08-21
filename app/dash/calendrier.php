@@ -285,8 +285,7 @@ dash_haut('calendrier',
 
 <style>
 .resume { display:flex; gap:6px; flex-wrap:wrap; }
-.neuf { margin-left:auto; padding:8px 16px; background:var(--jaune); color:#0d0d0d;
-        border-radius:4px; text-decoration:none; font-size:13.5px; font-weight:600; }
+
 .agenda { padding:8px 26px 40px; max-width:1100px; }
 .mois { margin-top:26px; }
 .mois h2 { font-size:14px; margin:0 0 6px; text-transform:uppercase; letter-spacing:.06em;

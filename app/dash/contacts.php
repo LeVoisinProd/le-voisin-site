@@ -707,8 +707,7 @@ dash_haut('contacts', e($sst));
 /* `margin-left:0` annule le `margin-left:auto` d'origine: c'est le conteneur
    qui pousse maintenant, et laisser les deux ferait un trou entre le bouton et
    le lien. */
-.neuf{margin-left:0;padding:8px 16px;background:var(--jaune);color:#0d0d0d;
-  border-radius:4px;text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
+
 .fl-bas{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .fl-bas select{max-width:100%}
 @media (max-width:640px){
