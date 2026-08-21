@@ -259,7 +259,8 @@ $grille = function (string $type, string $titre, array $periodes)
 .ajl{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:12px 0 0;
   padding:12px 0 0;border-top:1px solid var(--trait)}
 .ajl input[type=text],.ajl input[type=file],.ajl select{padding:7px 9px;font:inherit;
-  font-size:13px;border:1px solid var(--trait);border-radius:5px;background:#fff}
+  font-size:13px;border:1px solid var(--trait);border-radius:5px;background:#fff;
+  box-sizing:border-box;max-width:100%}
 .ajl button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
   border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
 .ajl button:hover{background:var(--encre);color:#fff}

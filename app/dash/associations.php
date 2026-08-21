@@ -438,6 +438,10 @@ if ($id > 0) {
        d'onglets. Les quatre s'empilent donc, chacune sous son titre, ce qui
        est la bonne forme pour une page qu'on lit de haut en bas. */
     .agenda-ics{max-width:800px}
+    /* Sans box-sizing, un champ à 100 % ajoute ses 18 px de padding par-dessus
+       et pousse la page à déborder — c'est ce débordement qui faisait glisser
+       tout le contenu sous le menu. */
+    .agenda-ics input{box-sizing:border-box}
     .agenda-ics p{margin:0 0 10px;font-size:13.5px;color:var(--doux)}
     .agenda-ics input{width:100%;padding:7px 9px;font:inherit;font-size:12.5px;
       border:1px solid var(--trait);background:#fff;color:var(--encre)}
@@ -476,6 +480,16 @@ if ($id > 0) {
            JOIN projet_prod pp ON pp.project_id = p.id
           WHERE b.supprime_le IS NULL AND pp.organisation_id = ?", [$id]);
     ?>
+    <?php /* LES DEUX DERNIERS BLOCS ÉTAIENT HORS DE `.zone`, DONC SANS GOUTTIÈRE.
+         [Anna, 21.08.2026] « ainda estamos assim ». La zone se refermait avant
+         eux: le titre « Déclarations et pièces » commençait à zéro, c'est-à-dire
+         sous la barre noire du menu, et la grille des trimestres s'étalait
+         jusqu'au bord droit de la fenêtre en poussant la page à déborder — d'où
+         l'impression que tout avait glissé vers la gauche.
+         Une seconde zone plutôt qu'une marge posée à la main: c'est la même
+         règle de 26 px que tous les autres écrans, et elle ne se réinvente pas. */ ?>
+    <div class="zone">
+
     <div class="bl agenda-ics">
       <h3>Agenda Google — <?= $nDates ?> date<?= $nDates > 1 ? 's' : '' ?></h3>
       <p>Dans Google Agenda: <strong>Autres agendas → + → À partir de l'URL</strong>, puis
@@ -493,6 +507,8 @@ if ($id > 0) {
       <h3>Déclarations et pièces — <?= $annee ?></h3>
       <?php require __DIR__ . '/_assoc_grilles.php'; ?>
     </div>
+
+    </div><!-- .zone -->
 
     <?php dash_bas(); return;
 }
