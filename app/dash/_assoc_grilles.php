@@ -203,3 +203,69 @@ $grille = function (string $type, string $titre, array $periodes)
        association qui existe.</p>
   <?php endif; ?>
 </div>
+
+<style>
+/* LE STYLE VOYAGE AVEC LA MARQUE, ET C'EST LA CORRECTION. [Anna, 21.08.2026]
+   « tirar tudo do dashboard que esta mal dimensionado, colado no menu ».
+   Ces règles vivaient dans `_assoc_barre.php`, que seule la branche
+   « modifier » charge. Depuis le 20.08 la vue de LECTURE inclut ce fichier-ci
+   sans la barre: les grilles sortaient en HTML nu — des blocs noirs empilés,
+   collés au menu. Même racine que la constante CANTONS trouvée le même jour.
+
+   Une feuille de style qui vit dans un autre fichier que son HTML se perd au
+   premier partage. Elle est ici désormais.
+
+   ET SIX CLASSES N'AVAIENT DE RÈGLE NULLE PART — `ajl`, `tbl`, `fic`, `cel`,
+   `d`, `inline-form`. Ce n'était pas un style égaré, il n'a jamais existé:
+   les tableaux et les formulaires d'ajout sortaient bruts dans les DEUX vues.
+   Ils en ont un maintenant, celui de la maison. */
+.grl{margin-top:22px;padding-top:18px;border-top:1px solid var(--trait)}
+.grl-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px}
+.grl-nav .an{display:inline-flex;align-items:center;justify-content:center;width:26px;
+  height:26px;border:1px solid var(--trait);border-radius:50%;text-decoration:none;
+  color:var(--doux)}
+.grl-nav .an:hover{border-color:var(--encre);color:var(--encre)}
+.grl-nav .sec{font-size:12.5px;color:var(--doux)}
+.grl-t{font-size:13.5px;font-weight:600;margin-bottom:10px}
+.grl-c{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.cel-l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--doux);
+  text-align:center;margin-bottom:4px}
+.cel-b{display:block;width:100%;padding:9px 6px;font:inherit;font-size:13px;text-align:center;
+  border:1px solid var(--trait);border-radius:6px;background:var(--papier);
+  color:var(--doux);cursor:pointer}
+.cel-b:hover{border-color:var(--encre)}
+.e-envoye{border-color:#d9a800;color:#8a6a00;font-weight:600}
+.e-paye{border-color:#7bb33a;color:#4d7a1e;font-weight:600}
+.e-sans_objet{opacity:.5}
+
+/* Le texte d'aide sous un titre. Il était dans `_assoc_barre.php` et servait
+   aussi bien aux onglets qu'aux grilles; il vit ici parce que ce fichier-ci
+   est chargé par les deux vues, alors que la barre ne l'est que par une. */
+.aide-b{font-size:12.5px;color:var(--doux);margin:0 0 14px;max-width:84ch}
+
+/* La cellule d'un trimestre: l'étiquette au-dessus, le bouton dessous. */
+.cel{display:flex;flex-direction:column}
+
+/* Les tableaux — attestations LPP, comptes par canton. */
+.tbl{overflow-x:auto;margin:0 0 14px}
+.tbl table{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--doux);font-weight:600;padding:0 12px 7px 0;border-bottom:1px solid var(--trait)}
+.tbl td{padding:9px 12px 9px 0;border-bottom:1px solid var(--trait);vertical-align:top}
+.tbl tr.ici td{background:var(--fond2)}
+.tbl td.d{text-align:right;width:1%;white-space:nowrap}
+
+/* Le formulaire d'ajout en bout de tableau: une seule ligne tant qu'elle tient. */
+.ajl{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:12px 0 0;
+  padding:12px 0 0;border-top:1px solid var(--trait)}
+.ajl input[type=text],.ajl input[type=file],.ajl select{padding:7px 9px;font:inherit;
+  font-size:13px;border:1px solid var(--trait);border-radius:5px;background:#fff}
+.ajl button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
+.ajl button:hover{background:var(--encre);color:#fff}
+.fic{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--doux)}
+.inline-form{display:inline}
+.inline-form button{padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;
+  border:1px solid var(--trait);border-radius:5px;background:transparent;color:var(--doux)}
+.inline-form button:hover{border-color:#c8452f;color:#c8452f}
+</style>

@@ -62,7 +62,6 @@ const DELAIS_CANTON = [
 
 .avis-b{background:var(--fond2);border-left:3px solid var(--jaune,#FFD24D);
   padding:11px 15px;margin:0 0 18px;font-size:13.5px;max-width:88ch}
-.aide-b{font-size:12.5px;color:var(--doux);margin:0 0 14px;max-width:84ch}
 .mdpbloc{margin:6px 0 20px}
 .deux-cartes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
 .carte{border:1px solid var(--trait);border-radius:7px;padding:16px 18px}
@@ -71,23 +70,5 @@ const DELAIS_CANTON = [
 .carte.fr h4{color:#3a6fd0}
 h4.sect-h{margin:26px 0 10px;font-size:14px}
 
-.grl{margin-top:22px;padding-top:18px;border-top:1px solid var(--trait)}
-.grl-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px}
-.grl-nav .an{display:inline-flex;align-items:center;justify-content:center;width:26px;
-  height:26px;border:1px solid var(--trait);border-radius:50%;text-decoration:none;
-  color:var(--doux)}
-.grl-nav .an:hover{border-color:var(--encre);color:var(--encre)}
-.grl-nav .sec{font-size:12.5px;color:var(--doux)}
-.grl-t{font-size:13.5px;font-weight:600;margin-bottom:10px}
-.grl-c{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-.cel-l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--doux);
-  text-align:center;margin-bottom:4px}
-.cel-b{display:block;width:100%;padding:9px 6px;font:inherit;font-size:13px;text-align:center;
-  border:1px solid var(--trait);border-radius:6px;background:var(--papier);
-  color:var(--doux);cursor:pointer}
-.cel-b:hover{border-color:var(--encre)}
-.e-envoye{border-color:#d9a800;color:#8a6a00;font-weight:600}
-.e-paye{border-color:#7bb33a;color:#4d7a1e;font-weight:600}
-.e-sans_objet{opacity:.5}
 @media (max-width:820px){.deux-cartes{grid-template-columns:1fr}}
 </style>
