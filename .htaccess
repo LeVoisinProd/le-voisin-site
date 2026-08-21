@@ -14,6 +14,16 @@ DirectoryIndex index.php
     RewriteCond %{REQUEST_URI} !^/robots\.txt$
     RewriteRule \.(md|txt|zip|sql|local|bak)$ - [F]
 
+    # LE TABLEAU DE BORD EST UN POINT D'ENTRÉE AUTONOME, PAS UNE PAGE DU CMS.
+    # « /dashboard » et « /en/dashboard » sont les adresses qu'on tape de tête.
+    # Sans cette règle elles tombent dans index.php, qui n'a pas ce slug et
+    # répond 404 — le tableau de bord paraissait alors hors service alors qu'il
+    # répondait depuis le 16.08 sur /dashboard.php. [21.08.2026]
+    #
+    # La règle est ici et non dans index.php parce que le cache d'opcode du
+    # serveur refuse de relire index.php: une route ajoutée là ne prendrait pas.
+    RewriteRule ^(?:[a-z]{2}/)?dashboard/?$ dashboard.php [L]
+
     # Tout le reste (hors fichiers/dossiers réels) passe par index.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
