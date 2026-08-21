@@ -48,8 +48,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('/dashboard.php?e=offres');
 }
 
-$filtre = (string)($_GET['f'] ?? '');
-$offres = Offers::liste($filtre);
+$filtre  = (string)($_GET['f'] ?? '');
+$offreId = (int)($_GET['o'] ?? 0);
+$offres  = Offers::liste($filtre);
+
+/* La fiche s'ouvre meme si le filtre en cours ne la contient pas: on arrive
+   souvent par un lien, et repondre « introuvable » a cause d'un filtre pose
+   ailleurs serait un piege. */
+$une = $offreId > 0 ? Offers::une($offreId) : null;
+if ($offreId > 0 && !$une) {
+    dash_flash('Cette offre n\'existe pas.', 'err');
+    redirect('/dashboard.php?e=offres');
+}
 $n      = Offers::compter();
 $porteurs = Offers::porteurs();
 $total  = array_sum($n);
@@ -71,63 +81,39 @@ dash_haut('offres', $sousTitre);
      personnel, projets, calendrier — et c'est le même oubli à chaque fois. */ ?>
 <div class="zone">
 
-<div class="filtres">
-  <a href="/dashboard.php?e=offres" class="<?= $filtre === '' ? 'ici' : '' ?>">toutes (<?= $total ?>)</a>
-  <?php foreach ($STATUTS as $k => $lib): if (!$n[$k]) continue; ?>
-    <a href="/dashboard.php?e=offres&amp;f=<?= $k ?>" class="<?= $filtre === $k ? 'ici' : '' ?>"><?= e($lib) ?> (<?= $n[$k] ?>)</a>
-  <?php endforeach; ?>
-</div>
+<?php if ($une): ?>
+  <?php
+  /* UNE FICHE PAR OFFRE, ET NON TOUT EMPILE SOUS LA LISTE. [Anna, 21.08.2026]
+     « pourquoi il y a une liste et le descriptif des offres en dessous ? ça
+     devrait ouvrir la page de chacune des offres avec son détail, pas tout
+     mélangé comme ça ».
 
-<?php if (!$offres): ?>
-  <p class="vide">Aucun devis ni demande<?= $filtre ? ' dans cet état' : '' ?> en cours.
-     <?php if (!$filtre): ?><br><span class="sec">Deux portes alimentent cette page:
-     le formulaire public <code>/demande.php</code> — le lien à mettre dans une
-     signature d'e-mail ou un dossier de diffusion — et Iris, à qui l'on colle un
-     courriel entier et qui en tire ce qu'elle reconnaît.</span><?php endif; ?></p>
-<?php else: ?>
+     L'ecran montrait le tableau PUIS les sept fiches completes a la suite,
+     reliees par une ancre. Sept tiennent encore; a trente la page devient un
+     mur, et l'ancre ne dit plus ou l'on est ni ou l'on retourne. La liste
+     liste, la fiche detaille.
 
-<?php /* ── LE TABLEAU ────────────────────────────────────────────────────
-     [16.08.2026] Demandé par Anna: « fazer lista com colunas de assos, prix,
-     ville pays ». Les fiches en dessous servent à AGIR sur une demande; le
-     tableau sert à les VOIR TOUTES — combien, où, à quel prix, dans quel état.
-     Ce sont deux gestes différents et un seul affichage ne fait bien ni l'un
-     ni l'autre: la fiche est trop haute pour comparer dix lignes, le tableau
-     trop étroit pour contre-proposer.
+     Les fleches gardent le filtre en cours, comme dans les Evenements. */
+  $ids  = array_map(fn($x) => (int)$x['id'], $offres);
+  $i    = array_search($offreId, $ids, true);
+  $ctx  = $filtre !== '' ? '&amp;f=' . rawurlencode($filtre) : '';
+  $lien = fn($n) => '/dashboard.php?e=offres&amp;o=' . (int)$n . $ctx;
+  $o    = $une;
+  $oid  = $offreId;
+  ?>
+  <div class="fil-o">
+    <a href="/dashboard.php?e=offres<?= $ctx ?>">← toutes les offres</a>
+    <?php if ($i !== false): ?>
+      <?php if (isset($ids[$i - 1])): ?>
+        <a class="pas" href="<?= $lien($ids[$i - 1]) ?>">← précédente</a>
+      <?php else: ?><span class="pas mort">← précédente</span><?php endif; ?>
+      <span class="rang"><?= $i + 1 ?> / <?= count($ids) ?></span>
+      <?php if (isset($ids[$i + 1])): ?>
+        <a class="pas" href="<?= $lien($ids[$i + 1]) ?>">suivante →</a>
+      <?php else: ?><span class="pas mort">suivante →</span><?php endif; ?>
+    <?php endif; ?>
+  </div>
 
-     La colonne Association n'est pas dans la table `offer`: elle se déduit du
-     spectacle, dont le porteur vit dans `projet_prod`. La stocker en ferait
-     une deuxième vérité, qui se tromperait le jour où une pièce change de
-     porteur. */ ?>
-<div class="tw"><table class="tofr">
-  <thead><tr>
-    <th>Reçue</th><th>Spectacle</th><th>Association</th><th>Lieu</th>
-    <th>Ville, pays</th><th>Quand</th><th class="d">Prix</th><th>État</th>
-  </tr></thead>
-  <tbody>
-  <?php foreach ($offres as $o): ?>
-    <tr>
-      <td class="sec"><?= e(date('d.m.y', strtotime((string)$o['cree_a']))) ?></td>
-      <td><a href="#o-<?= (int)$o['id'] ?>"><?= e($o['projet'] ?: '—') ?></a></td>
-      <td class="sec"><?php $as = Offers::porteurDe((string)($o['projet'] ?? ''), $porteurs); ?>
-        <?= $as !== '' ? e($as) : '<span class="sec">—</span>' ?></td>
-      <td><?= e((string)($o['venue'] ?? '')) ?></td>
-      <td class="sec"><?= e(trim(((string)$o['ville']) . (($o['ville'] && $o['pays']) ? ', ' : '') . (string)$o['pays'])) ?></td>
-      <td class="sec"><?= $o['date_souhaitee']
-            ? e(date('d.m.Y', strtotime((string)$o['date_souhaitee'])))
-            : e((string)($o['date_texte'] ?? '')) ?>
-        <?php if ($o['representations']): ?> · <?= (int)$o['representations'] ?>×<?php endif; ?></td>
-      <td class="d"><?php if ($o['budget'] !== null): ?>
-          <?= number_format((float)$o['budget'], 0, ',', ' ') ?> <?= e($o['devise']) ?>
-          <?php if ($o['contre_prix'] !== null): ?><br><span class="cp">contre
-            <?= number_format((float)$o['contre_prix'], 0, ',', ' ') ?></span><?php endif; ?>
-        <?php else: ?><span class="sec">—</span><?php endif; ?></td>
-      <td><span class="et et-o<?= e($o['statut']) ?>"><?= e($STATUTS[$o['statut']]) ?></span></td>
-    </tr>
-  <?php endforeach; ?>
-  </tbody>
-</table></div>
-
-<?php foreach ($offres as $o): $oid = (int)$o['id']; ?>
   <div class="offre st-<?= e($o['statut']) ?>" id="o-<?= $oid ?>">
     <div class="tete-o">
       <div>
@@ -209,7 +195,69 @@ dash_haut('offres', $sousTitre);
       <?php endif; ?>
     </div>
   </div>
-<?php endforeach; ?>
+</div><!-- .zone -->
+<?php dash_bas(); return; ?>
+<?php endif; ?>
+
+
+<div class="filtres">
+  <a href="/dashboard.php?e=offres" class="<?= $filtre === '' ? 'ici' : '' ?>">toutes (<?= $total ?>)</a>
+  <?php foreach ($STATUTS as $k => $lib): if (!$n[$k]) continue; ?>
+    <a href="/dashboard.php?e=offres&amp;f=<?= $k ?>" class="<?= $filtre === $k ? 'ici' : '' ?>"><?= e($lib) ?> (<?= $n[$k] ?>)</a>
+  <?php endforeach; ?>
+</div>
+
+<?php if (!$offres): ?>
+  <p class="vide">Aucun devis ni demande<?= $filtre ? ' dans cet état' : '' ?> en cours.
+     <?php if (!$filtre): ?><br><span class="sec">Deux portes alimentent cette page:
+     le formulaire public <code>/demande.php</code> — le lien à mettre dans une
+     signature d'e-mail ou un dossier de diffusion — et Iris, à qui l'on colle un
+     courriel entier et qui en tire ce qu'elle reconnaît.</span><?php endif; ?></p>
+<?php else: ?>
+
+<?php /* ── LE TABLEAU ────────────────────────────────────────────────────
+     [16.08.2026] Demandé par Anna: « fazer lista com colunas de assos, prix,
+     ville pays ». Les fiches en dessous servent à AGIR sur une demande; le
+     tableau sert à les VOIR TOUTES — combien, où, à quel prix, dans quel état.
+     Ce sont deux gestes différents et un seul affichage ne fait bien ni l'un
+     ni l'autre: la fiche est trop haute pour comparer dix lignes, le tableau
+     trop étroit pour contre-proposer.
+
+     La colonne Association n'est pas dans la table `offer`: elle se déduit du
+     spectacle, dont le porteur vit dans `projet_prod`. La stocker en ferait
+     une deuxième vérité, qui se tromperait le jour où une pièce change de
+     porteur. */ ?>
+<div class="tw"><table class="tofr">
+  <thead><tr>
+    <th>Reçue</th><th>Spectacle</th><th>Association</th><th>Lieu</th>
+    <th>Ville, pays</th><th>Quand</th><th class="d">Prix</th><th>État</th>
+  </tr></thead>
+  <tbody>
+  <?php foreach ($offres as $o): ?>
+    <tr>
+      <td class="sec"><?= e(date('d.m.y', strtotime((string)$o['cree_a']))) ?></td>
+      <td><a href="/dashboard.php?e=offres&amp;o=<?= (int)$o['id'] ?><?=
+        $filtre !== '' ? '&amp;f=' . rawurlencode($filtre) : '' ?>"><?=
+        e($o['projet'] ?: '—') ?></a></td>
+      <td class="sec"><?php $as = Offers::porteurDe((string)($o['projet'] ?? ''), $porteurs); ?>
+        <?= $as !== '' ? e($as) : '<span class="sec">—</span>' ?></td>
+      <td><?= e((string)($o['venue'] ?? '')) ?></td>
+      <td class="sec"><?= e(trim(((string)$o['ville']) . (($o['ville'] && $o['pays']) ? ', ' : '') . (string)$o['pays'])) ?></td>
+      <td class="sec"><?= $o['date_souhaitee']
+            ? e(date('d.m.Y', strtotime((string)$o['date_souhaitee'])))
+            : e((string)($o['date_texte'] ?? '')) ?>
+        <?php if ($o['representations']): ?> · <?= (int)$o['representations'] ?>×<?php endif; ?></td>
+      <td class="d"><?php if ($o['budget'] !== null): ?>
+          <?= number_format((float)$o['budget'], 0, ',', ' ') ?> <?= e($o['devise']) ?>
+          <?php if ($o['contre_prix'] !== null): ?><br><span class="cp">contre
+            <?= number_format((float)$o['contre_prix'], 0, ',', ' ') ?></span><?php endif; ?>
+        <?php else: ?><span class="sec">—</span><?php endif; ?></td>
+      <td><span class="et et-o<?= e($o['statut']) ?>"><?= e($STATUTS[$o['statut']]) ?></span></td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table></div>
+
 <?php endif; ?>
 
 <?php /* ── PLUS DE SAISIE À LA MAIN ICI ───────────────────────────── [17.08.2026]
@@ -236,6 +284,14 @@ dash_haut('offres', $sousTitre);
 .tofr td{vertical-align:top}
 .tofr .cp{font-size:11.5px;color:var(--doux)}
 .filtres{display:flex;gap:14px;flex-wrap:wrap;padding:0 0 18px;font-size:13.5px}
+/* Le fil de la fiche. Les fleches gardent leur place aux extremites: un bouton
+   qui disparait decale les autres sous le curseur. */
+.fil-o{display:flex;gap:16px;align-items:baseline;margin:0 0 20px;font-size:13px}
+.fil-o a{color:var(--doux);text-decoration:none}
+.fil-o a:hover{color:var(--encre)}
+.fil-o .pas{color:var(--encre);font-weight:600}
+.fil-o .pas.mort{color:var(--doux);opacity:.35}
+.fil-o .rang{color:var(--doux);font-variant-numeric:tabular-nums}
 .filtres a{color:var(--doux);text-decoration:none}
 .filtres a.ici{color:var(--encre);font-weight:600}
 .offre{border:1px solid var(--trait);border-radius:6px;margin-bottom:14px;overflow:hidden}
