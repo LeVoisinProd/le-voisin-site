@@ -684,6 +684,51 @@ if ($id > 0) {
     <div class="zone">
     <?php if ($ong === 'apercu'): ?>
       <h2 class="gros"><?= e($titre) ?></h2>
+
+      <?php
+      /* LA CARTE, EN HAUT DE L'APERÇU. [Anna, 21.08.2026] « on pourrait mettre
+         une visualisation avec Google Maps », « laisser avec une visibilité
+         comme dans le print ».
+
+         PAS DE CLEF GOOGLE, ET C'EST DÉLIBÉRÉ. L'API Maps en exige une,
+         facturable, à créer, à poser dans les réglages et à surveiller.
+         OpenStreetMap montre la même rue sans clef ni compte. Le lien vers
+         Google reste sous la carte: qui veut l'itinéraire l'a en un clic, et
+         c'est le seul usage où Google est vraiment meilleur.
+
+         LA RECHERCHE N'A LIEU QU'UNE FOIS. Les coordonnées sont écrites dans
+         la date à la première ouverture; ensuite l'affichage n'appelle plus
+         personne. Une salle introuvable est marquée comme cherchée, sinon on
+         retenterait à chaque ouverture — le service nous bloquerait et la
+         fiche traînerait pour rien.
+
+         L'ADRESSE TROUVÉE EST ÉCRITE SOUS LA CARTE, et ce n'est pas décoratif:
+         « Ecolint, Genève » peut tomber sur le bon campus ou sur un homonyme.
+         En la montrant, une erreur de géocodage se voit au lieu de se croire. */
+      $geo = Geo::pourBooking($b);
+      ?>
+      <?php if ($geo['lat'] !== null): ?>
+      <div class="carte">
+        <iframe src="<?= e(Geo::urlCarte($geo['lat'], $geo['lon'])) ?>"
+                loading="lazy" referrerpolicy="no-referrer"
+                title="Carte de <?= e((string)($b['venue'] ?? 'la salle')) ?>"></iframe>
+        <div class="carte-tete">
+          <strong><?= e((string)($b['venue'] ?? '')) ?></strong>
+          <span><?= e(trim(((string)$b['ville']) . (($b['ville'] && $b['pays']) ? ', ' : '') . (string)$b['pays'])) ?></span>
+        </div>
+        <div class="carte-pied">
+          <span class="tr"><?= e((string)($geo['libelle'] ?? '')) ?></span>
+          <a href="<?= e(Geo::urlGoogle($b, $geo['lat'], $geo['lon'])) ?>"
+             target="_blank" rel="noopener">ouvrir dans Google Maps ↗</a>
+        </div>
+      </div>
+      <?php elseif (($b['venue'] ?? '') || ($b['ville'] ?? '')): ?>
+        <p class="carte-non">Adresse introuvable pour « <?=
+          e(trim(((string)$b['venue']) . ' ' . ((string)$b['ville']))) ?> ».
+          <a href="<?= e(Geo::urlGoogle($b)) ?>" target="_blank" rel="noopener">chercher
+          dans Google Maps ↗</a></p>
+      <?php endif; ?>
+
       <div class="fiche">
         <?php
         $st = ['option' => 'option', 'confirmed' => 'confirmé', 'canceled' => 'annulé', 'pending' => 'en attente'];
@@ -1752,6 +1797,25 @@ th.c-date, th.c-h, th.c-pays { width:1%; }
 th.c-nom { min-width:230px; }
 th.c-ville { min-width:120px; }
 table td, table th { vertical-align:top; }
+/* LA CARTE, DE LA LARGEUR DE LA FICHE ET PAS PLUS. Une carte plein écran
+   dans un dashboard, c'est joli une fois et encombrant tous les jours: on
+   vient lire des montants, pas voyager. Le nom de la salle est posé dessus,
+   comme dans le modèle qu'Anna a montré. */
+.carte{position:relative;margin:0 0 22px;max-width:760px;border:1px solid var(--trait);
+  border-radius:8px;overflow:hidden;background:var(--fond2)}
+.carte iframe{display:block;width:100%;height:240px;border:0}
+.carte-tete{position:absolute;top:0;left:0;right:0;padding:10px 14px;
+  background:linear-gradient(to bottom, rgba(0,0,0,.62), rgba(0,0,0,0));
+  color:#fff;font-size:13.5px;text-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none}
+.carte-tete strong{display:block;font-size:15px}
+.carte-tete span{opacity:.9;font-size:12.5px}
+.carte-pied{display:flex;gap:14px;align-items:baseline;justify-content:space-between;
+  padding:8px 14px;font-size:12px;color:var(--doux);border-top:1px solid var(--trait)}
+.carte-pied .tr{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.carte-pied a{color:var(--encre);text-decoration:none;white-space:nowrap}
+.carte-pied a:hover{text-decoration:underline}
+.carte-non{margin:0 0 20px;font-size:13px;color:var(--doux);max-width:760px}
+.carte-non a{color:var(--encre)}
 .et { font-size:11.5px; padding:2px 8px; border-radius:10px; border:1px solid var(--trait);
       white-space:nowrap; }
 .et.confirmed { background:#e7f6ea; border-color:#bfe3c8; color:#1c5c2e; }
