@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="login-body">
 <form class="login-box" method="post" action="<?= e(admin_url('login.php')) ?>">
-  <p class="side-logo">LE&nbsp;VOISIN<span><?= e(ta('com_admin')) ?></span></p>
+  <?= admin_marque() ?>
   <?php if ($error): ?><div class="flash err"><?= e($error) ?></div><?php endif; ?>
   <?= Auth::csrfField() ?>
   <div class="f"><label class="f-label"><?= e(ta('log_email')) ?></label>

@@ -62,6 +62,12 @@ img { max-width: 100%; }
   margin: 0 22px 24px; font-weight: 700; letter-spacing: .24em; font-size: 16px;
 }
 .side-logo span { display: block; font-weight: 400; letter-spacing: .14em; font-size: 10px; text-transform: uppercase; color: #9a9a94; margin-top: 4px; }
+
+/* Le logo remplace le lettrage: pas d'interlettrage à hériter, et une largeur
+   qui laisse respirer les 22 px de marge de chaque côté des 236 px de la barre. */
+.side-logo.avec-image { letter-spacing: normal; font-weight: 400; }
+.side-logo.avec-image img { display: block; width: 100%; max-width: 168px; height: auto; }
+.login-box .side-logo.avec-image img { max-width: 190px; }
 .side nav { display: flex; flex-direction: column; flex: 1; overflow: auto; }
 .side nav a {
   color: #d9d9d4; text-decoration: none; padding: 9px 22px; font-size: 14px;

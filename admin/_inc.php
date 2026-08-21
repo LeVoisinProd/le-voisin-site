@@ -90,6 +90,41 @@ function admin_lang_switch(string $class = 'side-lang'): string
 }
 
 /** Entête + navigation de l'administration. */
+/**
+ * LA MARQUE EN IMAGE, PAS EN LETTRES ESPACÉES. [Anna, 21.08.2026]
+ *
+ * Le CMS écrivait « LE VOISIN » en texte, avec du letter-spacing, alors que le
+ * site public, l'espace collaborateur et le tableau de bord montrent tous les
+ * trois le vrai logo. Le CMS était le seul endroit où la marque était imitée.
+ *
+ * MÊME CASCADE QUE PARTOUT AILLEURS, et c'est le point: le logo posé dans les
+ * réglages l'emporte, sinon celui livré avec le code, et le texte seulement si
+ * les deux manquent. Une seule source pour les quatre interfaces — changer le
+ * logo dans les réglages le change ici aussi, sans toucher au code.
+ *
+ * Le fichier est un rectangle plein, bloc noir puis bloc jaune, sans
+ * transparence: il tient aussi bien sur la barre sombre du CMS que sur le fond
+ * clair de la page de connexion.
+ */
+function admin_marque(): string
+{
+    $sous = '<span>' . e(ta('com_admin')) . '</span>';
+
+    $logoId  = (int)setting('logo_image_id', '0');
+    $logoImg = $logoId ? Img::row($logoId) : null;
+
+    if ($logoImg) {
+        $src = upload_url('i/' . $logoImg['id'] . '/orig.' . $logoImg['ext']);
+    } elseif (is_file(LV_ROOT . '/assets/img/logo-levoisin.png')) {
+        $src = url('/assets/img/logo-levoisin.png');
+    } else {
+        return '<p class="side-logo">LE&nbsp;VOISIN' . $sous . '</p>';
+    }
+
+    return '<p class="side-logo avec-image"><img src="' . e($src)
+         . '" alt="Le Voisin">' . $sous . '</p>';
+}
+
 function admin_top(string $title, string $active = ''): void
 {
     $u = Auth::user();
@@ -112,7 +147,7 @@ function admin_top(string $title, string $active = ''): void
 <body>
 <div class="shell">
 <aside class="side">
-  <p class="side-logo">LE&nbsp;VOISIN<span><?= e(ta('com_admin')) ?></span></p>
+  <?= admin_marque() ?>
   <nav>
     <a href="<?= e(admin_url()) ?>"<?= $active === 'dash' ? ' class="on"' : '' ?>><?= e(ta('nav_dash')) ?></a>
     <a href="<?= e(admin_url('pages.php')) ?>"<?= $active === 'pages' ? ' class="on"' : '' ?>><?= e(ta('nav_pages')) ?></a>
