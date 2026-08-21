@@ -110,6 +110,14 @@ $SOURCES = ['rappel' => 'rappel', 'administration' => 'administration', 'fonds' 
 </details>
 <?php endif; ?>
 
+<?php /* LA GOUTTIÈRE DE 26 PX, QUI MANQUAIT. [Anna, 21.08.2026]
+     « tb descolar a coluna da parte do menu, o vermelhinho esta colado, quase
+     nao se ve ». Cette vue était la seule à ne pas envelopper son contenu dans
+     `.zone`: les blocs commençaient à zéro, donc le filet rouge des retards —
+     trois pixels — tombait contre la barre noire du menu et se lisait comme
+     une ombre. Un signal de retard qui ne se voit pas ne sert à rien. */ ?>
+<div class="zone rp-zone">
+
 <?php if ($total === 0): ?>
   <p class="vide">Rien dans cette fenêtre. Ni retard, ni échéance, ni rappel écrit.</p>
 <?php endif; ?>
@@ -176,6 +184,8 @@ $SOURCES = ['rappel' => 'rappel', 'administration' => 'administration', 'fonds' 
     règlent dans leur écran, pas ici.</p>
 <?php endif; ?>
 
+</div><!-- .rp-zone -->
+
 <p class="rp-pied">Cet agenda ne recopie rien. Les obligations administratives, les délais de
    subvention, les encaissements et les échéances du pipeline sont lus là où ils vivent —
    les cocher se fait dans leur écran, et ils disparaissent d'ici tout seuls.</p>
@@ -202,7 +212,11 @@ $SOURCES = ['rappel' => 'rappel', 'administration' => 'administration', 'fonds' 
   font-size:11px;letter-spacing:0}
 .rp{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
 .rp-l{display:flex;gap:14px;align-items:flex-start;padding:9px 11px;background:var(--fond2)}
-.rp-bloc.rouge .rp-l{border-left:3px solid #c8452f}
+/* Quatre pixels et non trois: c'est le seul signal de retard de la page, et
+   il doit se voir en balayant la colonne, pas en la fixant. */
+.rp-bloc.rouge .rp-l{border-left:4px solid #c8452f;padding-left:14px}
+/* Le pied et l'avis de troncature suivent la même gouttière que les blocs. */
+.rp-zone{padding-top:18px}
 /* La date en tête et en chiffres alignés: on balaie la colonne de gauche pour
    trouver « quand », pas le texte. */
 .rp-q{flex:0 0 62px;font-size:13px;font-variant-numeric:tabular-nums;color:var(--doux);
@@ -222,6 +236,7 @@ $SOURCES = ['rappel' => 'rappel', 'administration' => 'administration', 'fonds' 
 .rp-a button.doux{background:transparent;color:var(--doux);border-color:var(--trait)}
 .rp-cache{margin:22px 0 0;padding:9px 13px;background:var(--fond2);font-size:12.5px;
   color:var(--doux);max-width:88ch}
-.rp-pied{margin:14px 0 0;font-size:12.5px;color:var(--doux);max-width:88ch}
+/* Le pied est hors de la zone: il porte la gouttière lui-même. */
+.rp-pied{margin:14px 26px 0;font-size:12.5px;color:var(--doux);max-width:88ch}
 @media (max-width:640px){ .rp-l{flex-wrap:wrap} .rp-a{width:100%} }
 </style>
