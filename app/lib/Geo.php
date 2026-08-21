@@ -116,17 +116,69 @@ class Geo
     }
 
     /**
-     * L'adresse de la carte affichée, cadrée serré autour du point.
+     * La carte, en tuiles d'images et non en programme.  [21.08.2026]
      *
-     * Le delta fixe le zoom: 0,006 degré fait à peu près six cents mètres de
-     * côté, c'est-à-dire le quartier. Assez large pour reconnaître la rue,
-     * assez serré pour que le marqueur ne se perde pas.
+     * PREMIÈRE VERSION: UN `iframe` VERS `openstreetmap.org/export/embed.html`.
+     * Il a rendu, chez Anna, un rectangle bleu disant « your browser does not
+     * support WebGL ». Ce visualiseur est passé au rendu vectoriel: il exige
+     * une carte graphique accessible au navigateur, ce qui n'est pas acquis —
+     * accélération matérielle coupée, machine virtuelle, poste ancien.
+     *
+     * UNE CARTE EST UNE IMAGE, ET ELLE DOIT LE RESTER. Les tuiles brutes de
+     * `tile.openstreetmap.org` sont de simples PNG de 256 pixels. Assemblées
+     * en mosaïque par du CSS, elles donnent la même carte sans une ligne de
+     * JavaScript, sans WebGL, et sans dépendre d'un service tiers qui change
+     * de technologie sans prévenir. Vérifié: le service statique
+     * `staticmap.openstreetmap.de`, l'autre voie sans clef, ne répond plus.
+     *
+     * LE CALCUL EST CELUI DE TOUTES LES CARTES EN TUILES (« slippy map »): on
+     * projette le point en pixels du monde au zoom voulu, on ouvre une fenêtre
+     * centrée dessus, et on ne demande que les tuiles qu'elle recouvre — six
+     * en général, jamais plus de douze.
+     *
+     * @return array{tuiles:array<int,array{src:string,x:int,y:int}>, w:int, h:int, mx:int, my:int}
      */
-    public static function urlCarte(float $lat, float $lon, float $d = 0.006): string
+    public static function mosaique(float $lat, float $lon,
+                                    int $w = 560, int $h = 260, int $z = 15): array
     {
-        return 'https://www.openstreetmap.org/export/embed.html?bbox='
-             . rawurlencode(implode(',', [$lon - $d, $lat - $d, $lon + $d, $lat + $d]))
-             . '&layer=mapnik&marker=' . rawurlencode($lat . ',' . $lon);
+        $n  = 2 ** $z;
+        $px = (($lon + 180) / 360) * $n * 256;
+        $r  = deg2rad(max(-85.05, min(85.05, $lat)));
+        $py = (1 - log(tan($r) + 1 / cos($r)) / M_PI) / 2 * $n * 256;
+
+        /* Le coin haut-gauche de la fenêtre, en pixels du monde. */
+        $gx = $px - $w / 2;
+        $gy = $py - $h / 2;
+
+        $tuiles = [];
+        $tx0 = (int)floor($gx / 256);
+        $ty0 = (int)floor($gy / 256);
+        $tx1 = (int)floor(($gx + $w) / 256);
+        $ty1 = (int)floor(($gy + $h) / 256);
+
+        for ($tx = $tx0; $tx <= $tx1; $tx++) {
+            for ($ty = $ty0; $ty <= $ty1; $ty++) {
+                /* Hors du monde en haut ou en bas: il n'y a pas de tuile, et en
+                   demander une donnerait un carré cassé. */
+                if ($ty < 0 || $ty >= $n) continue;
+                $tuiles[] = [
+                    'src' => 'https://tile.openstreetmap.org/' . $z . '/'
+                           . (($tx % $n) + $n) % $n . '/' . $ty . '.png',
+                    'x'   => (int)round($tx * 256 - $gx),
+                    'y'   => (int)round($ty * 256 - $gy),
+                ];
+            }
+        }
+
+        return ['tuiles' => $tuiles, 'w' => $w, 'h' => $h,
+                'mx' => (int)round($w / 2), 'my' => (int)round($h / 2)];
+    }
+
+    /** Le lien vers la carte complète d'OpenStreetMap, pour zoomer et se promener. */
+    public static function urlOsm(float $lat, float $lon, int $z = 16): string
+    {
+        return 'https://www.openstreetmap.org/?mlat=' . $lat . '&mlon=' . $lon
+             . '#map=' . $z . '/' . $lat . '/' . $lon;
     }
 
     /** L'itinéraire, chez Google: c'est le seul usage où il est vraiment meilleur. */

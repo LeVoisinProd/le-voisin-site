@@ -708,16 +708,27 @@ if ($id > 0) {
       $geo = Geo::pourBooking($b);
       ?>
       <?php if ($geo['lat'] !== null): ?>
+      <?php $mo = Geo::mosaique($geo['lat'], $geo['lon']); ?>
       <div class="carte">
-        <iframe src="<?= e(Geo::urlCarte($geo['lat'], $geo['lon'])) ?>"
-                loading="lazy" referrerpolicy="no-referrer"
-                title="Carte de <?= e((string)($b['venue'] ?? 'la salle')) ?>"></iframe>
+        <div class="carte-vue" style="height:<?= $mo['h'] ?>px">
+          <?php foreach ($mo['tuiles'] as $t): ?>
+            <img src="<?= e($t['src']) ?>" alt="" width="256" height="256" loading="lazy"
+                 referrerpolicy="no-referrer"
+                 style="left:<?= $t['x'] ?>px;top:<?= $t['y'] ?>px">
+          <?php endforeach; ?>
+          <span class="carte-pin" style="left:<?= $mo['mx'] ?>px;top:<?= $mo['my'] ?>px"
+                title="<?= e((string)($b['venue'] ?? '')) ?>"></span>
+          <a class="carte-clic" href="<?= e(Geo::urlOsm($geo['lat'], $geo['lon'])) ?>"
+             target="_blank" rel="noopener"
+             title="Ouvrir la carte complète sur OpenStreetMap"><span>agrandir ↗</span></a>
+        </div>
         <div class="carte-tete">
           <strong><?= e((string)($b['venue'] ?? '')) ?></strong>
           <span><?= e(trim(((string)$b['ville']) . (($b['ville'] && $b['pays']) ? ', ' : '') . (string)$b['pays'])) ?></span>
         </div>
         <div class="carte-pied">
-          <span class="tr"><?= e((string)($geo['libelle'] ?? '')) ?></span>
+          <span class="tr" title="<?= e((string)($geo['libelle'] ?? '')) ?>"><?=
+            e((string)($geo['libelle'] ?? '')) ?></span>
           <a href="<?= e(Geo::urlGoogle($b, $geo['lat'], $geo['lon'])) ?>"
              target="_blank" rel="noopener">ouvrir dans Google Maps ↗</a>
         </div>
@@ -868,6 +879,10 @@ if ($id > 0) {
       .drop .dz{margin:0;font-size:13.5px;color:var(--doux)}
       .drop .n{flex-basis:100%;margin:0;font-size:12.5px;color:var(--doux)}
       </style>
+
+    <?php /* La carte flotte à droite: sans ce trait, elle déborderait sur
+         l'onglet suivant et sur le pied de page. */ ?>
+    <div class="fin-flot" style="clear:both"></div>
 
     <?php elseif ($ong === 'deal'): ?>
       <?php
@@ -1545,6 +1560,42 @@ if ($id > 0) {
     .notes .bloc.int { border-left-color:var(--orange); }
     .notes h3 { font-size:13.5px; margin:0 0 8px; }
     .notes p { margin:0; font-size:14px; }
+/* LA CARTE À DROITE, LE TEXTE AUTOUR. [Anna, 21.08.2026] « la carte doit être
+   à droite et pas d'espace vide à gauche, il faut essayer de mettre comme
+   l'image d'avant ». Un `float` plutôt qu'une colonne: la fiche, les notes et
+   les fichiers continuent de couler à sa gauche et remplissent la place, au
+   lieu de laisser une bande blanche sous une carte pleine largeur. */
+.carte{position:relative;float:right;width:420px;max-width:46%;
+  margin:0 0 20px 26px;border:1px solid var(--trait);
+  border-radius:8px;overflow:hidden;background:var(--fond2)}
+/* La mosaïque: chaque tuile est une image posée à sa place, et la fenêtre
+   rogne ce qui dépasse. Aucun script, donc rien à charger et rien à casser. */
+.carte-vue{position:relative;overflow:hidden;background:#e8e4dd}
+.carte-vue img{position:absolute;display:block;max-width:none}
+/* Le marqueur est dessiné en CSS: une image de plus pour un point serait une
+   requête de plus, et elle manquerait le jour où le service la déplace. */
+.carte-pin{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;
+  border-radius:50%;background:#c8452f;border:2.5px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.45)}
+.carte-clic{position:absolute;inset:0;display:flex;align-items:flex-end;
+  justify-content:flex-end;padding:8px;text-decoration:none}
+.carte-clic span{background:rgba(255,255,255,.9);color:var(--encre);font-size:11px;
+  padding:2px 8px;border-radius:4px;opacity:0;transition:.15s}
+.carte-clic:hover span{opacity:1}
+.carte-tete{position:absolute;top:0;left:0;right:0;padding:10px 14px;
+  background:linear-gradient(to bottom, rgba(0,0,0,.62), rgba(0,0,0,0));
+  color:#fff;font-size:13.5px;text-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none}
+.carte-tete strong{display:block;font-size:15px}
+.carte-tete span{opacity:.9;font-size:12.5px}
+.carte-pied{padding:8px 14px;font-size:11.5px;color:var(--doux);
+  border-top:1px solid var(--trait);background:var(--papier)}
+.carte-pied .tr{display:block;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;margin-bottom:3px}
+.carte-pied a{color:var(--encre);text-decoration:none;white-space:nowrap}
+.carte-pied a:hover{text-decoration:underline}
+.carte-non{margin:0 0 20px;font-size:13px;color:var(--doux);max-width:760px}
+.carte-non a{color:var(--encre)}
+@media (max-width:900px){ .carte{float:none;width:auto;max-width:none;margin:0 0 20px} }
     </style>
     <?php
     dash_bas();
@@ -1797,25 +1848,7 @@ th.c-date, th.c-h, th.c-pays { width:1%; }
 th.c-nom { min-width:230px; }
 th.c-ville { min-width:120px; }
 table td, table th { vertical-align:top; }
-/* LA CARTE, DE LA LARGEUR DE LA FICHE ET PAS PLUS. Une carte plein écran
-   dans un dashboard, c'est joli une fois et encombrant tous les jours: on
-   vient lire des montants, pas voyager. Le nom de la salle est posé dessus,
-   comme dans le modèle qu'Anna a montré. */
-.carte{position:relative;margin:0 0 22px;max-width:760px;border:1px solid var(--trait);
-  border-radius:8px;overflow:hidden;background:var(--fond2)}
-.carte iframe{display:block;width:100%;height:240px;border:0}
-.carte-tete{position:absolute;top:0;left:0;right:0;padding:10px 14px;
-  background:linear-gradient(to bottom, rgba(0,0,0,.62), rgba(0,0,0,0));
-  color:#fff;font-size:13.5px;text-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none}
-.carte-tete strong{display:block;font-size:15px}
-.carte-tete span{opacity:.9;font-size:12.5px}
-.carte-pied{display:flex;gap:14px;align-items:baseline;justify-content:space-between;
-  padding:8px 14px;font-size:12px;color:var(--doux);border-top:1px solid var(--trait)}
-.carte-pied .tr{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.carte-pied a{color:var(--encre);text-decoration:none;white-space:nowrap}
-.carte-pied a:hover{text-decoration:underline}
-.carte-non{margin:0 0 20px;font-size:13px;color:var(--doux);max-width:760px}
-.carte-non a{color:var(--encre)}
+
 .et { font-size:11.5px; padding:2px 8px; border-radius:10px; border:1px solid var(--trait);
       white-space:nowrap; }
 .et.confirmed { background:#e7f6ea; border-color:#bfe3c8; color:#1c5c2e; }
