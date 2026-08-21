@@ -43,6 +43,78 @@ const ONGLETS = [
 
 $id = (int)($_GET['b'] ?? 0);
 
+/**
+ * Le filtre de la liste, en un seul endroit.  [21.08.2026]
+ *
+ * Il servait à la liste et il sert maintenant aussi aux flèches « précédent »
+ * et « suivant » de la fiche. Deux copies auraient dérivé au premier filtre
+ * ajouté, et la dérive serait muette: les flèches emmèneraient hors de ce
+ * qu'on croyait parcourir.
+ *
+ * @return array{0:string,1:array} le WHERE et ses arguments
+ */
+function bookings_filtre(): array
+{
+    $q      = trim((string)($_GET['q'] ?? ''));
+    $statut = trim((string)($_GET['s'] ?? ''));
+    $annee  = trim((string)($_GET['a'] ?? ''));
+
+    $where = ['supprime_le IS NULL'];
+    $args  = [];
+    if ($statut !== '' && isset(['option'=>1,'confirmed'=>1,'canceled'=>1,'pending'=>1][$statut])) {
+        $where[] = 'statut = ?'; $args[] = $statut;
+    }
+    if ($annee !== '' && ctype_digit($annee)) { $where[] = 'YEAR(date_debut) = ?'; $args[] = (int)$annee; }
+    if ($q !== '') {
+        $like = '%' . str_replace(['%','_'], ['\%','\_'], $q) . '%';
+        $where[] = '(venue LIKE ? OR projet LIKE ? OR artiste LIKE ? OR ville LIKE ? OR client LIKE ?)';
+        array_push($args, $like, $like, $like, $like, $like);
+    }
+    return [implode(' AND ', $where), $args];
+}
+
+/** Ce qu'il faut recoller à l'URL pour rester dans la même liste. */
+function bookings_contexte(): string
+{
+    $bout = '';
+    foreach (['q', 's', 'a'] as $c) {
+        $v = trim((string)($_GET[$c] ?? ''));
+        if ($v !== '') $bout .= '&amp;' . $c . '=' . rawurlencode($v);
+    }
+    return $bout;
+}
+
+/**
+ * La fiche précédente et la suivante, dans l'ordre exact de la liste.
+ *
+ * ON LIT LA COLONNE DES ID ENTIÈRE, et ce n'est pas de la paresse. La
+ * variante « le premier dont la date est antérieure » se trompe dès qu'une
+ * date est nulle — MySQL range les NULL en fin de tri descendant, et une
+ * comparaison ne les rattrape pas — et se trompe encore sur deux dates
+ * identiques, ce qui est le cas ordinaire d'une série. Quatre-vingt-six
+ * lignes aujourd'hui, quelques centaines à terme: une colonne d'entiers ne
+ * coûte rien, et elle donne le même ordre que la liste par construction.
+ *
+ * @return array{prec:?int, suiv:?int, rang:int, total:int}
+ */
+function bookings_voisins(int $id): array
+{
+    [$w, $args] = bookings_filtre();
+    $st = DB::pdo()->prepare("SELECT id FROM booking WHERE $w ORDER BY date_debut DESC, id DESC");
+    $st->execute($args);
+    $ids = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+
+    $i = array_search($id, $ids, true);
+    if ($i === false) return ['prec' => null, 'suiv' => null, 'rang' => 0, 'total' => count($ids)];
+
+    return [
+        'prec'  => $ids[$i - 1] ?? null,
+        'suiv'  => $ids[$i + 1] ?? null,
+        'rang'  => $i + 1,
+        'total' => count($ids),
+    ];
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ENREGISTRER  (avant tout affichage: on redirige, on ne rend rien)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -530,7 +602,32 @@ if ($id > 0) {
     $titre = trim(($b['projet'] ?? '') . ' · ' . ($b['venue'] ?? ''));
     dash_haut('bookings', e($b['date_texte'] ?: (string)$b['date_debut']) . ' · ' . e($b['ville'] ?? ''));
     ?>
-    <div class="fil"><a href="/dashboard.php?e=bookings">← tous les événements</a>
+    <?php
+    /* PRÉCÉDENT ET SUIVANT, POUR NE PAS REPASSER PAR LA LISTE. [Anna, 21.08.2026]
+       « assim não temos que voltar a cada vez para seguirmos os eventos e
+       corrigir ou mudar coisas mais rapidamente ». Quatre-vingt-six fiches à
+       relire une par une, c'est quatre-vingt-cinq allers-retours évités.
+
+       Les flèches gardent l'onglet ouvert et le filtre de la liste: partir de
+       « confirmés 2027 » et se retrouver dans les annulés de 2024 vaudrait
+       mieux que rien, mais à peine. Le rang « 12 / 86 » est là pour qu'on
+       sache où l'on en est sans compter.
+
+       Elles sont sur la fiche et pas sur le formulaire de modification: une
+       flèche à côté de champs saisis et non enregistrés est un piège. */
+    $vz  = bookings_voisins($id);
+    $ctx = bookings_contexte();
+    $lien = fn(?int $n) => '/dashboard.php?e=bookings&amp;b=' . (int)$n
+          . '&amp;o=' . rawurlencode($ong) . $ctx;
+    ?>
+    <div class="fil"><a href="/dashboard.php?e=bookings<?= $ctx ?>">← tous les événements</a>
+      <?php if ($vz['prec'] !== null): ?>
+        <a class="pas" href="<?= $lien($vz['prec']) ?>" title="Événement précédent">← précédent</a>
+      <?php else: ?><span class="pas mort">← précédent</span><?php endif; ?>
+      <?php if ($vz['rang']): ?><span class="rang"><?= $vz['rang'] ?> / <?= $vz['total'] ?></span><?php endif; ?>
+      <?php if ($vz['suiv'] !== null): ?>
+        <a class="pas" href="<?= $lien($vz['suiv']) ?>" title="Événement suivant">suivant →</a>
+      <?php else: ?><span class="pas mort">suivant →</span><?php endif; ?>
       <a class="mod" href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;mod=1">modifier</a></div>
     <?php dash_flash_html(); ?>
 
@@ -1333,9 +1430,15 @@ if ($id > 0) {
     </div>
 
     <style>
-    .fil { padding:12px 26px 0; font-size:13px; display:flex; gap:16px; }
+    .fil { padding:12px 26px 0; font-size:13px; display:flex; gap:16px; align-items:baseline; }
     .fil a { color:var(--doux); text-decoration:none; }
     .fil a.mod { margin-left:auto; color:var(--encre); font-weight:600; }
+    /* Les flèches gardent leur place quand il n'y a plus de voisin: un bouton
+       qui disparaît fait bouger les autres sous le curseur, et on clique sur
+       « modifier » en croyant avancer d'une fiche. */
+    .fil .pas { color:var(--encre); font-weight:600; }
+    .fil .pas.mort { color:var(--doux); opacity:.35; }
+    .fil .rang { color:var(--doux); font-variant-numeric:tabular-nums; }
     .onglets { display:flex; gap:2px; padding:12px 26px 0; border-bottom:1px solid var(--trait);
                overflow-x:auto; }
     .onglets a { padding:8px 15px; font-size:13.5px; text-decoration:none; white-space:nowrap;
@@ -1369,21 +1472,11 @@ $statut = trim((string)($_GET['s'] ?? ''));
 $annee  = trim((string)($_GET['a'] ?? ''));
 $page   = max(1, (int)($_GET['page'] ?? 1));
 
-$where = ['supprime_le IS NULL'];
-$args  = [];
-if ($statut !== '' && isset(['option'=>1,'confirmed'=>1,'canceled'=>1,'pending'=>1][$statut])) {
-    $where[] = 'statut = ?'; $args[] = $statut;
-}
-if ($annee !== '' && ctype_digit($annee)) { $where[] = 'YEAR(date_debut) = ?'; $args[] = (int)$annee; }
-if ($q !== '') {
-    /* Peu de lignes ici, quatre-vingt-six aujourd'hui et quelques centaines à
-       terme: un LIKE suffit et évite d'ajouter un index FULLTEXT qu'il faudrait
-       entretenir pour rien. */
-    $like = '%' . str_replace(['%','_'], ['\%','\_'], $q) . '%';
-    $where[] = '(venue LIKE ? OR projet LIKE ? OR artiste LIKE ? OR ville LIKE ? OR client LIKE ?)';
-    array_push($args, $like, $like, $like, $like, $like);
-}
-$sqlWhere = implode(' AND ', $where);
+/* Peu de lignes ici, quatre-vingt-six aujourd'hui et quelques centaines à
+   terme: un LIKE suffit et évite d'ajouter un index FULLTEXT qu'il faudrait
+   entretenir pour rien. Le filtre lui-même est en haut du fichier, partagé
+   avec les flèches de la fiche. */
+[$sqlWhere, $args] = bookings_filtre();
 
 $t0 = microtime(true);
 $st = DB::pdo()->prepare("SELECT COUNT(*) FROM booking WHERE $sqlWhere");
