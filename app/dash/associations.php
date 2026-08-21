@@ -63,6 +63,36 @@ $CHAMPS = ['genre','nom','nom_legal','ide','registre','avs_employeur','ree','sir
     'email_mdp','instagram_mdp'];
 $err = $saisi = [];
 
+/* LE JETON BEXIO. [Anna, 21.08.2026] Il se colle ici et nulle part
+   ailleurs: chaque association a sa comptabilité, et il n'existe pas de
+   compte bexio qui les verrait toutes.
+
+   UN CHAMP VIDE NE VIDE RIEN. On ne réaffiche jamais un jeton — c'est un
+   accès permanent à une comptabilité — donc le champ part toujours vide,
+   et vide veut dire « je n'y touche pas ». Pour le retirer il y a une case
+   dédiée. Même règle que les clefs de traduction, et pour la même raison:
+   sinon un enregistrement distrait coupe le service en silence. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['bx'] ?? '') !== '' && ($_GET['o'] ?? 0)) {
+    Auth::requireCsrf();
+    dash_exige_ecriture('associations');
+    $oid = (int)$_GET['o'];
+    if ($_POST['bx'] === 'poser') {
+        if (($_POST['bx_vider'] ?? '') === '1') {
+            Bexio::poserJeton($oid, '');
+            dash_flash('Jeton bexio retiré.');
+        } else {
+            $j = trim((string)($_POST['bx_jeton'] ?? ''));
+            if ($j !== '') { Bexio::poserJeton($oid, $j); dash_flash('Jeton enregistré. Essayez-le.'); }
+            else            { dash_flash('Rien n\'a été changé: le champ était vide.'); }
+        }
+    } elseif ($_POST['bx'] === 'essai') {
+        $o = DB::one('SELECT * FROM organisation WHERE id = ?', [$oid]);
+        $r = Bexio::essai($o ?: []);
+        dash_flash($r['message'], $r['ok'] ? '' : 'err');
+    }
+    redirect('/dashboard.php?e=associations&o=' . $oid);
+}
+
 /* ══ LES PIÈCES ANNUELLES ═══════════════════════════════════════ [18.08.2026]
    Anna: « colocar um campo attestation d'affiliation année en cours (…) deixar
    espaço para se escolher ano e depositar a atestação em pdf. Attestation
@@ -437,6 +467,20 @@ if ($id > 0) {
        toutes sauf celle de l'onglet coché — et sur cette page il n'y a pas
        d'onglets. Les quatre s'empilent donc, chacune sous son titre, ce qui
        est la bonne forme pour une page qu'on lit de haut en bas. */
+    .bx{max-width:800px}
+    .bx h3{margin:0 0 8px}
+    .bx p{margin:0 0 10px;font-size:13.5px}
+    .bx .n{color:var(--doux);font-size:12.5px}
+    .bx code{font-size:12px;background:var(--papier);padding:1px 5px;border-radius:3px}
+    .bx-ok{color:#1c5c2e}
+    .bx-att{color:#8a6a00}
+    .bx-f{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+    .bx-f input[type=password]{flex:1;min-width:220px;padding:7px 9px;font:inherit;font-size:13px;
+      border:1px solid var(--trait);border-radius:5px;box-sizing:border-box}
+    .bx-f button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+      border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
+    .bx-f button:hover{background:var(--encre);color:#fff}
+    .bx-vider{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--doux)}
     .agenda-ics{max-width:800px}
     /* Sans box-sizing, un champ à 100 % ajoute ses 18 px de padding par-dessus
        et pousse la page à déborder — c'est ce débordement qui faisait glisser
@@ -489,6 +533,54 @@ if ($id > 0) {
          Une seconde zone plutôt qu'une marge posée à la main: c'est la même
          règle de 26 px que tous les autres écrans, et elle ne se réinvente pas. */ ?>
     <div class="zone">
+
+    <?php /* LE JETON BEXIO, SUR LA FICHE DE L'ASSOCIATION QU'IL OUVRE.
+         [Anna, 21.08.2026] « fazemos o api avec bexio ? »
+
+         PAS D'OAUTH2: la documentation de bexio dit « Personal Access Tokens
+         allow server-to-server connections without the consent flow ». Un
+         jeton collé suffit, et il ne se périme pas tout seul.
+
+         LE NOM DE LA SOCIÉTÉ EST AFFICHÉ, ET C'EST LE POINT. Un jeton qui
+         répond n'est pas forcément celui de la bonne comptabilité, et une
+         facture émise chez la mauvaise association ne s'annule pas d'un
+         bouton: elle porte un numéro et demande une note de crédit. On voit
+         donc chez qui l'on est avant d'écrire quoi que ce soit. */ ?>
+    <div class="bl bx">
+      <h3>bexio</h3>
+      <?php $bxOk = Bexio::configure($o); ?>
+      <?php if ($bxOk && $o['bexio_societe']): ?>
+        <p class="bx-ok">Jeton en place · comptabilité <strong><?= e((string)$o['bexio_societe']) ?></strong>
+          <span class="n">essayé le <?= e(date('d.m.Y à H:i', strtotime((string)$o['bexio_teste_a']))) ?></span></p>
+      <?php elseif ($bxOk): ?>
+        <p class="bx-att">Jeton en place, jamais essayé. Essayez-le avant de vous y fier.</p>
+      <?php else: ?>
+        <p class="n">Aucun jeton. Dans bexio: <strong>Réglages → Interfaces → API</strong>,
+           créer un <em>Personal Access Token</em> avec les portées
+           <code>kb_invoice_edit</code> et <code>contact_edit</code>, puis le coller ici.</p>
+      <?php endif; ?>
+
+      <form method="post" action="/dashboard.php?e=associations&amp;o=<?= $id ?>" class="bx-f">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="bx" value="poser">
+        <input type="password" name="bx_jeton" autocomplete="off"
+               placeholder="<?= $bxOk ? 'coller un nouveau jeton pour remplacer' : 'coller le jeton ici' ?>">
+        <button type="submit">enregistrer</button>
+        <?php if ($bxOk): ?>
+          <label class="bx-vider"><input type="checkbox" name="bx_vider" value="1"> retirer le jeton</label>
+        <?php endif; ?>
+      </form>
+      <?php if ($bxOk): ?>
+        <form method="post" action="/dashboard.php?e=associations&amp;o=<?= $id ?>" class="bx-f">
+          <?= Auth::csrfField() ?>
+          <input type="hidden" name="bx" value="essai">
+          <button type="submit">essayer la connexion</button>
+          <span class="n">Demande à bexio de qui est cette comptabilité. Rien n'est écrit là-bas.</span>
+        </form>
+      <?php endif; ?>
+      <p class="n">Le jeton est chiffré dans la base, comme les IBAN. Il n'est jamais réaffiché:
+         un champ laissé vide ne l'efface pas.</p>
+    </div>
 
     <div class="bl agenda-ics">
       <h3>Agenda Google — <?= $nDates ?> date<?= $nDates > 1 ? 's' : '' ?></h3>
