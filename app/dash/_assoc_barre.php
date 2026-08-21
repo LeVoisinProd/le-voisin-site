@@ -21,10 +21,6 @@ const ASSOC_ONGLETS = [
     'idirect'=> 'Impôt Direct',
 ];
 
-/** Les 26 cantons, pour les listes qui en demandent un. */
-const CANTONS = ['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE','NW',
-                 'OW','SG','SH','SO','SZ','TG','TI','UR','VD','VS','ZG','ZH'];
-
 /**
  * Les délais de dépôt de la déclaration annuelle, par canton.
  *

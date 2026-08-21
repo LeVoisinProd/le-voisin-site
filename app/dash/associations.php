@@ -21,6 +21,23 @@ declare(strict_types=1);
 
 const PAR_PAGE = 60;
 
+/* LES 26 CANTONS, DÉCLARÉS ICI ET NON DANS `_assoc_barre.php`.  [21.08.2026]
+   Ils y étaient, et `_assoc_barre.php` n'est chargé que par la branche
+   « modifier ». Or `_assoc_grilles.php` les demande aussi, et depuis le
+   20.08 il est chargé par la vue de LECTURE, qui ne charge pas la barre:
+   ouvrir une fiche d'association tuait donc la page sur un « Undefined
+   constant CANTONS ».
+
+   Le défaut était muet et le serait resté: le journal des accès montre que
+   personne n'avait ouvert une fiche depuis le 20.08 — les deux seuls appels
+   sont des `curl` à moi, arrêtés au login. Il aurait sauté à la figure du
+   premier qui l'ouvrait. Trouvé en testant autre chose sur la copie locale.
+
+   Ici les deux branches le voient, parce que les deux vivent dans ce
+   fichier. */
+const CANTONS = ['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE','NW',
+                 'OW','SG','SH','SO','SZ','TG','TI','UR','VD','VS','ZG','ZH'];
+
 $STATUTS = ['actif' => 'actif', 'pause' => 'en pause', 'termine' => 'terminé'];
 $GENRES  = ['association' => 'association', 'artiste' => 'artiste'];
 
@@ -420,6 +437,11 @@ if ($id > 0) {
        toutes sauf celle de l'onglet coché — et sur cette page il n'y a pas
        d'onglets. Les quatre s'empilent donc, chacune sous son titre, ce qui
        est la bonne forme pour une page qu'on lit de haut en bas. */
+    .agenda-ics{max-width:800px}
+    .agenda-ics p{margin:0 0 10px;font-size:13.5px;color:var(--doux)}
+    .agenda-ics input{width:100%;padding:7px 9px;font:inherit;font-size:12.5px;
+      border:1px solid var(--trait);background:#fff;color:var(--encre)}
+    .agenda-ics .av{margin:10px 0 0;font-size:12px}
     .grilles-lect{margin-top:30px;padding-top:22px;border-top:2px solid var(--encre)}
     .grilles-lect .pane{display:block;margin-bottom:26px}
     .grilles-lect h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;
@@ -433,6 +455,40 @@ if ($id > 0) {
     $annee = (int)($_GET['an'] ?? date('Y'));
     if ($annee < 2000 || $annee > 2100) $annee = (int)date('Y');
     ?>
+    <?php
+    /* L'ADRESSE D'ABONNEMENT VIT ICI, PAS DANS L'AGENDA. [Anna, 21.08.2026]
+       « mettre les adresses du calendrier dans les fiches des associations et
+       pas dans l'agenda ». Elles étaient toutes empilées dans un dépliant du
+       Calendrier: dix-huit lignes à parcourir pour trouver la bonne, sur un
+       écran qui ne parle pas d'associations. Ici il n'y en a qu'une, et c'est
+       celle qu'on regarde — l'adresse se copie sans chercher.
+
+       Le jeton est le même pour toutes: c'est un jeton de lecture d'agenda,
+       pas un secret par association. Le changer dans Paramètres coupe tous les
+       abonnements d'un coup, ce qui est justement le geste voulu en cas de
+       fuite. */
+    $jetonAg = trim(setting('agenda_token'));
+    if ($jetonAg === '') { $jetonAg = bin2hex(random_bytes(16)); Settings::set('agenda_token', $jetonAg); }
+    $urlAg = rtrim((string)cfg('base_url', ''), '/') . '/agenda.php?t=' . $jetonAg . '&a=' . (int)$id;
+    $nDates = (int)DB::val(
+        "SELECT COUNT(*) FROM booking b
+           JOIN projects p     ON p.title_fr = b.projet
+           JOIN projet_prod pp ON pp.project_id = p.id
+          WHERE b.supprime_le IS NULL AND pp.organisation_id = ?", [$id]);
+    ?>
+    <div class="bl agenda-ics">
+      <h3>Agenda Google — <?= $nDates ?> date<?= $nDates > 1 ? 's' : '' ?></h3>
+      <p>Dans Google Agenda: <strong>Autres agendas → + → À partir de l'URL</strong>, puis
+         collez cette adresse. L'agenda se met à jour tout seul, en lecture seule, et se
+         décoche comme n'importe quel autre.</p>
+      <input type="text" readonly value="<?= e($urlAg) ?>" onclick="this.select()">
+      <p class="av"><strong>Cette adresse est une clef.</strong> Qui l'a voit les dates de
+         cette association, sans mot de passe — c'est ainsi que Google les lit. Elle ne porte
+         ni prix, ni client, ni note interne, seulement la date, le spectacle et le lieu. Si
+         elle fuite, changez le jeton dans Paramètres: tous les abonnements se coupent d'un
+         coup et se recollent avec la nouvelle adresse.</p>
+    </div>
+
     <div class="grilles-lect">
       <h3>Déclarations et pièces — <?= $annee ?></h3>
       <?php require __DIR__ . '/_assoc_grilles.php'; ?>

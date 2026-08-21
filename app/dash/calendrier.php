@@ -232,30 +232,13 @@ dash_haut('calendrier',
      Aucune autorisation OAuth: l'abonnement marche aujourd'hui. En lecture
      seule, ce qui est de toute façon le bon sens — les dates se saisissent
      ici. */ ?>
-<details class="ics">
-  <summary>S'abonner depuis Google Calendar, une association à la fois</summary>
-  <div class="ics-c">
-    <p>Dans Google Agenda: <strong>Autres agendas → + → À partir de l'URL</strong>, puis collez
-       l'adresse. L'agenda se met à jour tout seul, en lecture seule, et se décoche comme
-       n'importe quel autre.</p>
-    <?php $jeton = trim(setting('agenda_token'));
-      if ($jeton === '') { $jeton = bin2hex(random_bytes(16)); Settings::set('agenda_token', $jeton); }
-      $base = rtrim((string)cfg('base_url', ''), '/') . '/agenda.php?t=' . $jeton; ?>
-    <ul class="ics-l">
-      <li><strong>Toutes les associations</strong>
-        <input type="text" readonly value="<?= e($base) ?>" onclick="this.select()"></li>
-      <?php foreach ($ASSOS as $a): ?>
-        <li><strong><?= e((string)$a['nom']) ?></strong> <span class="sec"><?= (int)$a['n'] ?> dates</span>
-          <input type="text" readonly value="<?= e($base . '&a=' . (int)$a['id']) ?>" onclick="this.select()"></li>
-      <?php endforeach; ?>
-    </ul>
-    <p class="ics-av"><strong>Ces adresses sont des clefs.</strong> Qui les a voit les dates,
-       sans mot de passe — c'est ainsi que Google les lit. Elles ne portent ni prix, ni client,
-       ni note interne, seulement la date, le spectacle et le lieu. Si l'une fuite, changez le
-       jeton dans Paramètres: tous les abonnements se coupent d'un coup et se recollent avec
-       la nouvelle adresse.</p>
-  </div>
-</details>
+<?php /* LE DÉPLIANT DES ADRESSES EST PARTI DANS LES FICHES D'ASSOCIATION.
+     [Anna, 21.08.2026] « mettre les adresses du calendrier dans les fiches des
+     associations et pas dans l'agenda ». Dix-huit adresses empilées ici
+     obligeaient à chercher la bonne dans une liste, sur un écran qui ne parle
+     pas d'associations. Chacune est maintenant sur la fiche de la sienne, où
+     il n'y en a qu'une et où on la copie sans chercher.
+     Le jeton reste global et se change toujours dans Paramètres. */ ?>
 
 <?php if (!$parMois): ?>
   <p class="vide">Aucune date sur cette saison.</p>
@@ -338,18 +321,7 @@ a.date.passe { opacity:.5; }
 }
 .past-asso{display:inline-block;margin-left:7px;padding:1px 8px;border:1px solid var(--trait);
   border-radius:9px;font-size:11px;color:var(--doux);font-weight:400;vertical-align:1px}
-.ics{margin:0 0 18px;border:1px solid var(--trait);border-radius:6px;background:var(--fond2)}
-.ics>summary{padding:10px 14px;cursor:pointer;font-size:13.5px;font-weight:600}
-.ics[open]>summary{border-bottom:1px solid var(--trait)}
-.ics-c{padding:14px;font-size:13px}
-.ics-c>p{margin:0 0 12px;max-width:84ch}
-.ics-l{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:9px}
-.ics-l li{display:flex;flex-direction:column;gap:3px}
-.ics-l input{width:100%;max-width:720px;padding:6px 9px;font:inherit;font-size:12px;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--trait);
-  border-radius:4px;background:var(--papier);color:var(--doux)}
-.ics-av{margin:0;padding:9px 12px;border-left:3px solid #d9a800;background:#fdf7e3;
-  color:#4a3d00;max-width:84ch}
+
 </style>
 
 <?php dash_bas(); ?>

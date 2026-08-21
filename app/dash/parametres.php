@@ -68,6 +68,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('/dashboard.php?e=parametres');
     }
 
+    /* ── LE JETON D'AGENDA ──────────────────────────────────────────────────
+       [21.08.2026] Il n'existait aucun moyen de le changer, et pourtant la
+       phrase « si elle fuite, changez le jeton dans Paramètres » était déjà
+       imprimée sous chaque adresse d'abonnement. Une consigne de sécurité qui
+       renvoie à un bouton inexistant est pire que pas de consigne: on croit
+       la porte refermable et on ne vérifie pas.
+
+       Le refaire coupe TOUS les abonnements d'un coup — c'est le geste voulu
+       en cas de fuite, et il n'y en a pas d'autre: l'adresse est la seule
+       chose que Google présente, il n'y a pas de session à révoquer. */
+    if (($_POST['act'] ?? '') === 'agenda_jeton') {
+        Settings::set('agenda_token', bin2hex(random_bytes(16)));
+        dash_flash('Jeton refait. Tous les abonnements Google en cours ne répondent plus: '
+                 . 'il faut recoller la nouvelle adresse, association par association.');
+        redirect('/dashboard.php?e=parametres');
+    }
+
     /* ── L'ESSAI ────────────────────────────────────────────────────────────
        Une clef qui ne marche pas ne se découvre autrement qu'au moment
        d'imprimer un document, c'est-à-dire au pire moment. Un aller-retour
@@ -239,7 +256,36 @@ dash_haut('parametres', count($gens) . ' personne' . (count($gens) > 1 ? 's' : '
     <span>Traduit une phrase pour de vrai et montre le résultat. Rien n'est enregistré.</span>
   </form>
 <?php endif; ?>
+<?php /* L'ADRESSE GLOBALE RESTE ICI, PAS SUR UNE FICHE: elle ne se rattache à
+     aucune association. Les adresses par association sont sur leur fiche
+     depuis le 21.08.2026, ce qui est là qu'on les cherche. */ ?>
+<h2 class="tb">Agenda Google</h2>
+<?php $jAg = trim(setting('agenda_token'));
+  if ($jAg === '') { $jAg = bin2hex(random_bytes(16)); Settings::set('agenda_token', $jAg); }
+  $uAg = rtrim((string)cfg('base_url', ''), '/') . '/agenda.php?t=' . $jAg; ?>
+<div class="fag">
+  <p><strong>Toutes les associations à la fois.</strong> L'adresse d'une seule association
+     est sur sa fiche, dans l'écran Associations.</p>
+  <input type="text" readonly value="<?= e($uAg) ?>" onclick="this.select()">
+  <form method="post" action="/dashboard.php?e=parametres"
+        onsubmit="return confirm('Refaire le jeton coupe tous les abonnements Google en cours. Continuer ?')">
+    <?= Auth::csrfField() ?>
+    <input type="hidden" name="act" value="agenda_jeton">
+    <button type="submit">Refaire le jeton</button>
+    <span>À faire si une adresse a fuité. Tous les abonnements se coupent et se
+          recollent avec la nouvelle adresse.</span>
+  </form>
+</div>
+
 <style>
+.fag{max-width:640px;margin:0 0 26px}
+.fag p{margin:0 0 10px;font-size:13.5px;color:var(--doux)}
+.fag input[type=text]{width:100%;padding:8px 10px;font:inherit;font-size:12.5px;
+  border:1px solid var(--trait);border-radius:5px;box-sizing:border-box}
+.fag form{display:flex;align-items:center;gap:12px;margin-top:12px}
+.fag button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
+.fag span{font-size:12.5px;color:var(--doux)}
 .fessai{display:flex;align-items:center;gap:12px;max-width:640px;margin:-14px 0 26px}
 .fessai button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
   border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
