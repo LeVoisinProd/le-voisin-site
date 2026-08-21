@@ -37,6 +37,21 @@ const DASH_ECRANS = [
 
     'accueil'      => ['Tableau de bord', 'ok', []],
 
+    /* PROJETS EST À LA RACINE ET AVANT LE CALENDRIER. [Anna, 21.08.2026]
+       « nous allons mettre la page projets dans le menu au-dessus de la partie
+       calendrier, et pas dans cette partie-là ».
+
+       Il était rangé sous Calendrier avec Événements et Offres, par une
+       symétrie qui ne tient pas: ces deux-là sont des DATES — une offre
+       acceptée devient un événement — alors qu'un spectacle n'a pas de date,
+       il en a plusieurs, sur plusieurs saisons, et il existe avant la première.
+       Le mettre au-dessus, c'est dire l'ordre réel: il y a une pièce, puis des
+       dates pour elle.
+
+       La clef ne bouge pas: `?e=projets` reste la même adresse, les liens
+       envoyés et la ligne de permissions aussi. Seul le menu change. */
+    'projets'      => ['Projets', 'ok', []],
+
     // Le cœur, dans ses mots. Tout ce qui a une date y figure: shows confirmés,
     // en attente, voyages, logistique.
     'calendrier'   => ['Calendrier', 'ok', [
@@ -62,7 +77,6 @@ const DASH_ECRANS = [
         // spécification: une offre acceptée devient une date, donc elle vit
         // au même endroit qu'elles.
         'offres'    => ['Offres',    'ok'],
-        'projets'   => ['Projets',   'ok'],
     ]],
 
     'contacts'     => ['Contacts', 'ok', []],

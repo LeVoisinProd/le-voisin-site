@@ -44,9 +44,15 @@ define('LV_FILTRE_COLONNES', true);
 ?>
 <style>
 .f-ligne th{padding:6px 8px 10px;border-bottom:1px solid var(--trait);vertical-align:top}
-.f-ligne input,.f-ligne select{width:100%;box-sizing:border-box;padding:5px 7px;font:inherit;
+/* `min-width:0` ET `size=1`, SINON LE FILTRE ÉLARGIT LES COLONNES. Un champ
+   de recherche vaut vingt caractères de large par défaut et une liste vaut son
+   option la plus longue: poser un filtre sur « Performance name » suffisait à
+   pousser la colonne à la largeur du plus long titre, et la date à 196 px pour
+   un contenu de 110. Mesuré dans un navigateur avant et après. [21.08.2026] */
+.f-ligne input,.f-ligne select{width:100%;min-width:0;max-width:100%;
+  box-sizing:border-box;padding:5px 7px;font:inherit;
   font-size:12px;font-weight:400;border:1px solid var(--trait);border-radius:4px;
-  background:var(--papier);color:var(--encre)}
+  background:var(--papier);color:var(--encre);text-overflow:ellipsis}
 .f-ligne input::placeholder{color:var(--doux);opacity:.7}
 .f-ligne input:focus,.f-ligne select:focus{outline:2px solid var(--jaune,#FFD24D);outline-offset:-1px}
 /* Le compte des lignes gardées, et le bouton qui rend tout. Ils n'apparaissent
@@ -130,6 +136,7 @@ define('LV_FILTRE_COLONNES', true);
       } else {
         var inp = document.createElement('input');
         inp.type = 'search';
+        inp.size = 1;   /* la largeur vient de la colonne, pas du champ */
         inp.placeholder = (th.textContent || '').trim().toLowerCase();
         cel.appendChild(inp); champs.push(inp);
       }

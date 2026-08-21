@@ -1618,8 +1618,9 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
 <?php if (!$lignes): ?>
   <p class="vide">Aucun événement ne correspond.</p>
 <?php else: ?>
+<?php require __DIR__ . '/_filtre_colonnes.php'; ?>
 <div class="tw">
-<table>
+<table data-filtres>
   <?php /* ── LES ONZE COLONNES DU MODÈLE D'ANNA ─────────────────────────────
        [16.08.2026] « copiar tal e qual », d'après l'écran d'agence qu'elle a
        montré: Venue · Performance name · Date · Artist · Time · Performance Fee
@@ -1650,9 +1651,15 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
          partant de la pièce — « où joue Bestiarium » — pas du lieu, dont il y a
          quatre-vingt-six. Le modèle d'agence mettait Venue en tête parce qu'une
          agence vend des salles; nous vendons des spectacles. */ ?>
-    <th>Performance name</th><th class="c-venue">Venue</th><th class="c-date">Date</th><th>Artist</th>
-    <th class="c-h">Time</th><th class="d">Performance Fee</th><th class="c-pays">Country</th><th>City</th>
-    <th>Status</th><th class="d">Booking Fee</th>
+    <?php /* Ce qui se choisit dans une liste, ce qui se tape, ce qui ne se
+         filtre pas. Le pays a trois valeurs et le statut quatre: les taper
+         serait plus lent que les choisir. Les deux colonnes d'argent ne se
+         filtrent pas — on ne cherche pas une date par son montant. */ ?>
+    <th class="c-nom" data-f="choix">Performance name</th><th class="c-venue">Venue</th>
+    <th class="c-date">Date</th><th data-f="choix">Artist</th>
+    <th class="c-h" data-f="non">Time</th><th class="d" data-f="non">Performance Fee</th>
+    <th class="c-pays" data-f="choix">Country</th><th class="c-ville">City</th>
+    <th data-f="choix">Status</th><th class="d" data-f="non">Booking Fee</th>
   </tr></thead>
   <tbody>
   <?php foreach ($lignes as $r):
@@ -1678,13 +1685,13 @@ dash_haut('bookings', number_format($total,0,',',' ') . ' événement' . ($total
     <tr>
       <td><a href="/dashboard.php?e=bookings&amp;b=<?= (int)$r['id'] ?>"><?= e($nomEvt) ?></a></td>
       <td class="sec"><?= e($r['venue'] ?? '') ?></td>
-      <td class="nb"><?= e($jour) ?></td>
+      <td class="nb c-date"><?= e($jour) ?></td>
       <td><?= e($r['artiste'] ?? '') ?></td>
-      <td class="nb sec"><?= $r['heure'] && $r['heure'] !== '00:00:00'
+      <td class="nb sec c-h"><?= $r['heure'] && $r['heure'] !== '00:00:00'
             ? e(substr((string)$r['heure'], 0, 5)) : '' ?></td>
       <td class="d nb"><?= (float)$r['prix_cession'] > 0
             ? e($r['devise']) . ' ' . number_format((float)$r['prix_cession'], 2, ',', ' ') : '' ?></td>
-      <td class="sec"><?= e($r['pays'] ?? '') ?></td>
+      <td class="sec c-pays"><?= e($r['pays'] ?? '') ?></td>
       <td><?= e($r['ville'] ?? '') ?></td>
       <td><span class="et <?= e($r['statut']) ?>"><?= e($ETIQ[$r['statut']] ?? $r['statut']) ?></span></td>
       <td class="d nb"><?= (float)($r['frais_booking'] ?? 0) > 0
@@ -1723,9 +1730,27 @@ td.d, th.d { text-align:right; white-space:nowrap; }
    la ligne. Le lieu et la ville gardent le droit de passer à la ligne — un nom
    de quarante caractères doit bien s'écrire quelque part — mais avec une
    largeur minimale qui lui évite de le faire à chaque mot. */
+/* LA RÈGLE EXISTAIT ET NE S'APPLIQUAIT À RIEN. [Anna, 21.08.2026] « a coluna
+   da data esta ilisivel ». `td.c-date` était écrit depuis le 17.08, mais aucune
+   cellule ne portait la classe — seuls les `<th>`. « Sun, 25 Apr 27 » se coupait
+   donc en quatre lignes et étirait toute la rangée. Même chose pour le pays et
+   l'heure. Une règle CSS muette ne se voit pas à la relecture: elle se voit en
+   comparant les classes des `th` à celles des `td`. */
 td.c-date, th.c-date { white-space:nowrap; }
 td.c-pays, th.c-pays, td.c-h, th.c-h { white-space:nowrap; }
 th.c-venue { min-width:150px; }
+
+/* LES COLONNES COURTES RENDENT LEUR LARGEUR AUX LONGUES. [21.08.2026]
+   Mesuré dans un navigateur, fenêtre de 1700: la date recevait 196 px pour
+   « Sun, 25 Apr 27 » qui en demande 110, pendant que « Performance name »,
+   à 201 px, était la cellule la plus haute dans 60 lignes sur 60 — c'est
+   elle qui fixait la hauteur de toute la liste.
+
+   `width:1%` sur une colonne en `nowrap` la réduit à son contenu: la place
+   libérée va aux colonnes de texte, qui cessent de se couper à chaque mot. */
+th.c-date, th.c-h, th.c-pays { width:1%; }
+th.c-nom { min-width:230px; }
+th.c-ville { min-width:120px; }
 table td, table th { vertical-align:top; }
 .et { font-size:11.5px; padding:2px 8px; border-radius:10px; border:1px solid var(--trait);
       white-space:nowrap; }
