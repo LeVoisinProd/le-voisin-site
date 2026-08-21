@@ -107,6 +107,11 @@ img { max-width: 100%; }
 /* [V15-FICHE-PDF] Plusieurs boutons à droite du titre : ils restent groupés
    au lieu de se répartir sur toute la largeur. */
 .page-head .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* Les flèches gardent leur place au premier et au dernier: un bouton qui
+   disparaît décale les autres sous le curseur, et on clique sur « Retour »
+   en croyant avancer d'une fiche. */
+.page-head .btn.mort { opacity: .3; pointer-events: none; }
+.page-head .rang { color: var(--grey); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 h1 { font-size: 26px; margin: 0; text-transform: uppercase; letter-spacing: .03em; }
 h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .12em; margin: 0 0 16px; border-bottom: var(--trait) solid var(--ink); padding-bottom: 8px; }
 .crumb { color: var(--grey); font-weight: 400; font-size: 16px; text-transform: none; letter-spacing: 0; }

@@ -223,6 +223,9 @@ return [
     'ed_new'              => 'New',
     'ed_modify'           => 'Edit',
     'ed_back'             => '← Back to the list',
+    'ed_prev'             => '← Previous',
+    'ed_next'             => 'Next →',
+    'ed_rank'             => 'record %s of %s',
     /* [V30-VOIR-LA-PAGE] The button that opens the public page in a new tab,
        without leaving the record being edited. */
     'ed_view_page'        => 'View the page',

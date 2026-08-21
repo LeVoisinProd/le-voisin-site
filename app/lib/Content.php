@@ -33,6 +33,41 @@ class Content
         return DB::all('SELECT * FROM `' . $def['table'] . '`' . $where . ' ORDER BY ' . $def['orderby']);
     }
 
+    /**
+     * La fiche précédente et la suivante, dans l'ordre exact de la liste.
+     * [Anna, 21.08.2026]
+     *
+     * « assim não temos que voltar a cada vez para seguirmos os eventos e
+     * corrigir ou mudar coisas mais rapidamente ». Trente-cinq projets à
+     * relire un par un, c'était trente-quatre retours par la liste.
+     *
+     * ON LIT LA COLONNE DES ID ENTIÈRE plutôt que « le premier après celui-ci
+     * dans l'ordre ». Les `orderby` des modules ne sont pas tous uniques —
+     * `sort, id` chez les uns, un titre chez les autres — et une comparaison
+     * sur une clé qui se répète saute des fiches ou tourne en rond. La colonne
+     * d'entiers donne le même ordre que la liste par construction, et les
+     * modules se comptent en dizaines.
+     *
+     * @return array{prec:?int, suiv:?int, rang:int, total:int}
+     */
+    public static function voisins(string $entity, int $id): array
+    {
+        $def = self::def($entity);
+        $ids = array_map('intval', DB::pdo()
+            ->query('SELECT id FROM `' . $def['table'] . '` ORDER BY ' . $def['orderby'])
+            ->fetchAll(PDO::FETCH_COLUMN));
+
+        $i = array_search($id, $ids, true);
+        if ($i === false) return ['prec' => null, 'suiv' => null, 'rang' => 0, 'total' => count($ids)];
+
+        return [
+            'prec'  => $ids[$i - 1] ?? null,
+            'suiv'  => $ids[$i + 1] ?? null,
+            'rang'  => $i + 1,
+            'total' => count($ids),
+        ];
+    }
+
     private static function hasField(array $def, string $f): bool
     {
         return isset($def['fields'][$f]) || in_array($f, ['visible'], true) && isset($def['fields']['visible']);

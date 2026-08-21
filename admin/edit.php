@@ -33,9 +33,28 @@ $title = $isNew ? ta('ed_title_new', tc($def['label'])) : tc($def['label']);
 
 admin_top($title, 'e:' . $entity);
 ?>
+<?php
+/* PRÉCÉDENT ET SUIVANT À CÔTÉ DU RETOUR. [Anna, 21.08.2026]
+   Le garde-fou existe déjà: `form.js-dirty` déclenche le beforeunload du
+   navigateur, donc quitter une saisie non enregistrée prévient tout seul.
+   Rien à ajouter ici — et rien à ajouter non plus dans les autres modules,
+   puisque cette fiche les sert tous. */
+$vz = Content::voisins($entity, $id);
+?>
 <div class="page-head">
   <h1><?= e(tc($def['plural'])) ?> <span class="crumb">→ <?= e($isNew ? ta('ed_new') : ta('ed_modify')) ?></span></h1>
-  <a class="btn ghost" href="<?= e(admin_url('list.php?e=' . $entity)) ?>"><?= e(ta('ed_back')) ?></a>
+  <div class="actions">
+    <?php if ($vz['prec'] !== null): ?>
+      <a class="btn ghost" href="<?= e(admin_url('edit.php?e=' . $entity . '&id=' . $vz['prec'])) ?>"><?= e(ta('ed_prev')) ?></a>
+    <?php else: ?><span class="btn ghost mort"><?= e(ta('ed_prev')) ?></span><?php endif; ?>
+    <?php if ($vz['rang']): ?>
+      <span class="rang"><?= e(ta('ed_rank', (string)$vz['rang'], (string)$vz['total'])) ?></span>
+    <?php endif; ?>
+    <?php if ($vz['suiv'] !== null): ?>
+      <a class="btn ghost" href="<?= e(admin_url('edit.php?e=' . $entity . '&id=' . $vz['suiv'])) ?>"><?= e(ta('ed_next')) ?></a>
+    <?php else: ?><span class="btn ghost mort"><?= e(ta('ed_next')) ?></span><?php endif; ?>
+    <a class="btn ghost" href="<?= e(admin_url('list.php?e=' . $entity)) ?>"><?= e(ta('ed_back')) ?></a>
+  </div>
 </div>
 
 <?php if ($errors): ?>

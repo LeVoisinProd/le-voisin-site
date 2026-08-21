@@ -225,6 +225,9 @@ return [
     'ed_new'              => 'Nouveau',
     'ed_modify'           => 'Modifier',
     'ed_back'             => '← Retour à la liste',
+    'ed_prev'             => '← Précédent',
+    'ed_next'             => 'Suivant →',
+    'ed_rank'             => 'fiche %s sur %s',
     /* [V30-VOIR-LA-PAGE] Le bouton qui ouvre la page publique dans un
        nouvel onglet, sans quitter la fiche en cours de modification. */
     'ed_view_page'        => 'Voir la page',
