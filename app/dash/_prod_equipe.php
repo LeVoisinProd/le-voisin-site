@@ -14,7 +14,7 @@ declare(strict_types=1);
 /** @var array $d */ /** @var int $pid */ /** @var bool $ecrit */ /** @var callable $lien */
 ?>
 <?php if ($d['equipe']): ?>
-  <div class="tbl"><table>
+  <div class="tbl eq"><table>
     <thead><tr><th>Prénom</th><th>Nom</th><th>Fonction</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($d['equipe'] as $m): ?>
@@ -59,7 +59,7 @@ declare(strict_types=1);
      « Alessandra Souto Domingues » d'un seul tenant, et le prénom est ce qui
      précède. Un nom composé part donc du bon côté, et les deux champs restent
      modifiables après. */ ?>
-<form method="post" action="<?= e($lien('synthese')) ?>" class="ajl" id="fEquipe">
+<form method="post" action="<?= e($lien('synthese')) ?>" class="ajl eq-aj" id="fEquipe">
   <?= Auth::csrfField() ?>
   <input type="hidden" name="pf" value="liste_ajouter">
   <input type="hidden" name="ou" value="equipe">

@@ -342,6 +342,41 @@ button[type=submit]{padding:9px 20px;font:inherit;font-size:14px;font-weight:600
 button[type=submit]:hover{opacity:.88}
 form.inline{display:inline}
 form.inline button{margin-bottom:14px}
+/* LE MONTANT ET SA MONNAIE SUR UNE LIGNE.  [Anna, 22.08.2026]
+   « a parte budget do projet, porque tem campos em duas linhas? deixa o valor e
+   a moeda na mesma linha ».
+   `.paire` ÉTAIT UNE CLASSE SANS RÈGLE — écrite dans le HTML, jamais définie
+   ici. Les deux champs héritaient donc du `width:100%` de `dd input, dd select`
+   et n'avaient pas d'autre choix que de s'empiler. Un montant et sa monnaie
+   sont une seule donnée: ils se lisent d'un trait. */
+dd.paire{display:flex;gap:8px;align-items:center}
+dd.paire input{flex:1;min-width:0}
+dd.paire select{width:auto;flex:0 0 auto;padding-right:8px}
+
+/* L'ÉQUIPE NE PREND QUE LA PLACE QU'IL LUI FAUT.  [Anna, 22.08.2026]
+   « la partie équipe de projet, c'est trop large, il faut que ce soit plus
+   rapproché ». Trois colonnes courtes — un prénom, un nom, une fonction —
+   étirées sur toute la largeur de l'écran: l'œil devait traverser un vide pour
+   relier le nom à ce que la personne fait. On borne la largeur et on resserre
+   les lignes; le tableau garde son défilement si un nom déborde. */
+.eq{max-width:660px}
+.eq table{width:auto;min-width:100%;font-size:13.5px}
+.eq th,.eq td{padding:5px 12px 5px 0}
+.eq th:first-child,.eq td:first-child{padding-left:0}
+.eq td.d,.eq th.d{width:1%;padding-right:0}
+.eq button.x{background:none;border:0;color:var(--doux);cursor:pointer;font-size:15px;
+  line-height:1;padding:0 2px}
+.eq button.x:hover{color:#c8452f}
+.eq form.inline button{margin-bottom:0}
+
+/* La ligne d'ajout se range sous le tableau et sur la même largeur, sinon elle
+   redevient le bloc large qu'on vient de resserrer. */
+form.ajl.eq-aj{display:flex;gap:7px;flex-wrap:wrap;align-items:center;
+  max-width:660px;margin-top:12px}
+form.ajl.eq-aj input{padding:6px 9px;font:inherit;font-size:13.5px;
+  border:1px solid var(--trait);border-radius:5px;background:var(--papier);color:var(--encre)}
+form.ajl.eq-aj button[type=submit]{margin-top:0;padding:7px 15px;font-size:13.5px}
+
 @media (max-width:820px){.deux{grid-template-columns:1fr}.quatre{grid-template-columns:1fr 1fr}}
 </style>
 
