@@ -12,6 +12,19 @@
  * Budget le reprennent sans qu'on ouvre un tableur.
  */
 declare(strict_types=1);
+
+/* Les libellés, pour que le tableau ne montre pas « CH-jour ». `CH` sans suffixe
+   est l'ancien code du mensuel suisse, gardé en lecture seule. */
+const CONTRATS = [
+    'CH-mois'  => 'Suisse — CDDU mensuel',
+    'CH-jour'  => 'Suisse — CDDU journalier',
+    'CH-heure' => 'Suisse — CDDU horaire',
+    'CH'       => 'Suisse — CDDU mensuel',
+    'FR-mois'  => 'France — CDDU mensuel',
+    'FR-jour'  => 'France — CDDU journalier',
+    'FR-heure' => 'France — CDDU horaire',
+    'facture'  => 'Facture',
+];
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */
 
 $tot = 0.0;
@@ -35,7 +48,7 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
       <tr>
         <td><?= e((string)($r['personne'] ?? '')) ?></td>
         <td class="sec"><?= e((string)($r['fonction'] ?? '')) ?></td>
-        <td class="sec"><?= e((string)($r['contrat'] ?? '')) ?></td>
+        <td class="sec"><?= e(CONTRATS[(string)($r['contrat'] ?? '')] ?? (string)($r['contrat'] ?? '')) ?></td>
         <td class="sec"><?= e((string)($r['periode'] ?? '')) ?></td>
         <td class="d sec"><?= e((string)($r['jours'] ?? '')) ?></td>
         <td class="d"><?= ($r['montant'] ?? '') !== ''
@@ -99,11 +112,33 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
     <?php endforeach; ?>
   </datalist>
   <input type="text" name="l[fonction]" id="fRem" placeholder="Fonction" size="14">
+  <?php /* ── LES SIX CONTRATS, TROIS PAR PAYS.  [Anna, 22.08.2026] ─────────────
+       « incluir suisse cddu horaire et journalier », puis « incluir france
+       mensuel tb ». La liste n'en offrait que quatre: un seul contrat suisse,
+       le mensuel, et deux français. Elle était donc bancale des deux côtés — on
+       ne pouvait pas noter une journée suisse ni un mois français, alors que
+       les deux existent.
+
+       LE CODE PORTE LE PAYS ET LA MAILLE, `CH-jour`, `FR-mois`: c'est ce qui
+       permettra de brancher un barème dessus sans le deviner à la lecture d'un
+       libellé. L'ancien `CH`, qui voulait dire mensuel, est reconnu en lecture —
+       aucune ligne ne le porte aujourd'hui (mesuré: zéro ligne de rémunération
+       en base), mais une écrite entre-temps ne doit pas s'afficher vide.
+
+       `optgroup` ET NON SIX LIGNES À PLAT: la première question est le pays,
+       parce que c'est lui qui décide des charges, du barème et de la caisse. */ ?>
   <select name="l[contrat]">
     <option value="">— contrat —</option>
-    <option value="CH">Suisse — CDDU mensuel</option>
-    <option value="FR-jour">France — CDDU journalier</option>
-    <option value="FR-heure">France — CDDU horaire</option>
+    <optgroup label="Suisse">
+      <option value="CH-mois">CDDU mensuel</option>
+      <option value="CH-jour">CDDU journalier</option>
+      <option value="CH-heure">CDDU horaire</option>
+    </optgroup>
+    <optgroup label="France">
+      <option value="FR-mois">CDDU mensuel</option>
+      <option value="FR-jour">CDDU journalier</option>
+      <option value="FR-heure">CDDU horaire</option>
+    </optgroup>
     <option value="facture">Facture</option>
   </select>
   <input type="text" name="l[periode]" placeholder="Période" size="14">

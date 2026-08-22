@@ -98,19 +98,21 @@ $jours = $d['planning']['jours'] ?? [];
      `_prod_imprimer.php` les imprime dans la feuille de route, et une équipe a
      bien un départ commun même quand ses journées diffèrent. */ ?>
 
-<h3 class="sep">Départ et retour</h3>
-<p class="aide">Les dates du déplacement, reprises par la Feuille de route. Le nombre de jours
-   travaillés se saisit personne par personne, dans l'onglet Rémunération.</p>
+<?php /* « DÉPART ET RETOUR » A ÉTÉ RETIRÉ.  [Anna, 22.08.2026]
+     « tirar a parte depart et retour, é um doublon, não tem porque estar ali ».
 
-<form method="post" action="<?= e($lien('planning')) ?>" class="ajl">
-  <?= Auth::csrfField() ?>
-  <input type="hidden" name="pf" value="champs">
-  <label class="min">Départ <input type="date" name="v[planning.dateArrivee]"
-    value="<?= e((string)$d['planning']['dateArrivee']) ?>" <?= $ecrit ? '' : 'readonly' ?>></label>
-  <label class="min">Retour <input type="date" name="v[planning.dateRetour]"
-    value="<?= e((string)$d['planning']['dateRetour']) ?>" <?= $ecrit ? '' : 'readonly' ?>></label>
-  <?php if ($ecrit): ?><button type="submit">enregistrer</button><?php endif; ?>
-</form>
+     Elle a raison, et je l'avais gardé la veille en croyant protéger la feuille
+     de route, qui les imprime. Mesuré avant de les retirer: AUCUN des 21 projets
+     n'a jamais rempli ces deux champs. Le bloc imprimé était donc toujours vide,
+     et je protégeais une ligne qui n'a jamais existé.
+
+     Les étapes, juste au-dessus, portent déjà des dates de début et de fin. La
+     feuille de route en tire maintenant la fenêtre du déplacement — la première
+     date et la dernière — au lieu de demander de les retaper. Deux endroits pour
+     la même chose, c'est deux endroits qui divergent.
+
+     Les clefs `dateArrivee` et `dateRetour` restent dans le modèle, vides, et ne
+     sont plus ni lues ni écrites. */ ?>
 
 <style>
 .ph{font-size:11.5px;padding:2px 8px;border-radius:10px;border:1px solid var(--trait);white-space:nowrap}

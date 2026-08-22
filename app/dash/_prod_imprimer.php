@@ -126,10 +126,24 @@ case 'dossier':
 
 case 'planning':
     $pl = $d['planning'] ?? [];
-    $ajout('Dates de la production', 'defs', array_filter([
-        'Arrivée' => (string)($pl['dateArrivee'] ?? ''),
-        'Retour'  => (string)($pl['dateRetour'] ?? ''),
-    ], fn($v) => trim($v) !== ''));
+    /* LA FENÊTRE DU DÉPLACEMENT SE DÉDUIT DES ÉTAPES.  [22.08.2026] Elle se
+       saisissait à part, dans deux champs « Départ » et « Retour » du Planning
+       — un doublon, dit Anna, et les chiffres lui donnent raison: aucun des 21
+       projets ne les avait jamais remplis, donc ce bloc était toujours vide.
+       La première date des étapes et la dernière disent la même chose sans
+       qu'on retape rien. */
+    $bornes = [];
+    foreach (($pl['dates'] ?? []) as $l) {
+        foreach (['debut', 'fin'] as $c) {
+            $v = trim((string)($l[$c] ?? ''));
+            if ($v !== '') $bornes[] = $v;
+        }
+    }
+    sort($bornes);
+    $ajout('Dates de la production', 'defs', $bornes ? [
+        'Première date' => $bornes[0],
+        'Dernière date' => $bornes[count($bornes) - 1],
+    ] : []);
     $ajout('Étapes', 'table', [
         'entete' => ['Du', 'Au', 'Phase', 'Lieu', 'Ville', 'Pays'],
         'lignes' => array_map(fn($l) => [

@@ -450,6 +450,15 @@ dl.info dd{margin:0}
 button[type=submit]{padding:9px 20px;font:inherit;font-size:14px;font-weight:600;border:0;
   border-radius:5px;background:var(--encre);color:var(--papier);cursor:pointer;margin-top:6px}
 button[type=submit]:hover{opacity:.88}
+/* LE « × » DE SUPPRESSION N'EST PAS UN BOUTON D'ACTION.  [22.08.2026] Il est en
+   `type=submit`, donc la règle générale au-dessus lui donnait le fond noir et
+   le texte blanc du bouton « Enregistrer »: un carré noir au bout de chaque
+   ligne, plus voyant que la ligne elle-même. Vu sur la capture du Planning
+   qu'Anna a envoyée. Supprimer se propose discrètement et se confirme; ce n'est
+   pas le geste que l'écran met en avant. */
+button.x{background:none;border:0;padding:0 3px;margin:0;color:var(--doux);
+  font-size:15px;line-height:1;cursor:pointer;font-weight:400}
+button.x:hover{color:#c8452f}
 form.inline{display:inline}
 form.inline button{margin-bottom:14px}
 /* ── LES CARTES ───────────────────────────────────────────────────────────
