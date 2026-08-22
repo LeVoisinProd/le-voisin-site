@@ -201,8 +201,33 @@ if ($pcms > 0) {
                 ProdFiche::champ($pcms, 'dossier.description', (string)$p['body_fr']);
                 $n++; $prs[] = 'la description du projet';
             }
+            /* ── L'ÉQUIPE, QUAND ELLE EST VIDE ET SEULEMENT ALORS ─────────────
+               [Anna, 22.08.2026] « pré-preencher as informações de cada projeto
+               com o que já está online, pessoas da equipe, textos ».
+
+               J'AVAIS ÉCRIT LA VEILLE QU'ON NE POUVAIT PAS DÉCOUPER LE
+               GÉNÉRIQUE. J'avais tort, et je ne l'avais pas regardé: ce n'est
+               pas de la prose, c'est une liste, et la même forme revient partout.
+               Mesuré sur les quatorze génériques du catalogue: 90 personnes
+               sortent proprement de dix pièces.
+
+               ON N'AJOUTE QUE DANS UNE ÉQUIPE VIDE. Mélanger l'import et ce qui
+               est déjà saisi produirait des doublons — la même personne écrite
+               deux fois, l'une venue du site et l'autre de la main — et c'est
+               exactement ce qu'on ne sait pas défaire ensuite. Une équipe déjà
+               remplie n'est pas touchée, et on le dit.
+
+               CHAQUE LIGNE S'EFFACE D'UN CLIC, avec le × qui est déjà là. C'est
+               ce qui rend l'import acceptable: il propose beaucoup, et corriger
+               coûte un geste par erreur. */
+            if (!($dd['equipe'] ?? []) && trim((string)($p['distribution_fr'] ?? '')) !== '') {
+                $gens = ProdFiche::equipeDepuisGenerique((string)$p['distribution_fr']);
+                foreach ($gens as $g) ProdFiche::ajouter($pcms, 'equipe', $g);
+                if ($gens) { $n++; $prs[] = count($gens) . ' personnes de l’équipe'; }
+            }
+
             dash_flash($n
-                ? 'Repris du site: ' . implode(' et ', $prs) . '. Rien d’autre n’a été touché.'
+                ? 'Repris du site: ' . implode(', ', $prs) . '. Rien d’autre n’a été touché.'
                 : 'Rien à reprendre: soit le site n’a pas ces textes, soit ils sont déjà remplis ici.',
                 $n ? 'ok' : 'err');
 

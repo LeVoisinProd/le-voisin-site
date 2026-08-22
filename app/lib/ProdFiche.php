@@ -850,6 +850,180 @@ class ProdFiche
      *
      * @return array<int,array{cle:string,titre:string,jours:array<int,string>}>
      */
+    /**
+     * Les personnes que le générique du site nomme.  [Anna, 22.08.2026]
+     *
+     * « pré-preencher as informações de cada projeto com o que já está online,
+     * pessoas da equipe, textos ».
+     *
+     * J'AVAIS ÉCRIT LA VEILLE QU'ON NE POUVAIT PAS LE DÉCOUPER. J'avais tort, et
+     * je ne l'avais pas regardé: le générique n'est pas de la prose, c'est une
+     * liste. Quatorze pièces, et la même forme partout — un paragraphe par
+     * ligne, « Fonction : Nom », parfois avec la fonction en gras.
+     *
+     * CE QUI N'EST PAS UNE PERSONNE NE PASSE PAS, et c'est la moitié du travail.
+     * Un générique mélange les gens et le reste: « Production : Hibiscus
+     * Culturiste », « Soutiens : Stadt Bern, Kanton Bern », « Première :
+     * 28 septembre 2021 », « Musique : Guggisbärglied (chanson populaire
+     * bernoise) ». Une liste d'arrêt écarte les rubriques qui ne désignent
+     * jamais quelqu'un, et tout ce qui ressemble à une date part avec.
+     *
+     * L'ORDRE INVERSE EXISTE AUSSI: les ensembles musicaux écrivent « Louis
+     * Matute - guitare », le nom d'abord. On le reconnaît à l'absence de
+     * deux-points et à la présence d'un tiret.
+     *
+     * ON NE DEVINE PAS LE PRÉNOM ET LE NOM. Le premier mot est le prénom, le
+     * reste le nom — faux pour « Sami Lea Samira Bernath », juste pour la
+     * plupart, et de toute façon les deux champs se corrigent à la main. Ce qui
+     * compte est que la personne existe dans la liste.
+     *
+     * @return array<int,array{prenom:string,nom:string,fonction:string}>
+     */
+    public static function equipeDepuisGenerique(string $html): array
+    {
+        if (trim($html) === '') return [];
+
+        /* Les rubriques qui ne nomment pas des personnes. Comparées sans accents
+           ni casse. Chacune a été vue dans un vrai générique, aucune n'est
+           préventive. */
+        $ecarter = ['production', 'coproduction', 'coproductions', 'soutien', 'soutiens',
+                    'partenaire', 'partenaires', 'remerciement', 'remerciements',
+                    'premiere', 'diffusion', 'presse', 'contact', 'duree', 'age',
+                    'public', 'lieu', 'residence', 'residences', 'accueil',
+                    'avec le soutien de', 'avec le soutien', 'une production de',
+                    'une proposition de', 'en coproduction avec', 'subvention',
+                    'subventions', 'financement', 'tournee', 'dates', 'billetterie',
+                    'reservation', 'touring support', 'credit photo', 'credits photo',
+                    'photos', 'illustration', 'graphisme'];
+
+        /* Ce qui trahit une structure et non quelqu'un. Un nom de personne ne
+           contient aucun de ces mots. */
+        $structures = ['cie', 'compagnie', 'association', 'stiftung', 'kulturstiftung',
+                       'fondation', 'foundation', 'theater', 'theatre', 'théâtre',
+                       'ensemble', 'plateforme', 'archipels', 'ircam', 'le voisin',
+                       'verein', 'collectif', 'festival', 'centre', 'maison', 'gmbh',
+                       'sarl', 'sa', 'asbl', 'pro helvetia'];
+
+        $sansAccents = static function (string $x): string {
+            $t = @iconv('UTF-8', 'ASCII//TRANSLIT', $x);
+            return strtolower(trim($t === false ? $x : $t, " \t.:-–—"));
+        };
+
+        /* LA FIN DU GRAS EST UN SÉPARATEUR, et c'est la seule façon de lire
+           « <strong>Concept et composition</strong>Mathieu Corajod »: sans cette
+           substitution, `strip_tags` recolle les deux et la ligne devient
+           « Concept et compositionMathieu Corajod », illisible. */
+        $html = preg_replace('~</(strong|b)>~i', ' : ', $html) ?? $html;
+        $lignes = preg_split('~</p>|<br\s*/?>|\r?\n~i', $html) ?: [];
+
+        $out = [];
+        foreach ($lignes as $l) {
+            $l = trim(html_entity_decode(strip_tags($l), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            $l = trim(preg_replace('~\s+~u', ' ', $l) ?? $l);
+            /* LA SUBSTITUTION DU GRAS PEUT DOUBLER LE SÉPARATEUR. Quand le
+               générique écrit déjà « <strong>Fonction</strong> : Nom », on se
+               retrouve avec « Fonction :  : Nom »; quand il écrit
+               « <strong>Nom </strong>- instrument », avec « Nom : - instrument ».
+               Les deux cassaient tout — Mycelium et l'ensemble de Louis Matute
+               étaient passés de sept et six personnes à zéro. On recolle. */
+            $l = preg_replace('~\s*:\s*:\s*~u', ' : ', $l) ?? $l;
+            $l = preg_replace('~\s*:\s*([-–—])\s*~u', ' $1 ', $l) ?? $l;
+            $l = trim($l, " :·");
+            /* 400 et non 220: une ligne « Avec » qui nomme huit interprètes est
+               longue et parfaitement légitime. Ce qui écarte la prose, c'est la
+               règle des quatre mots par nom, plus bas. */
+            if ($l === '' || mb_strlen($l) > 400) continue;
+
+            $fonction = $reste = '';
+
+            if (preg_match('~^\[([^\]]{2,60})\]\s*(.+)$~u', $l, $m)) {
+                /* « [Conception, texte et mise en scène] Marvin M'toumo » */
+                [$fonction, $reste] = [trim($m[1]), trim($m[2])];
+
+            } elseif (preg_match('~^(.{2,60}?)\s*[:：]\s*(.+)$~u', $l, $m)) {
+                /* « Dramaturgie : Petra Fischer », la forme dominante. */
+                [$fonction, $reste] = [trim($m[1]), trim($m[2])];
+
+            } elseif (preg_match('~^(.{2,60}?)\s+[-–—]\s+(.{2,60})$~u', $l, $m)) {
+                /* « Louis Matute - guitare »: le nom d'abord, chez les musiciens. */
+                [$fonction, $reste] = [trim($m[2]), trim($m[1])];
+
+            } elseif (preg_match('~^\p{Ll}~u', $l)
+                   && preg_match('~^(.{2,70}?)\s+(\p{Lu}.*)$~u', $l, $m)) {
+                /* « chorégraphie et interprétation Sami Lea Samira Bernath »:
+                   pas de séparateur du tout. La fonction est en minuscules et le
+                   nom commence par une majuscule — on coupe à la première.
+
+                   LA CONDITION SUR LA MINUSCULE INITIALE FAIT LE TRI. « Une
+                   proposition de Plateforme Crile » et « Création en mars 26 »
+                   commencent par une majuscule et ne passent pas ici; elles
+                   auraient été découpées n'importe où. */
+                [$fonction, $reste] = [trim($m[1]), trim($m[2])];
+
+            } else {
+                continue;
+            }
+
+            if (in_array($sansAccents($fonction), $ecarter, true)) continue;
+            if (mb_strpos($fonction, '©') !== false) continue;
+            /* Une structure citée du côté de la fonction trahit toute la ligne:
+               « Le Pavillon - Romainville, Cie ACTA, IRCAM » est une
+               coproduction, pas quelqu'un. */
+            $fPlat = $sansAccents($fonction);
+            foreach ($structures as $st) {
+                if (preg_match('~(^|\s)' . preg_quote($st, '~') . '(\s|$)~', $fPlat)) continue 2;
+            }
+            /* Une date, une année, une durée: ce n'est pas quelqu'un. */
+            if (preg_match('~\d~', $reste)) continue;
+
+            $reste = trim($reste, " :-–—·");
+            foreach (preg_split('~\s*,\s*|\s+et\s+|\s*&\s*|\s*/\s*~u', $reste) as $nomC) {
+                /* « Anna Ladeira - Le Voisin » perd sa structure et garde son nom. */
+                $nomC = trim(preg_replace('~\s+[-–—]\s+.*$~u', '', $nomC) ?? $nomC);
+                $nomC = trim($nomC, " \t.;·");
+                if ($nomC === '' || mb_strlen($nomC) < 3 || mb_strlen($nomC) > 60) continue;
+                if (mb_strpos($nomC, '(') !== false || mb_strpos($nomC, ')') !== false) continue;
+                if (!preg_match('~^\p{Lu}~u', $nomC)) continue;
+
+                $plat = $sansAccents($nomC);
+                foreach ($structures as $st) {
+                    if (preg_match('~(^|\s)' . preg_quote($st, '~') . '(\s|$)~', $plat)) {
+                        continue 2;
+                    }
+                }
+                /* Au-delà de quatre mots ce n'est plus un nom, c'est une phrase. */
+                $bouts = preg_split('~\s+~u', $nomC) ?: [$nomC];
+                if (count($bouts) > 4) continue;
+
+                $prenom = array_shift($bouts);
+                $out[] = [
+                    'prenom'   => (string)$prenom,
+                    'nom'      => trim(implode(' ', $bouts)),
+                    'fonction' => $fonction,
+                ];
+            }
+        }
+
+        /* La même personne revient souvent — conception ET interprétation. On
+           garde la première fonction et on ajoute les suivantes: c'est ce que le
+           générique dit, et l'effacer perdrait de l'information. */
+        $fusion = [];
+        foreach ($out as $x) {
+            /* L'APOSTROPHE DROITE ET LA COURBE SONT LA MÊME LETTRE POUR UN
+               LECTEUR, et deux clefs différentes pour une machine: « Marvin
+               M'toumo » et « Marvin M’toumo » entraient deux fois dans la même
+               équipe. On les ramène à la même forme pour comparer, jamais pour
+               écrire — le nom garde l'apostrophe qu'il avait. */
+            $clef = mb_strtolower(str_replace(['’', '‘', '`'], "'", $x['prenom'] . ' ' . $x['nom']));
+            if (!isset($fusion[$clef])) { $fusion[$clef] = $x; continue; }
+            $f = $fusion[$clef]['fonction'];
+            if (mb_stripos($f, $x['fonction']) === false) {
+                $fusion[$clef]['fonction'] = $f . ', ' . mb_strtolower($x['fonction']);
+            }
+        }
+        return array_values($fusion);
+    }
+
     public static function joursDuPlanning(array $d): array
     {
         $MOIS = ['', 'jan', 'fév', 'mar', 'avr', 'mai', 'jun',

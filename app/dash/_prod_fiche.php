@@ -268,7 +268,8 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
     <?php ob_start();
       $peutReprendre = $ecrit
           && ((trim((string)$d['resume']) === '' && trim((string)$p['intro_fr']) !== '')
-           || (trim((string)$d['dossier']['description']) === '' && trim((string)$p['body_fr']) !== ''));
+           || (trim((string)$d['dossier']['description']) === '' && trim((string)$p['body_fr']) !== '')
+           || (!($d['equipe'] ?? []) && trim((string)($p['distribution_fr'] ?? '')) !== ''));
       if ($peutReprendre): ?>
       <form method="post" action="<?= e($lien('synthese')) ?>" class="inline">
         <?= Auth::csrfField() ?>
