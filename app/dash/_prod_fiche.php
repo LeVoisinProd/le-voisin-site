@@ -561,6 +561,18 @@ form.inline button{margin-bottom:14px}
    étirées sur toute la largeur de l'écran: l'œil devait traverser un vide pour
    relier le nom à ce que la personne fait. On borne la largeur et on resserre
    les lignes; le tableau garde son défilement si un nom déborde. */
+/* Les champs de l'équipe: la même discrétion que ceux des étapes du Planning.
+   On lit un tableau, on corrige au passage, et le cadre revient au survol. */
+.eq input{width:100%;min-width:0;box-sizing:border-box;padding:4px 6px;font:inherit;
+  font-size:13px;border:1px solid transparent;border-radius:4px;background:transparent;
+  color:var(--encre)}
+.eq input:hover{border-color:var(--trait)}
+.eq input:focus{border-color:var(--encre);background:var(--papier);outline:none}
+.eq td.eq-act{white-space:nowrap;width:1%}
+button.eq-b{padding:3px 9px;font-size:11.5px;font-weight:500;background:transparent;
+  color:var(--doux);border:1px solid var(--trait);border-radius:4px;cursor:pointer;
+  font-family:inherit;margin:0 4px 0 0}
+button.eq-b:hover{color:var(--encre);border-color:var(--encre)}
 .eq{max-width:660px}
 .eq table{width:auto;min-width:100%;font-size:13.5px}
 .eq th,.eq td{padding:5px 12px 5px 0}

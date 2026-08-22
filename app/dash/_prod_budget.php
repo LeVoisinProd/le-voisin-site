@@ -63,21 +63,47 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
           <?php endif; ?>
         <?php endif; ?>
 
-        <?php foreach ($p['lignes'] as $l): ?>
-          <div class="bd-l">
-            <span><?= e((string)($l['libelle'] ?? '')) ?: '—' ?></span>
-            <b><?= $mt((float)$l['_m']) ?> CHF</b>
+          <?php foreach ($p['lignes'] as $l): $lid = (string)($l['id'] ?? ''); ?>
             <?php if ($ecrit): ?>
-              <form method="post" action="<?= e($lien('budget')) ?>" class="inline"
+              <?php /* ── LA LIGNE SE CORRIGE SUR PLACE.  [Anna, 22.08.2026] ──────
+                   « mesmo nas charges, deixar a possibilidade de editar os
+                   valores ». Un montant de budget se renégocie; l'effacer pour le
+                   retaper faisait perdre le libellé et le poste avec.
+
+                   ICI LE FORMULAIRE ENTOURE VRAIMENT LA LIGNE, parce que ce sont
+                   des `div` et non des cellules de tableau: pas besoin du détour
+                   par `form="..."` qu'imposent le Planning et l'Équipe. */ ?>
+              <form method="post" action="<?= e($lien('budget')) ?>" class="bd-l bd-ed">
+                <?= Auth::csrfField() ?>
+                <input type="hidden" name="pf" value="liste_modifier">
+                <input type="hidden" name="ou" value="budget">
+                <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+                <input type="text" name="l[libelle]" value="<?= e((string)($l['libelle'] ?? '')) ?>"
+                       placeholder="Libellé" class="bd-lib">
+                <input type="text" name="l[montant]" value="<?= e((string)($l['montant'] ?? '')) ?>"
+                       inputmode="decimal" class="bd-mt">
+                <span class="bd-dev">CHF</span>
+                <button type="submit" class="bd-ok" title="Enregistrer">✓</button>
+              </form>
+              <?php /* LE BOUTON D'EFFACEMENT ENVOYAIT `id`, LE SERVEUR LIT `ligne`.
+                   Il n'a donc JAMAIS rien effacé — éprouvé par le vrai chemin du
+                   POST: la ligne restait en base et l'écran se rechargeait comme
+                   si de rien n'était. Aucune erreur nulle part, ce qui est la
+                   pire façon de ne pas marcher. */ ?>
+              <form method="post" action="<?= e($lien('budget')) ?>" class="bd-sup"
                     onsubmit="return confirm('Retirer cette ligne du budget ?')">
                 <?= Auth::csrfField() ?>
                 <input type="hidden" name="pf" value="liste_retirer">
                 <input type="hidden" name="ou" value="budget">
-                <input type="hidden" name="id" value="<?= e((string)($l['id'] ?? '')) ?>">
+                <input type="hidden" name="ligne" value="<?= e($lid) ?>">
                 <button type="submit" class="x" title="Retirer">×</button>
               </form>
+            <?php else: ?>
+              <div class="bd-l">
+                <span><?= e((string)($l['libelle'] ?? '')) ?: '—' ?></span>
+                <b><?= $mt((float)$l['_m']) ?> CHF</b>
+              </div>
             <?php endif; ?>
-          </div>
         <?php endforeach; ?>
 
         <?php if (!$p['lignes'] && $cle !== 'personnel'): ?>
@@ -112,23 +138,41 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
       </form>
     <?php endif; ?>
 
-    <?php foreach ($B['produits'] as $l): ?>
-      <div class="bd-l">
-        <span><?= e((string)($l['libelle'] ?? '')) ?: '—' ?>
-          <span class="bd-nat"><?= e(ProdFiche::BUDGET_PRODUITS[(string)($l['nature'] ?? '')]
-                                  ?? ProdFiche::BUDGET_RECETTE[(string)($l['nature'] ?? '')] ?? '') ?></span></span>
-        <b><?= $mt((float)$l['_m']) ?> CHF</b>
-        <?php if ($ecrit): ?>
-          <form method="post" action="<?= e($lien('budget')) ?>" class="inline"
-                onsubmit="return confirm('Retirer ce produit ?')">
-            <?= Auth::csrfField() ?>
-            <input type="hidden" name="pf" value="liste_retirer">
-            <input type="hidden" name="ou" value="budget">
-            <input type="hidden" name="id" value="<?= e((string)($l['id'] ?? '')) ?>">
-            <button type="submit" class="x" title="Retirer">×</button>
-          </form>
-        <?php endif; ?>
-      </div>
+    <?php foreach ($B['produits'] as $l): $lid = (string)($l['id'] ?? ''); ?>
+      <?php if ($ecrit): ?>
+        <form method="post" action="<?= e($lien('budget')) ?>" class="bd-l bd-ed">
+          <?= Auth::csrfField() ?>
+          <input type="hidden" name="pf" value="liste_modifier">
+          <input type="hidden" name="ou" value="budget">
+          <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+          <input type="text" name="l[libelle]" value="<?= e((string)($l['libelle'] ?? '')) ?>"
+                 placeholder="Partenaire" class="bd-lib">
+          <select name="l[nature]" class="bd-nat-s">
+            <?php foreach (ProdFiche::BUDGET_PRODUITS as $k => $v): ?>
+              <option value="<?= e($k) ?>" <?= (string)($l['nature'] ?? '') === $k ? 'selected' : '' ?>><?= e($v) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <input type="text" name="l[montant]" value="<?= e((string)($l['montant'] ?? '')) ?>"
+                 inputmode="decimal" class="bd-mt">
+          <span class="bd-dev">CHF</span>
+          <button type="submit" class="bd-ok" title="Enregistrer">✓</button>
+        </form>
+        <form method="post" action="<?= e($lien('budget')) ?>" class="bd-sup"
+              onsubmit="return confirm('Retirer ce produit ?')">
+          <?= Auth::csrfField() ?>
+          <input type="hidden" name="pf" value="liste_retirer">
+          <input type="hidden" name="ou" value="budget">
+          <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+          <button type="submit" class="x" title="Retirer">×</button>
+        </form>
+      <?php else: ?>
+        <div class="bd-l">
+          <span><?= e((string)($l['libelle'] ?? '')) ?: '—' ?>
+            <span class="bd-nat"><?= e(ProdFiche::BUDGET_PRODUITS[(string)($l['nature'] ?? '')]
+                                    ?? ProdFiche::BUDGET_RECETTE[(string)($l['nature'] ?? '')] ?? '') ?></span></span>
+          <b><?= $mt((float)$l['_m']) ?> CHF</b>
+        </div>
+      <?php endif; ?>
     <?php endforeach; ?>
 
     <div class="bd-tot"><span>Total produits</span><b><?= $mt($B['recettes']) ?> CHF</b></div>
@@ -168,6 +212,26 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
 <style>
 .bd-tete{display:flex;align-items:center;gap:16px;margin:0 0 16px}
 .bd-tete h3{margin:0;font-size:16px}
+/* ── UNE LIGNE DE BUDGET QUI SE CORRIGE ────────────────────────────────────
+   Les champs restent discrets: on lit une colonne de montants, on ne remplit pas
+   un formulaire. Le cadre revient au survol et à la saisie. Le bouton
+   d'effacement se glisse au bout de la ligne sans casser l'alignement — d'où la
+   marge négative et la hauteur nulle. */
+form.bd-ed{display:flex;align-items:center;gap:8px}
+form.bd-ed input,form.bd-ed select{padding:3px 6px;font:inherit;font-size:13px;
+  border:1px solid transparent;border-radius:4px;background:transparent;color:var(--encre)}
+form.bd-ed input:hover,form.bd-ed select:hover{border-color:var(--trait)}
+form.bd-ed input:focus,form.bd-ed select:focus{border-color:var(--encre);
+  background:var(--papier);outline:none}
+form.bd-ed input.bd-lib{flex:1 1 auto;min-width:0}
+form.bd-ed input.bd-mt{flex:0 0 84px;text-align:right;font-variant-numeric:tabular-nums}
+form.bd-ed select.bd-nat-s{flex:0 0 auto;max-width:150px;font-size:12px;color:var(--doux)}
+.bd-dev{font-size:12px;color:var(--doux)}
+button.bd-ok{background:none;border:0;padding:0 2px;color:var(--doux);cursor:pointer;
+  font-size:13px;font-family:inherit}
+button.bd-ok:hover{color:var(--encre)}
+form.bd-sup{margin:-25px 0 0;text-align:right;height:0;position:relative;z-index:1}
+
 .bd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 46px;align-items:start}
 @media (max-width:900px){ .bd{grid-template-columns:minmax(0,1fr)} }
 .bd-t{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;

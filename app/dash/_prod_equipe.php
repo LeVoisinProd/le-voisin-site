@@ -17,23 +17,49 @@ declare(strict_types=1);
   <div class="tbl eq"><table>
     <thead><tr><th>Prénom</th><th>Nom</th><th>Fonction</th><th></th></tr></thead>
     <tbody>
-    <?php foreach ($d['equipe'] as $m): ?>
+    <?php /* ── UNE LIGNE SE CORRIGE SUR PLACE.  [Anna, 22.08.2026] ─────────────
+         « deixar a opção de corrigir a informação colocada, agora está inserir
+         e suprimir ».
+
+         Elle a raison, et l'import du générique le rend urgent: il pose d'un
+         coup une vingtaine de personnes dont la fonction sort d'un texte —
+         « Avec », « crée en collaboration avec » — et qu'on veut ajuster, pas
+         effacer pour retaper.
+
+         MÊME MÉCANISME QUE LES ÉTAPES DU PLANNING: un `<form>` ne peut pas
+         entourer les cellules d'une ligne de tableau, mais un champ qui porte
+         `form="fEq-xxx"` lui appartient d'où qu'il soit. Un formulaire par
+         ligne, jamais un pour toutes. */ ?>
+    <?php foreach ($d['equipe'] as $m): $mid = (string)($m['id'] ?? ''); $fm = 'fEq-' . $mid; ?>
       <tr>
-        <td><?= e((string)($m['prenom'] ?? '')) ?></td>
-        <td><?= e((string)($m['nom'] ?? '')) ?></td>
-        <td class="sec"><?= e((string)($m['fonction'] ?? '')) ?></td>
-        <td class="d">
-          <?php if ($ecrit): ?>
+        <?php if ($ecrit): ?>
+          <?php foreach (['prenom' => 'Prénom', 'nom' => 'Nom', 'fonction' => 'Fonction'] as $c => $ph): ?>
+            <td><input type="text" name="l[<?= $c ?>]" form="<?= e($fm) ?>" placeholder="<?= e($ph) ?>"
+                       value="<?= e((string)($m[$c] ?? '')) ?>"></td>
+          <?php endforeach; ?>
+          <td class="d eq-act">
+            <form method="post" action="<?= e($lien('synthese')) ?>" id="<?= e($fm) ?>" class="inline">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="pf" value="liste_modifier">
+              <input type="hidden" name="ou" value="equipe">
+              <input type="hidden" name="ligne" value="<?= e($mid) ?>">
+              <button type="submit" class="eq-b">enregistrer</button>
+            </form>
             <form method="post" action="<?= e($lien('synthese')) ?>" class="inline"
                   onsubmit="return confirm('Retirer cette personne de l\'équipe ?')">
               <?= Auth::csrfField() ?>
               <input type="hidden" name="pf" value="liste_retirer">
               <input type="hidden" name="ou" value="equipe">
-              <input type="hidden" name="ligne" value="<?= e((string)($m['id'] ?? '')) ?>">
+              <input type="hidden" name="ligne" value="<?= e($mid) ?>">
               <button type="submit" class="x">×</button>
             </form>
-          <?php endif; ?>
-        </td>
+          </td>
+        <?php else: ?>
+          <td><?= e((string)($m['prenom'] ?? '')) ?></td>
+          <td><?= e((string)($m['nom'] ?? '')) ?></td>
+          <td class="sec"><?= e((string)($m['fonction'] ?? '')) ?></td>
+          <td></td>
+        <?php endif; ?>
       </tr>
     <?php endforeach; ?>
     </tbody>
