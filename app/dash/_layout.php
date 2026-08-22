@@ -374,6 +374,35 @@ a.vider { color:var(--doux); font-size:13px; }
    « Enregistrer » noir: le geste le plus dangereux de la page aurait l'air du
    plus banal. Il garde donc l'allure d'un lien discret, en rouge, à l'opposé
    du bouton d'enregistrement. */
+/* ── LE BOUTON D'IMPRESSION, DÉFINI UNE FOIS POUR TOUT LE DASHBOARD ────────
+   [22.08.2026] Il était écrit deux fois — dans la fiche projet et dans la fiche
+   association — et la seconde copie vivait dans le `<style>` de la branche
+   « modifier », que l'écran de lecture n'émet pas. Résultat mesuré: sur la fiche
+   d'une association, la barre restait en `display:block` et le bouton se posait
+   à gauche, à 1043 px du bord droit.
+
+   C'est la septième fois que ce défaut se répète: une règle posée dans un
+   fichier que l'écran concerné ne charge pas. Le remède est toujours le même —
+   la règle monte ici.
+
+   LA GOUTTIÈRE DE 26 px EN FAIT PARTIE. Anna: « os botões de impressão pdf
+   estão colados à direita, tirar essa cola, deixar um espaço ». Mesuré à 0 px du
+   bord quand tous les autres boutons du dashboard en sont à 23. */
+.barre-doc { display:flex; gap:9px; flex-wrap:wrap; justify-content:flex-end;
+  margin:14px 0 -4px; }
+/* La gouttière ne se pose QUE si la barre n'est pas déjà dans une zone, qui la
+   tient. Sans cette condition la fiche association doublait le retrait: mesuré
+   à 47 px contre 23 partout ailleurs. Même règle que `.tw` juste au-dessus. */
+:not(.zone) > .barre-doc { padding-left:26px; padding-right:26px; }
+.bt-pdf { display:inline-flex; align-items:center; gap:7px; padding:8px 15px;
+  border:1px solid var(--encre); border-radius:5px; background:var(--encre);
+  color:var(--papier); text-decoration:none; font-size:13.5px; font-weight:600;
+  white-space:nowrap; }
+.bt-pdf:hover { opacity:.86; }
+/* La version anglaise en contour: c'est la même action, pas une plus importante.
+   Deux boutons pleins côte à côte se disputent l'œil. */
+.bt-pdf-en { background:transparent; color:var(--encre); }
+
 button.sup { background:none; border:0; padding:0; font:inherit; font-size:13.5px;
         color:#c8452f; cursor:pointer; text-decoration:underline;
         text-underline-offset:2px; }

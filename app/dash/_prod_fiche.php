@@ -127,20 +127,12 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
        target="_blank" rel="noopener" title="Same document, English labels">PDF — English</a>
   <?php endif; ?>
 </div>
-<style>
-/* JUSTIFIÉS À DROITE, comme partout ailleurs. [16.08.2026] Demandé par Anna
-   pour tout le site: un bouton d'impression n'est pas le geste principal d'un
-   écran, c'est ce qu'on fait à la fin. À gauche il se lit avant le contenu et
-   attire le clic; à droite il attend qu'on ait fini. */
-.barre-doc{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;margin:14px 0 -4px}
-.bt-pdf{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;
-  border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier);
-  text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
-.bt-pdf:hover{opacity:.86}
-/* La version anglaise en contour et non en plein: c'est la même action, pas une
-   action plus importante. Deux boutons pleins côte à côte se disputent l'œil. */
-.bt-pdf-en{background:transparent;color:var(--encre)}
-</style>
+<?php /* Les règles de cette barre sont montées dans `_layout.php` le
+     22.08.2026. Elles étaient écrites ici ET dans la fiche association, et la
+     seconde copie vivait dans le `<style>` de la branche « modifier », que
+     l'écran de lecture n'émet pas: sur la fiche d'une association le bouton se
+     posait à gauche, mesuré à 1043 px du bord droit. Une règle partagée vit là
+     où tous les écrans la lisent. */ ?>
 
 <div class="zone">
 <?php /* ══════════════════════════ SYNTHÈSE ══════════════════════════ */ ?>

@@ -385,11 +385,6 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
 /* Un tiret pâle plutôt qu'une cellule vide: une case vide se lit comme
    « il n'y a rien à savoir », un tiret comme « ce n'est pas renseigné ». */
 .rien{color:var(--doux);opacity:.45}.grl-hors{padding-left:26px;padding-right:26px}
-.barre-doc{display:flex;justify-content:flex-end;margin:0 0 6px}
-.bt-pdf{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:1px solid var(--encre);
-  border-radius:5px;background:var(--encre);color:var(--papier);text-decoration:none;
-  font-size:13.5px;font-weight:600;white-space:nowrap}
-.bt-pdf:hover{opacity:.86}
 .fil{padding:12px 26px 0;font-size:13px}.fil a{color:var(--doux);text-decoration:none}</style>
     <?php dash_bas(); return;
 }
