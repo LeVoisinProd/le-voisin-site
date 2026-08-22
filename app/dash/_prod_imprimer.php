@@ -301,11 +301,17 @@ case 'droits':
             . ' % et non 100 %. Une déclaration qui ne fait pas exactement 100 % est refusée.');
     }
 
+    /* ELLES NE VIENNENT PLUS D'UNE SECONDE LISTE.  [22.08.2026] Le tableau des
+       collaborateurs a été retiré de l'écran: une contribution sans part est
+       désormais une ligne d'auteur dont la case de pour-cent est vide. On la
+       reconnaît donc ici de la même façon, et le document ne dépend plus d'une
+       liste que personne ne remplit. */
     $ajout('Contributions sans part déclarée', 'table', [
-        'entete' => ['Nom', 'Rôle', 'Contribution'],
-        'lignes' => array_map(fn($x) => [
-            (string)($x['nom'] ?? ''), (string)($x['role'] ?? ''), (string)($x['contribution'] ?? ''),
-        ], $d['droits']['cols'] ?? []),
+        'entete' => ['Nom', 'Rôle', 'Société'],
+        'lignes' => array_values(array_map(fn($x) => [
+            (string)($x['nom'] ?? ''), (string)($x['role'] ?? ''), (string)($x['societe'] ?? ''),
+        ], array_filter($d['droits']['auteurs'] ?? [],
+                        fn($x) => trim((string)($x['part'] ?? '')) === ''))),
     ]);
     $ajout('Éditeur',              'texte', (string)($d['droits']['editeur'] ?? ''));
     $ajout('Règle de répartition', 'texte', (string)($d['droits']['repartition'] ?? ''));

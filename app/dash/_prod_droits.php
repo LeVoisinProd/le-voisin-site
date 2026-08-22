@@ -14,6 +14,46 @@
 declare(strict_types=1);
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */
 
+/* ── QUI PEUT ÊTRE DÉCLARÉ AUTEUR.  [Anna, 22.08.2026] ─────────────────────
+   « nesta primeira parte o campo equipe não deixa escolher a pessoa, tem que
+   colocar as pessoas que fazem parte da association ».
+
+   DEUX SOURCES, ET IL EN FAUT DEUX. La liste ne tenait que l'équipe de la
+   pièce, et cette équipe peut être vide. Mesuré à l'inverse sur un cas réel:
+   le projet 5 a dix personnes dans son équipe et son association porteuse n'en
+   compte aucune — 72 des 91 fiches du Personnel portent une association, mais
+   pas celle-là. Chacune des deux sources laisse donc des trous que l'autre
+   comble.
+
+   ET SI LES DEUX SONT VIDES, ON PROPOSE TOUT LE PERSONNEL plutôt qu'un menu
+   vide. Un champ qui ne propose rien apprend à ne plus être ouvert.
+
+   LA LISTE PROPOSE, ELLE N'IMPOSE PAS: le champ reste libre. Un auteur de texte
+   n'est pas toujours des nôtres, et un auteur mort ne l'est jamais. */
+$orgId = (int)($prod['organisation_id'] ?? 0);
+$noms  = [];
+foreach (($d['equipe'] ?? []) as $m) {
+    $n = trim(((string)($m['prenom'] ?? '')) . ' ' . ((string)($m['nom'] ?? '')));
+    if ($n !== '') $noms[$n] = true;
+}
+if ($orgId > 0) {
+    foreach (DB::all("SELECT prenom, nom FROM rh_employe
+                       WHERE organisation_id = ? AND supprime_le IS NULL AND actif = 1
+                       ORDER BY prenom, nom", [$orgId]) as $e) {
+        $n = trim(((string)$e['prenom']) . ' ' . ((string)$e['nom']));
+        if ($n !== '') $noms[$n] = true;
+    }
+}
+if (!$noms) {
+    foreach (DB::all("SELECT prenom, nom FROM rh_employe
+                       WHERE supprime_le IS NULL AND actif = 1 ORDER BY prenom, nom") as $e) {
+        $n = trim(((string)$e['prenom']) . ' ' . ((string)$e['nom']));
+        if ($n !== '') $noms[$n] = true;
+    }
+}
+$noms = array_keys($noms);
+sort($noms, SORT_NATURAL | SORT_FLAG_CASE);
+
 $total = ProdFiche::droitsTotal($d);
 $ok = abs($total - 100.0) < 0.01;
 
@@ -58,7 +98,9 @@ $CARTES = ['A', 'MES', 'CH', 'C'];
         <td class="sec"><?php $r = (string)($a['role'] ?? '');
              echo e(isset($ROLES[$r]) ? $r . ' — ' . $ROLES[$r] : $r); ?></td>
         <td class="sec"><?= e((string)($a['societe'] ?? '')) ?></td>
-        <td class="d"><strong><?= e((string)($a['part'] ?? '0')) ?> %</strong></td>
+        <td class="d"><?php $pt = trim((string)($a['part'] ?? '')); ?>
+          <?php if ($pt !== ''): ?><strong><?= e($pt) ?> %</strong>
+          <?php else: ?><span class="sans">— sans part</span><?php endif; ?></td>
         <td class="d">
           <?php if ($ecrit): ?>
             <form method="post" action="<?= e($lien('droits')) ?>" class="inline"
@@ -96,6 +138,13 @@ $CARTES = ['A', 'MES', 'CH', 'C'];
      libre adossé à la liste. Un auteur du texte n'est pas toujours dans
      l'équipe du projet — un texte d'un auteur mort ne l'est jamais — et fermer
      la liste aurait rendu ces déclarations-là impossibles. */ ?>
+<?php /* UNE SEULE `datalist` POUR LES QUATRE CARTES. Elle était répétée dans
+     chacune, donc écrite quatre fois: même contenu, quatre fois le poids, et
+     quatre endroits à corriger le jour où la liste change. */ ?>
+<datalist id="lDroits">
+  <?php foreach ($noms as $n): ?><option value="<?= e($n) ?>"><?php endforeach; ?>
+</datalist>
+
 <div class="dr-cartes">
   <?php foreach ($CARTES as $i => $defaut): ?>
     <form method="post" action="<?= e($lien('droits')) ?>" class="dr-c">
@@ -108,18 +157,20 @@ $CARTES = ['A', 'MES', 'CH', 'C'];
         <?php endforeach; ?>
       </select>
       <p class="dr-a">Personne — choisis dans l'équipe ou écris le nom</p>
-      <input type="text" name="l[nom]" list="lDroits<?= (int)$i ?>" placeholder="— Équipe —"
+      <input type="text" name="l[nom]" list="lDroits" placeholder="Chercher une personne"
              autocomplete="off" required>
-      <datalist id="lDroits<?= (int)$i ?>">
-        <?php foreach (($d['equipe'] ?? []) as $m):
-          $n = trim(((string)($m['prenom'] ?? '')) . ' ' . ((string)($m['nom'] ?? '')));
-          if ($n === '') continue; ?>
-          <option value="<?= e($n) ?>">
-        <?php endforeach; ?>
-      </datalist>
       <div class="dr-b">
         <input type="text" name="l[societe]" placeholder="Société (SSA, SACD…)">
-        <input type="text" name="l[part]" placeholder="%" inputmode="decimal" required>
+        <?php /* LA PART EST FACULTATIVE, ET C'EST CE QUI SUPPRIME LA SECTION
+             « Collaborateurs ».  [Anna, 22.08.2026] « tirar a parte
+             collaborateurs, ela já deveria estar integrada na primeira parte ».
+             Elle a raison: une contribution sans part déclarée n'est pas une
+             autre espèce de personne, c'est la même ligne avec une case vide.
+             Deux tableaux pour cela obligeaient à choisir d'avance dans lequel
+             quelqu'un allait — et à le déplacer à la main le jour où sa part se
+             négocie. */ ?>
+        <input type="text" name="l[part]" placeholder="%" inputmode="decimal"
+               title="Laisser vide pour une contribution sans part déclarée">
         <button type="submit" title="Ajouter">+</button>
       </div>
     </form>
@@ -127,45 +178,25 @@ $CARTES = ['A', 'MES', 'CH', 'C'];
 </div>
 <?php endif; ?>
 
-<h3 class="sep">Collaborateurs</h3>
-<p class="aide">Ceux qui ont contribué sans être auteurs déclarés. Ils ne comptent pas dans
-   les 100 %, mais ils figurent: une contribution oubliée se réclame ensuite.</p>
+<?php /* LA SECTION « Collaborateurs » A ÉTÉ RETIRÉE D'ICI.  [Anna, 22.08.2026]
+     « tirar a parte collaborateurs, ela já deveria estar integrada na primeira
+     parte da página Partage des droits ».
 
-<?php if ($d['droits']['cols']): ?>
-  <div class="tbl"><table>
-    <thead><tr><th>Nom</th><th>Contribution</th><th></th></tr></thead>
-    <tbody>
-    <?php foreach ($d['droits']['cols'] as $c): ?>
-      <tr>
-        <td><?= e((string)($c['nom'] ?? '')) ?></td>
-        <td class="sec"><?= e((string)($c['contribution'] ?? '')) ?></td>
-        <td class="d">
-          <?php if ($ecrit): ?>
-            <form method="post" action="<?= e($lien('droits')) ?>" class="inline">
-              <?= Auth::csrfField() ?>
-              <input type="hidden" name="pf" value="liste_retirer">
-              <input type="hidden" name="ou" value="droits.cols">
-              <input type="hidden" name="ligne" value="<?= e((string)($c['id'] ?? '')) ?>">
-              <button type="submit" class="x">×</button>
-            </form>
-          <?php endif; ?>
-        </td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table></div>
-<?php endif; ?>
+     Elle a raison sur le fond: quelqu'un qui a contribué sans part déclarée
+     n'est pas une autre espèce de personne, c'est la même ligne avec une case
+     de pour-cent vide. Deux tableaux obligeaient à choisir d'avance dans lequel
+     la personne allait, et à l'y déplacer à la main le jour où sa part se
+     négocie — c'est-à-dire au moment où l'on a le moins envie de ranger.
 
-<?php if ($ecrit): ?>
-<form method="post" action="<?= e($lien('droits')) ?>" class="ajl">
-  <?= Auth::csrfField() ?>
-  <input type="hidden" name="pf" value="liste_ajouter">
-  <input type="hidden" name="ou" value="droits.cols">
-  <input type="text" name="l[nom]"          placeholder="Nom" size="18" required>
-  <input type="text" name="l[contribution]" placeholder="Contribution" size="28">
-  <button type="submit">ajouter</button>
-</form>
-<?php endif; ?>
+     LA PART EST DONC DEVENUE FACULTATIVE dans les cartes du haut, et le tableau
+     affiche « — » là où il n'y en a pas. Le total, lui, ne compte que ce qui
+     est chiffré: c'est ce qui doit faire 100 %.
+
+     CE QUI ÉTAIT DÉJÀ ÉCRIT DANS `droits.cols` RESTE EN BASE, sans être lu ni
+     effacé. Il y en a quatre en tout, sur une seule pièce, et ce ne sont pas des
+     personnes: ce sont les chaînes « A », « MES », « CH » et « C », des codes de
+     fonction déposés là par la reprise du 17.08. Les recopier dans le tableau
+     des auteurs y aurait mis quatre fausses personnes. */ ?>
 
 <form method="post" action="<?= e($lien('droits')) ?>" class="sep2">
   <?= Auth::csrfField() ?>
@@ -193,6 +224,8 @@ form.sep2{margin-top:24px;padding-top:20px;border-top:1px solid var(--trait)}
    regarde aussi sur un écran étroit, et une grille figée à quatre y produirait
    des champs de six caractères. `auto-fit` en garde autant que la largeur en
    permet et repasse à la ligne pour le reste. */
+/* Une contribution sans part se lit sans crier: elle est normale, pas fautive. */
+.sans{color:var(--doux);font-size:12px;white-space:nowrap}
 .dr-cartes{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));
   gap:14px;margin:16px 0 4px}
 .dr-c{border:1px solid var(--trait);border-radius:8px;padding:12px;background:var(--fond2);
