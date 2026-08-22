@@ -46,7 +46,13 @@ const DELAIS_CANTON = [
 
 <style>
 .ongr{position:absolute;opacity:0;pointer-events:none}
-.ongbar{display:flex;gap:2px;margin:0 0 20px;border-bottom:1px solid var(--trait);
+/* LA GOUTTIÈRE DE 26 px, COMME PARTOUT AILLEURS.  [Anna, 22.08.2026]
+   « tirar do colado da barra do menu, fazer a mesma coisa com tudo o que
+   estiver colado ao menu ». Mesurée à 0 px: le premier onglet touchait la barre
+   noire. Les panneaux, eux, la tenaient déjà du formulaire qui les entoure —
+   c'est pourquoi seule la barre se voyait collée. */
+.ongbar{padding-left:26px;padding-right:26px;
+  display:flex;gap:2px;margin:0 0 20px;border-bottom:1px solid var(--trait);
   overflow-x:auto}
 .ongl{padding:9px 15px;font-size:13.5px;white-space:nowrap;cursor:pointer;
   color:var(--doux);border-bottom:2px solid transparent}

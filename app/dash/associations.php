@@ -358,11 +358,25 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
       </div>
     </form>
-    <?php require __DIR__ . '/_assoc_grilles.php'; ?>
+    <?php /* LES GRILLES SONT HORS DU FORMULAIRE — le HTML interdit d'imbriquer
+         un formulaire dans un autre — et elles n'héritaient donc pas de sa
+         gouttière: mesuré à 0 px du menu, contre 23 px pour les panneaux qui
+         sont dedans. Elles restent sœurs des boutons radio, ce qui est ce qui
+         compte: `#ong-x:checked ~ * .pane-x` les atteint à travers cette
+         enveloppe. */ ?>
+    <div class="grl-hors">
+      <?php require __DIR__ . '/_assoc_grilles.php'; ?>
+    </div>
     <style>
 /* Un tiret pâle plutôt qu'une cellule vide: une case vide se lit comme
    « il n'y a rien à savoir », un tiret comme « ce n'est pas renseigné ». */
-.rien{color:var(--doux);opacity:.45}.fil{padding:12px 26px 0;font-size:13px}.fil a{color:var(--doux);text-decoration:none}</style>
+.rien{color:var(--doux);opacity:.45}.grl-hors{padding-left:26px;padding-right:26px}
+.barre-doc{display:flex;justify-content:flex-end;margin:0 0 6px}
+.bt-pdf{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:1px solid var(--encre);
+  border-radius:5px;background:var(--encre);color:var(--papier);text-decoration:none;
+  font-size:13.5px;font-weight:600;white-space:nowrap}
+.bt-pdf:hover{opacity:.86}
+.fil{padding:12px 26px 0;font-size:13px}.fil a{color:var(--doux);text-decoration:none}</style>
     <?php dash_bas(); return;
 }
 
@@ -406,12 +420,41 @@ if ($id > 0) {
     $st->execute([$id]);
     $datesN = (int)$st->fetchColumn();
 
+    /* ── LE DOCUMENT, AVANT TOUT LE RESTE.  [Anna, 22.08.2026] ───────────────
+       « na página principal de cada association criar o botão de impressão em
+       pdf de todas as informações da associação ».
+
+       LA BIFURCATION EST ICI, AVANT `dash_haut()`, et ce n'est pas un détail de
+       rangement: la page imprimée est nue, sans menu ni barre de titre. Appeler
+       `dash_haut()` d'abord et vouloir s'en défaire ensuite ne marche pas —
+       l'en-tête est déjà écrit dans le tampon de sortie. */
+    if (($_GET['imprimer'] ?? '') !== '') {
+        require __DIR__ . '/_assoc_imprimer.php';
+        return;
+    }
+
     dash_haut('associations', e($GENRES[$o['genre']]) . ' · ' . e($STATUTS[$o['statut']] ?? ''));
     ?>
     <div class="fil"><a href="/dashboard.php?e=associations">← toutes les fiches</a>
       <a class="mod" href="/dashboard.php?e=associations&amp;o=<?= $id ?>&amp;mod=1">modifier</a></div>
     <?php dash_flash_html(); ?>
     <div class="zone">
+        <?php /* Le bouton à droite: imprimer n'est pas le geste principal de
+             l'écran, c'est ce qu'on fait à la fin. Même parti que la fiche
+             projet, et même dessin. */ ?>
+        <div class="barre-doc">
+          <a class="bt-pdf" href="/dashboard.php?e=associations&amp;o=<?= $id ?>&amp;an=<?= (int)($_GET['an'] ?? date('Y')) ?>&amp;imprimer=1"
+             target="_blank" rel="noopener"
+             title="Ouvre une page nue. Dans la fenêtre qui s'ouvre: Imprimer, puis « Enregistrer au format PDF »">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9V2h12v7"></path>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <path d="M6 14h12v8H6z"></path>
+            </svg>
+            PDF — Fiche association
+          </a>
+        </div>
       <h2 class="gros"><?= e($o['nom']) ?></h2>
 
       <?php /* L'alerte « existe aussi comme artiste » est retirée. [16.08.2026]
