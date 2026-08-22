@@ -39,6 +39,67 @@ if (cfg('debug')) {
     ini_set('error_log', LV_APP . '/logs/php-error.log');
 }
 
+/* ── CONTENT-SECURITY-POLICY.  [revue de sécurité, 22.08.2026] ──────────────
+ * Point 6 de la revue. Le site n'en avait aucune.
+ *
+ * ELLE EST POSÉE ICI ET NON DANS LE `.htaccess`, pour deux raisons: le
+ * `.htaccess` du serveur ne porte aucune directive `Header` — les autres
+ * en-têtes viennent de la plateforme Infomaniak — et une règle écrite ici est
+ * versionnée, relue et déployée comme le reste du code.
+ *
+ * D'ABORD EN `Report-Only`, ET C'EST DÉLIBÉRÉ. Une CSP mal calibrée casse une
+ * page sans rien dire à qui la regarde: le bouton ne répond plus, l'image ne
+ * s'affiche pas, et personne ne fait le lien. En mode rapport, le navigateur
+ * n'empêche rien et signale ce qu'il aurait empêché. On bascule quand on a la
+ * preuve que rien ne casse. La bascule est la constante `LV_CSP_STRICTE`.
+ *
+ * CE QU'ELLE PROTÈGE VRAIMENT, ET CE QU'ELLE NE PROTÈGE PAS. Le dépôt contient
+ * seize scripts en ligne, cinquante-deux attributs `onclick` et soixante-deux
+ * blocs `<style>`: `'unsafe-inline'` est donc obligatoire tant qu'on n'a pas
+ * refait tout cela avec des nonces. La CSP n'empêche donc PAS l'injection de
+ * script en ligne — il faut le dire plutôt que de croire le contraire.
+ *
+ * Ce qu'elle empêche quand même, et qui n'est pas rien:
+ *   - charger un script depuis un autre domaine (`<script src="//ailleurs">`)
+ *   - envoyer les données ailleurs (`connect-src`)
+ *   - les greffons Flash et compagnie (`object-src 'none'`)
+ *   - détourner toutes les adresses relatives (`base-uri 'self'`)
+ *   - poster un formulaire vers un autre site (`form-action`)
+ *   - encadrer le site dans une page tierce (`frame-ancestors`)
+ *
+ * LES ORIGINES AUTORISÉES SONT MESURÉES, PAS DEVINÉES. Les pages publiques ne
+ * chargent RIEN de tiers — le formulaire Brevo du pied de page est un simple
+ * lien. Restent les vidéos et la musique, insérées au clic, et les tuiles de la
+ * carte dans le dashboard. */
+const LV_CSP_STRICTE = false;
+
+(static function (): void {
+    if (PHP_SAPI === 'cli' || headers_sent()) return;
+
+    $p = implode('; ', [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "form-action 'self'",
+        /* `data:` pour les images embarquées dans les documents imprimés —
+           portraits du dossier, tuiles assemblées; `blob:` pour ce que le
+           navigateur fabrique lui-même. */
+        "img-src 'self' data: blob: https://tile.openstreetmap.org",
+        "style-src 'self' 'unsafe-inline'",
+        "script-src 'self' 'unsafe-inline'",
+        "connect-src 'self' https://nominatim.openstreetmap.org",
+        "font-src 'self' data:",
+        /* Les lecteurs qui s'ouvrent au clic, et rien d'autre. */
+        "frame-src 'self' https://player.vimeo.com https://www.youtube-nocookie.com "
+            . "https://www.youtube.com https://open.spotify.com",
+        "media-src 'self' blob:",
+        "worker-src 'self' blob:",
+    ]);
+
+    header((LV_CSP_STRICTE ? 'Content-Security-Policy: ' : 'Content-Security-Policy-Report-Only: ') . $p);
+})();
+
 mb_internal_encoding('UTF-8');
 date_default_timezone_set('Europe/Zurich');
 
