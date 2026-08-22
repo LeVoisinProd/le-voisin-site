@@ -82,6 +82,12 @@ $blocs = [];
 $ajout = static function (string $titre, string $type, $donnees) use (&$blocs): void {
     if ($type === 'texte' && trim((string)$donnees) === '') return;
     if ($type !== 'texte' && !$donnees) return;
+    /* UN TABLEAU SANS LIGNE N'EST PAS UN TABLEAU VIDE, C'EST UNE RANGÉE D'EN-TÊTES
+       TOUTE SEULE. [22.08.2026] Le test au-dessus ne voit que le tableau lui-même,
+       qui contient toujours ses en-têtes et n'est donc jamais « faux ». Vu à la
+       capture du dossier: « Du · Au · Phase · Lieu · Ville · Pays » imprimé sous
+       le calendrier d'un projet qui n'a aucune étape. */
+    if ($type === 'table' && empty($donnees['lignes'])) return;
     $blocs[] = ['t' => $titre, 'type' => $type, 'd' => $donnees];
 };
 $mt = static fn($v, $dev = '') => $v === null || $v === ''
@@ -156,13 +162,55 @@ case 'dossier':
        Elle est saisie une fois dans la Synthèse et sert partout: la reprendre à
        la main dans le dossier ferait deux listes, dont une périmée. Un
        financeur lit d'abord qui fait le spectacle. */
-    $ajout($tr('doc_equipe'), 'table', [
-        'entete' => [$tr('doc_c_nom'), $tr('doc_c_fonction')],
-        'lignes' => array_values(array_filter(array_map(fn($m) => [
-            trim(((string)($m['prenom'] ?? '')) . ' ' . ((string)($m['nom'] ?? ''))),
-            (string)($m['fonction'] ?? ''),
-        ], $d['equipe'] ?? []), fn($l) => trim($l[0]) !== '')),
-    ]);
+    /* LA PHOTO ET LA BIO VIENNENT DE LA FICHE DE LA PERSONNE, pas de la ligne
+       d'équipe. Anna, à la question posée: elles sont d'elle, pas du spectacle.
+       On les retrouve donc par le nom, faute d'un identifiant sur la ligne — et
+       une personne sans fiche garde sa place dans la liste avec son seul nom:
+       on n'efface personne parce qu'on n'a pas sa photo.
+
+       LE RAPPROCHEMENT PAR LE NOM NE TROUVERA RIEN SUR LES ANCIENNES LIGNES, et
+       c'est mesuré: sur les dix personnes de l'équipe du Bestiarium, zéro
+       correspond à une fiche du Personnel. Plusieurs de ces lignes ne sont même
+       pas une personne — « Lara Epp, Ariel Doron », « Michael Murr (conception
+       lumière) ». Elles viennent d'une reprise, pas de la liste du Personnel.
+       Les lignes ajoutées depuis que l'équipe se choisit dans le Personnel,
+       elles, correspondent.
+
+       LES IMAGES SONT EMBARQUÉES EN `data:` ET NON LIÉES. Le navigateur qui
+       fabrique le PDF suivrait bien une adresse du dashboard, puisqu'il a la
+       session; mais le document enregistré ou transmis montrerait des cadres
+       vides. Un dossier doit tenir tout seul. */
+    $equipeDoc = [];
+    foreach (($d['equipe'] ?? []) as $m) {
+        $nomM = trim(((string)($m['prenom'] ?? '')) . ' ' . ((string)($m['nom'] ?? '')));
+        if ($nomM === '') continue;
+        $fic = null;
+        try {
+            $fic = DB::one("SELECT id, bio, photo FROM rh_employe
+                             WHERE supprime_le IS NULL
+                               AND TRIM(CONCAT_WS(' ', prenom, nom)) = ? LIMIT 1", [$nomM]);
+        } catch (Throwable $ex) { /* la fiche est un plus, jamais une condition */ }
+        $equipeDoc[] = [
+            'nom'      => $nomM,
+            'fonction' => (string)($m['fonction'] ?? ''),
+            'bio'      => trim((string)($fic['bio'] ?? '')),
+            'img'      => $fic ? RhPhoto::dataUri((int)$fic['id'], (string)($fic['photo'] ?? '')) : '',
+        ];
+    }
+
+    /* Deux formes pour la même équipe, et une seule sort. La liste nue quand
+       personne n'a ni bio ni portrait — un tableau de deux colonnes se lit mieux
+       qu'une suite de blocs vides; les fiches dès qu'il y a quelque chose à
+       montrer, parce que c'est ce qu'un financeur lit. */
+    $avecFiche = array_filter($equipeDoc, fn($x) => $x['bio'] !== '' || $x['img'] !== '');
+    if ($avecFiche) {
+        $ajout($tr('doc_equipe'), 'gens', $equipeDoc);
+    } else {
+        $ajout($tr('doc_equipe'), 'table', [
+            'entete' => [$tr('doc_c_nom'), $tr('doc_c_fonction')],
+            'lignes' => array_map(fn($x) => [$x['nom'], $x['fonction']], $equipeDoc),
+        ]);
+    }
 
     $ajout($tr('doc_resume'),   'texte', (string)$d['resume']);
     $ajout($tr('doc_copro'),    'texte', (string)$d['coproductions']);
@@ -464,6 +512,17 @@ $sansMoteur = $resteFr && !Traduction::configured();
   .sign{margin-top:34px;padding-top:12px;border-top:1px solid #ddd;display:grid;
     grid-template-columns:1fr 1fr;gap:30px;font-size:12px;color:#555}
   .sign .l{margin-top:34px;border-top:1px solid #999;padding-top:4px}
+  /* ── UNE PERSONNE: SON PORTRAIT, SON NOM, SA BIO ──────────────────────────
+     `break-inside:avoid` parce qu'une bio coupée entre deux pages avec le
+     portrait resté sur la précédente ne se lit plus comme une fiche. */
+  .gens{display:flex;gap:14px;align-items:flex-start;margin:0 0 14px;
+    break-inside:avoid;page-break-inside:avoid}
+  .gens-p{width:84px;height:84px;object-fit:cover;border-radius:6px;flex:0 0 auto;
+    border:1px solid #ddd}
+  .gens-t{flex:1 1 auto;min-width:0}
+  .gens-n{margin:0 0 4px;font-size:14px}
+  .gens-b{margin:0;font-size:13px;line-height:1.55}
+
   @media print{ .imp{display:none} body{padding:0} @page{margin:16mm}
     h2{break-after:avoid} table{break-inside:auto} tr{break-inside:avoid} }
 </style>
@@ -510,6 +569,20 @@ $sansMoteur = $resteFr && !Traduction::configured();
     <dl><?php foreach ($b['d'] as $k => $v): ?>
       <dt><?= e((string)$k) ?></dt><dd><?= e((string)$v) ?></dd>
     <?php endforeach; ?></dl>
+
+  <?php elseif ($b['type'] === 'gens'): ?>
+    <?php foreach ($b['d'] as $g): ?>
+      <div class="gens">
+        <?php if ($g['img'] !== ''): ?>
+          <img class="gens-p" src="<?= e($g['img']) ?>" alt="">
+        <?php endif; ?>
+        <div class="gens-t">
+          <p class="gens-n"><strong><?= e($g['nom']) ?></strong><?php
+            if ($g['fonction'] !== ''): ?> — <?= e($g['fonction']) ?><?php endif; ?></p>
+          <?php if ($g['bio'] !== ''): ?><p class="gens-b"><?= nl2br(e($g['bio'])) ?></p><?php endif; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
 
   <?php elseif ($b['type'] === 'table'): ?>
     <table>

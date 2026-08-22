@@ -48,11 +48,38 @@ $pid    = (int)($_GET['p'] ?? 0);
 $TYPES = ['interne' => 'interne', 'cdd' => 'CDD', 'cdi' => 'CDI',
           'intermittent' => 'intermittent', 'mandat' => 'mandat', 'stage' => 'stage'];
 
+/* ── LE PORTRAIT SE SERT D'ICI, ET DE NULLE PART AILLEURS.  [22.08.2026] ────
+   Le fichier vit dans `uploads/private`, qu'Apache ne sert pas: sans cette
+   route il serait invisible même à qui a le droit de le voir. Elle est placée
+   AVANT tout le reste, parce qu'elle répond une image et rien d'autre — le
+   moindre octet de HTML déjà écrit casserait le fichier rendu.
+
+   L'ACCÈS EST CELUI DE L'ÉCRAN: qui peut lire le Personnel peut voir les
+   portraits. `dashboard.php` a déjà exigé la session avant d'arriver ici; on
+   vérifie le droit de lecture, et le nom du fichier vient de la base et non de
+   l'adresse — il n'y a donc rien à deviner. */
+if (($_GET['photo'] ?? '') !== '') {
+    $pid_ph = (int)$_GET['photo'];
+    $f_ph   = $pid_ph > 0 ? (string)DB::val('SELECT photo FROM rh_employe WHERE id = ?', [$pid_ph]) : '';
+    $ch_ph  = $f_ph !== '' ? RhPhoto::chemin($pid_ph, $f_ph) : '';
+    if (dash_droit('personnel', dash_role()) === 'non' || $ch_ph === '' || !is_file($ch_ph)) {
+        http_response_code(404);
+        exit;
+    }
+    header('Content-Type: ' . RhPhoto::mime($f_ph));
+    header('Content-Length: ' . (string)filesize($ch_ph));
+    /* Privé et non public: un portrait ne se met pas dans le cache d'un
+       mandataire que d'autres partagent. */
+    header('Cache-Control: private, max-age=600');
+    readfile($ch_ph);
+    exit;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ACTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-$CH_EMP = ['prenom','nom','nom_artistique','pronom','email','telephone','fonction','role_interne','couleur',
+$CH_EMP = ['prenom','nom','nom_artistique','bio','pronom','email','telephone','fonction','role_interne','couleur',
            'type_engagement','organisation_id','naissance','nationalite','permis',
            'rue','numero','cp','ville','pays','paie_mensuelle','paie_horaire','devise','notes','actif'];
 
@@ -90,11 +117,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($v !== '') $cols[$c] = Crypto::chiffrer($v);
         }
 
+        /* ── LE PORTRAIT.  [Anna, 22.08.2026] ────────────────────────────────
+           Il ne passe pas par `$CH_EMP`: ce n'est pas une colonne qu'on recopie
+           du formulaire mais un fichier à écrire sur le disque avant de noter
+           son nom. Le dépôt peut échouer pour de bonnes raisons — un PDF
+           renommé en `.jpg`, une image de 30 Mo — et l'échec ne doit pas
+           emporter le reste de la fiche: on le dit et on enregistre le reste. */
+        $errPhoto = '';
+        if ($id > 0 && ($_POST['photo_sup'] ?? '') === '1') {
+            $anc = (string)DB::val('SELECT photo FROM rh_employe WHERE id = ?', [$id]);
+            RhPhoto::supprimer($id, $anc);
+            $cols['photo'] = null;
+        } elseif ($id > 0 && ($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $anc = (string)DB::val('SELECT photo FROM rh_employe WHERE id = ?', [$id]);
+                $cols['photo'] = RhPhoto::deposer($id, $_FILES['photo'], $anc);
+            } catch (Throwable $ex) {
+                $errPhoto = $ex->getMessage();
+            }
+        }
+
         if (trim((string)($cols['prenom'] ?? '')) === '' && trim((string)($cols['nom'] ?? '')) === '') {
             dash_flash('Il faut au moins un prénom ou un nom.', 'err');
         } elseif ($id > 0) {
             DB::update('rh_employe', $cols, 'id = ?', [$id]);
-            dash_flash('Fiche enregistrée.');
+            dash_flash($errPhoto === '' ? 'Fiche enregistrée.'
+                                        : 'Fiche enregistrée, mais la photo n’a pas été prise: ' . $errPhoto,
+                       $errPhoto === '' ? 'ok' : 'err');
         } else {
             $cols['devise'] ??= 'CHF';
             $cols['actif']  ??= 1;

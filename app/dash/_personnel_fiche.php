@@ -106,7 +106,8 @@ dash_form_style();
 dash_flash_html();
 ?>
 
-<form class="saisie" method="post" action="<?= e(url('/dashboard.php?e=personnel')) ?>">
+<form class="saisie" method="post" enctype="multipart/form-data"
+      action="<?= e(url('/dashboard.php?e=personnel')) ?>">
   <?= Auth::csrfField() ?>
   <input type="hidden" name="action" value="emp">
   <input type="hidden" name="id" value="<?= (int)($p['id'] ?? 0) ?>">
@@ -127,7 +128,40 @@ dash_flash_html();
     ch('naissance','Date de naissance', $p['naissance'] ?? '', [], ['type' => 'date']);
     ch('nationalite','Nationalité',     $p['nationalite'] ?? '');
     ch('permis',   'Permis de séjour',  $p['permis']   ?? '', [], ['aide' => 'B, C, G, L — vide si suisse ou UE résident']);
+    /* ── LA BIO ET LE PORTRAIT.  [Anna, 22.08.2026] ──────────────────────────
+       « colocar o item foto + bio ». Ils sont de la personne et non du
+       spectacle — sa réponse à la question posée — donc écrits une fois ici et
+       repris par tous les dossiers où elle entre. Une bio corrigée se corrige
+       partout du même geste. */
+    ch('bio', 'Biographie', $p['bio'] ?? '', [],
+       ['type' => 'textarea', 'rows' => 6, 'large' => true,
+        'aide' => 'Reprise telle quelle dans les dossiers. Du texte, pas de mise en forme.']);
     ?>
+
+    <div class="ch large">
+      <label for="f_photo">Portrait</label>
+      <p class="aide">JPEG, PNG ou WebP, 8 Mo au maximum. Il n'est pas servi par une adresse
+         publique: seul le dashboard le montre, et le dossier l'emporte à l'intérieur du PDF.</p>
+      <div class="ph-l">
+        <?php if (!empty($p['photo']) && (int)($p['id'] ?? 0) > 0): ?>
+          <img class="ph-v" alt="" src="<?= e(url('/dashboard.php?e=personnel&photo=' . (int)$p['id'])) ?>">
+          <label class="ph-s"><input type="checkbox" name="photo_sup" value="1"> retirer</label>
+        <?php else: ?>
+          <span class="ph-r">aucun portrait</span>
+        <?php endif; ?>
+        <input type="file" id="f_photo" name="photo" accept="image/jpeg,image/png,image/webp">
+      </div>
+    </div>
+    <style>
+    /* Les règles du portrait: écrites ici, dans le seul écran qui le montre. */
+    .ph-l{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .ph-v{width:76px;height:76px;object-fit:cover;border-radius:8px;
+      border:1px solid var(--trait);background:var(--fond2)}
+    .ph-r{font-size:13px;color:var(--doux)}
+    .ph-s{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--doux)}
+    .ph-s input{width:auto;margin:0}
+    .ph-l input[type=file]{font-size:12.5px}
+    </style>
 
     <h2 class="titre-bloc">Contact</h2>
     <?php

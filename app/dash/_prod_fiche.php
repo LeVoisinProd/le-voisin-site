@@ -244,13 +244,12 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
         </div>
       </div>
     </div>
-    <p class="aide"><strong>Le titre, l'année, la durée et le public s'écrivent dans le
-       catalogue du site.</strong> Ils ne sont pas recopiés ici: c'est la même donnée, et la
-       modifier change la page publique dans l'instant. Changer le titre entraîne aussi les
-       dates et les offres qui portent l'ancien. L'adresse publique de la fiche, elle, ne
-       bouge pas.</p>
-    <p class="aide">Le budget est celui du projet artistique, <strong>pas l'argent qui passe
-       par Le Voisin</strong> — le détail se saisit dans l'onglet Budget.</p>
+    <?php /* LES DEUX PARAGRAPHES D'AIDE SONT RETIRÉS.  [Anna, 22.08.2026]
+         « tirar esse texto do dashboard ». Ils disaient d'où viennent ces
+         champs et ce que les modifier entraîne — c'était utile le jour où ils
+         sont devenus modifiables, et c'est du bruit tous les jours suivants.
+         Ce qu'ils expliquaient reste écrit dans `projets.php`, à l'endroit où
+         l'écriture se fait. */ ?>
   <?php $corpsInfos = ob_get_clean(); ?>
 
   <div class="grille1">
