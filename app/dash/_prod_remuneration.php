@@ -14,8 +14,14 @@
 declare(strict_types=1);
 
 /* Les libellés, pour que le tableau ne montre pas « CH-jour ». `CH` sans suffixe
-   est l'ancien code du mensuel suisse, gardé en lecture seule. */
-const CONTRATS = [
+   est l'ancien code du mensuel suisse, gardé en lecture seule.
+
+   `defined()` PARCE QU'UN `const` DE FICHIER NE SE REDÉCLARE PAS. Aujourd'hui
+   l'onglet n'est inclus qu'une fois par requête et rien ne casse; le jour où il
+   le serait deux fois — l'écran puis l'impression dans la même page — PHP 8
+   émet un avertissement et PHP 9 en fera une erreur fatale. Vu au test, où deux
+   rendus se suivent dans le même processus. */
+if (!defined('CONTRATS')) define('CONTRATS', [
     'CH-mois'  => 'Suisse — CDDU mensuel',
     'CH-jour'  => 'Suisse — CDDU journalier',
     'CH-heure' => 'Suisse — CDDU horaire',
@@ -24,7 +30,7 @@ const CONTRATS = [
     'FR-jour'  => 'France — CDDU journalier',
     'FR-heure' => 'France — CDDU horaire',
     'facture'  => 'Facture',
-];
+]);
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */
 
 $etapesJ = ProdFiche::joursDuPlanning($d);
