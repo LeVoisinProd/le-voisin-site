@@ -56,7 +56,10 @@ $lien  = fn(string $o): string => '/dashboard.php?e=projets&p=' . $pid . '&o=' .
    n'enregistrent pas la même chose est une page où l'on perd son travail. */
 $champ = function (string $chemin, string $label, string $val, string $aide = '', int $lignes = 0, string $form = '') use ($ecrit): string {
     $id = 'c-' . str_replace('.', '-', $chemin);
-    $h  = '<div class="ch"><label for="' . $id . '">' . e($label) . '</label>';
+    /* UNE ÉTIQUETTE VIDE N'EN POSE PAS. Dans une carte, le titre est déjà dans
+       l'en-tête: la répéter au-dessus du champ ferait deux fois le même mot. */
+    $h  = '<div class="ch">';
+    if ($label !== '') $h .= '<label for="' . $id . '">' . e($label) . '</label>';
     if ($aide !== '') $h .= '<p class="aide">' . e($aide) . '</p>';
     $ro = $ecrit ? '' : ' readonly';
     $fa = $form !== '' ? ' form="' . e($form) . '"' : '';
@@ -64,6 +67,24 @@ $champ = function (string $chemin, string $label, string $val, string $aide = ''
         ? '<textarea id="' . $id . '" name="v[' . e($chemin) . ']" rows="' . $lignes . '"' . $ro . $fa . '>' . e($val) . '</textarea>'
         : '<input type="text" id="' . $id . '" name="v[' . e($chemin) . ']" value="' . e($val) . '"' . $ro . $fa . '>';
     return $h . '</div>';
+};
+
+/**
+ * Une carte: un en-tête qui nomme, un corps qui contient.  [Anna, 22.08.2026]
+ *
+ * « refazer a mise en page da synthese baseada nas imagens » et « adaptar a
+ * mise en page da parte dossier segundo as imagens ». Les deux modèles qu'elle
+ * a envoyés dessinent la même chose: des blocs encadrés, deux par rangée, avec
+ * un bandeau de titre et parfois un bouton à droite de ce bandeau.
+ *
+ * C'EST LA MÊME FONCTION POUR LES DEUX ONGLETS, et pour ceux qui suivront. Les
+ * écrire chacun de son côté aurait produit deux cartes qui se ressemblent sans
+ * être pareilles — c'est ainsi qu'un dashboard finit avec quatre gris de fond.
+ */
+$carte = function (string $titre, string $corps, string $action = ''): string {
+    return '<section class="carte"><div class="carte-t"><h3>' . e($titre) . '</h3>'
+         . ($action !== '' ? '<div class="carte-d">' . $action . '</div>' : '')
+         . '</div><div class="carte-b">' . $corps . '</div></section>';
 };
 
 dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les spectacles</a> · <strong>' . e($titre) . '</strong>');
@@ -125,95 +146,117 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 <?php /* ══════════════════════════ SYNTHÈSE ══════════════════════════ */ ?>
 <?php if ($onglet === 'synthese'): ?>
 
+  <?php /* LA SYNTHÈSE EN CARTES.  [Anna, 22.08.2026]
+       « refazer a mise en page da synthese baseada nas imagens ». Ses modèles
+       montrent une carte large pour l'identité du projet, puis des cartes deux
+       par rangée pour le reste.
+
+       LE FORMULAIRE SE FERME TOUT DE SUITE ET LES CHAMPS LE NOMMENT. L'équipe
+       est un formulaire à part et ne peut pas s'imbriquer dans un autre; les
+       cartes doivent pourtant s'écrire dans l'ordre du modèle, l'équipe au
+       milieu. Chaque champ porte donc `form="fSyn"` et part avec lui d'où qu'il
+       soit dans la page — un seul bouton Enregistrer pour toute la synthèse.
+
+       CE QUI N'EST PAS ICI ET QUI EST DANS SES IMAGES: discipline, statut, dates
+       de début et de fin, ville, pays, lieu de présentation, image du projet,
+       documents de diffusion, totaux du projet. Ce sont des champs de l'ancien
+       dashboard qui n'existent pas dans ce modèle-ci. La mise en page se fait
+       sans eux; les ajouter est une autre décision, et elle lui appartient. */ ?>
   <form id="fSyn" method="post" action="<?= e($lien('synthese')) ?>">
     <?= Auth::csrfField() ?>
     <input type="hidden" name="pf" value="champs">
-
-    <div class="deux">
-      <div class="bl">
-        <h3>Informations de la création</h3>
-        <p class="aide">Le titre, la durée et les textes publics viennent du CMS et se
-           modifient dans l'administration du site: les recopier ici ferait deux vérités.</p>
-        <dl class="info">
-          <dt>Titre</dt><dd><?= e($titre) ?></dd>
-          <?php if ($p['year_creation']): ?><dt>Création</dt><dd><?= e((string)$p['year_creation']) ?></dd><?php endif; ?>
-          <?php if ($p['duration_min']): ?><dt>Durée</dt><dd><?= (int)$p['duration_min'] ?> min</dd><?php endif; ?>
-          <?php if ($p['public_cible']): ?><dt>Public</dt><dd><?= e((string)$p['public_cible']) ?></dd><?php endif; ?>
-          <dt>Phase</dt>
-          <dd>
-            <select name="prod[phase]" <?= $ecrit ? '' : 'disabled' ?>>
-              <?php foreach (['dev'=>'Développement','creation'=>'Création','production'=>'Production',
-                              'promo'=>'Promotion','tournee'=>'Tournée','cloture'=>'Clôture'] as $k => $v): ?>
-                <option value="<?= $k ?>" <?= ($prod['phase'] ?? 'dev') === $k ? 'selected' : '' ?>><?= e($v) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </dd>
-          <dt>Responsable</dt>
-          <dd><input type="text" name="prod[responsable]" value="<?= e((string)($prod['responsable'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></dd>
-          <dt>Lieu de création</dt>
-          <dd><input type="text" name="prod[lieu_creation]" value="<?= e((string)($prod['lieu_creation'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></dd>
-          <dt>Porteur juridique</dt>
-          <dd>
-            <select name="prod[organisation_id]" <?= $ecrit ? '' : 'disabled' ?>>
-              <option value="">(aucun)</option>
-              <?php foreach (DB::all("SELECT id, nom FROM organisation WHERE supprime_le IS NULL
-                                      ORDER BY genre, nom") as $o): ?>
-                <option value="<?= (int)$o['id'] ?>" <?= (int)($prod['organisation_id'] ?? 0) === (int)$o['id'] ? 'selected' : '' ?>><?= e((string)$o['nom']) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </dd>
-          <dt>Budget du projet</dt>
-          <dd class="paire">
-            <input type="text" name="prod[budget]" value="<?= $prod['budget'] !== null ? e((string)(0 + (float)$prod['budget'])) : '' ?>" <?= $ecrit ? '' : 'readonly' ?>>
-            <select name="prod[devise]" <?= $ecrit ? '' : 'disabled' ?>>
-              <?php foreach (['CHF','EUR'] as $dv): ?>
-                <option <?= ($prod['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
-              <?php endforeach; ?>
-            </select>
-          </dd>
-        </dl>
-        <p class="aide">Le budget du projet artistique, <strong>pas l'argent qui passe par
-           Le Voisin</strong>. Le détail se saisit dans l'onglet Budget.</p>
-
-        <div class="ch">
-          <label for="c-notes-prod">Notes de production</label>
-          <textarea id="c-notes-prod" name="prod[notes]" rows="4" <?= $ecrit ? '' : 'readonly' ?>><?= e((string)($prod['notes'] ?? '')) ?></textarea>
-        </div>
-      </div>
-
-      <div class="bl">
-        <?= $champ('resume', 'Résumé du spectacle', (string)$d['resume'],
-                   'Le pitch, tel qu\'on l\'envoie. C\'est lui que le Dossier reprend.', 7) ?>
-        <?= $champ('coproductions', 'Coproductions', (string)$d['coproductions'], '', 3) ?>
-        <?= $champ('soutiens', 'Soutiens', (string)$d['soutiens'], '', 3) ?>
-      </div>
-    </div>
-
   </form>
 
-  <?php /* L'ÉQUIPE AU MILIEU, LES STATISTIQUES À LA FIN.  [Anna, 22.08.2026]
-       « dans la partie synthèse mettre les infos de statistique à la fin,
-       monter équipe du projet ». Qui fait le spectacle se lit avant combien de
-       fois il s'est joué.
+  <?php ob_start(); ?>
+    <div class="trois">
+      <div class="ch"><label>Titre</label><p class="fixe"><?= e($titre) ?></p></div>
+      <div class="ch"><label>Création</label>
+        <p class="fixe"><?= $p['year_creation'] ? e((string)$p['year_creation']) : '—' ?></p></div>
+      <div class="ch"><label>Durée</label>
+        <p class="fixe"><?= $p['duration_min'] ? (int)$p['duration_min'] . ' min' : '—' ?></p></div>
 
-       Le formulaire de la synthèse se ferme ici, au-dessus de l'équipe — qui
-       est un formulaire à part et ne peut pas s'imbriquer. Les statistiques
-       s'écrivent en dessous et lui appartiennent quand même, par leur
-       `form="fSyn"`: voir la closure `$champ` en haut de ce fichier. */ ?>
+      <div class="ch"><label for="c-phase">Phase</label>
+        <select id="c-phase" name="prod[phase]" form="fSyn" <?= $ecrit ? '' : 'disabled' ?>>
+          <?php foreach (['dev'=>'Développement','creation'=>'Création','production'=>'Production',
+                          'promo'=>'Promotion','tournee'=>'Tournée','cloture'=>'Clôture'] as $k => $v): ?>
+            <option value="<?= $k ?>" <?= ($prod['phase'] ?? 'dev') === $k ? 'selected' : '' ?>><?= e($v) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="ch"><label for="c-porteur">Association porteuse</label>
+        <select id="c-porteur" name="prod[organisation_id]" form="fSyn" <?= $ecrit ? '' : 'disabled' ?>>
+          <option value="">(aucune)</option>
+          <?php foreach (DB::all("SELECT id, nom FROM organisation WHERE supprime_le IS NULL
+                                  ORDER BY genre, nom") as $o): ?>
+            <option value="<?= (int)$o['id'] ?>" <?= (int)($prod['organisation_id'] ?? 0) === (int)$o['id'] ? 'selected' : '' ?>><?= e((string)$o['nom']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="ch"><label for="c-resp">Responsable</label>
+        <input type="text" id="c-resp" name="prod[responsable]" form="fSyn"
+               value="<?= e((string)($prod['responsable'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
 
-  <h3 class="sep">Équipe du projet</h3>
-  <?php require __DIR__ . '/_prod_equipe.php'; ?>
+      <div class="ch"><label for="c-lieuc">Lieu de création</label>
+        <input type="text" id="c-lieuc" name="prod[lieu_creation]" form="fSyn"
+               value="<?= e((string)($prod['lieu_creation'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
+      <div class="ch"><label>Public</label>
+        <p class="fixe"><?= $p['public_cible'] ? e((string)$p['public_cible']) : '—' ?></p></div>
+      <div class="ch"><label for="c-budget">Budget du projet</label>
+        <div class="paire">
+          <input type="text" id="c-budget" name="prod[budget]" form="fSyn"
+                 value="<?= $prod['budget'] !== null ? e((string)(0 + (float)$prod['budget'])) : '' ?>" <?= $ecrit ? '' : 'readonly' ?>>
+          <select name="prod[devise]" form="fSyn" <?= $ecrit ? '' : 'disabled' ?>>
+            <?php foreach (['CHF','EUR'] as $dv): ?>
+              <option <?= ($prod['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+    </div>
+    <p class="aide">Le titre, la durée et le public viennent du CMS et se modifient dans
+       l'administration du site: les recopier ici ferait deux vérités. Le budget est celui du
+       projet artistique, <strong>pas l'argent qui passe par Le Voisin</strong> — le détail se
+       saisit dans l'onglet Budget.</p>
+  <?php $corpsInfos = ob_get_clean(); ?>
 
-  <h3 class="sep">Statistiques</h3>
-  <div class="quatre">
-    <?= $champ('statistiques.representations', 'Représentations', (string)$d['statistiques']['representations'], '', 0, 'fSyn') ?>
-    <?= $champ('statistiques.spectateurs', 'Spectateurs', (string)$d['statistiques']['spectateurs'], '', 0, 'fSyn') ?>
-    <?= $champ('statistiques.recettes', 'Recettes', (string)$d['statistiques']['recettes'], '', 0, 'fSyn') ?>
-    <?= $champ('statistiques.villes', 'Villes jouées', (string)$d['statistiques']['villes'], '', 0, 'fSyn') ?>
+  <div class="grille1">
+    <?= $carte('Informations du projet', $corpsInfos,
+               $ecrit ? '<button type="submit" form="fSyn" class="b-jaune">Enregistrer</button>' : '') ?>
   </div>
-  <?= $champ('statistiques.notes', 'Notes', (string)$d['statistiques']['notes'], '', 2, 'fSyn') ?>
 
-  <?php if ($ecrit): ?><button type="submit" form="fSyn">Enregistrer</button><?php endif; ?>
+  <?php ob_start(); require __DIR__ . '/_prod_equipe.php'; $corpsEquipe = ob_get_clean(); ?>
+
+  <div class="grille2">
+    <?= $carte('Résumé du spectacle',
+               $champ('resume', '', (string)$d['resume'],
+                      'Le pitch, tel qu\'on l\'envoie. C\'est lui que le Dossier reprend.', 7, 'fSyn')) ?>
+    <?= $carte('Équipe du projet', $corpsEquipe) ?>
+
+    <?= $carte('Coproductions',
+               $champ('coproductions', '', (string)$d['coproductions'], '', 5, 'fSyn')) ?>
+    <?= $carte('Soutiens',
+               $champ('soutiens', '', (string)$d['soutiens'], '', 5, 'fSyn')) ?>
+
+    <?php ob_start(); ?>
+      <div class="deux">
+        <?= $champ('statistiques.representations', 'Représentations', (string)$d['statistiques']['representations'], '', 0, 'fSyn') ?>
+        <?= $champ('statistiques.spectateurs', 'Spectateurs', (string)$d['statistiques']['spectateurs'], '', 0, 'fSyn') ?>
+        <?= $champ('statistiques.recettes', 'Recettes', (string)$d['statistiques']['recettes'], '', 0, 'fSyn') ?>
+        <?= $champ('statistiques.villes', 'Villes jouées', (string)$d['statistiques']['villes'], '', 0, 'fSyn') ?>
+      </div>
+      <?= $champ('statistiques.notes', 'Notes', (string)$d['statistiques']['notes'], '', 2, 'fSyn') ?>
+    <?php $corpsStat = ob_get_clean(); ?>
+    <?= $carte('Statistiques', $corpsStat) ?>
+
+    <?= $carte('Notes de production',
+               '<div class="ch"><textarea id="c-notes-prod" name="prod[notes]" rows="6" form="fSyn"'
+               . ($ecrit ? '' : ' readonly') . '>' . e((string)($prod['notes'] ?? '')) . '</textarea></div>') ?>
+  </div>
+
+  <?php /* PAS DE SECOND « Enregistrer » EN BAS. Celui de l'en-tête de la carte
+       d'identité enregistre déjà toute la synthèse, cartes du bas comprises.
+       Deux boutons identiques pour un seul enregistrement, c'est exactement ce
+       qu'Anna a fait retirer de l'onglet Budget le même jour. */ ?>
 
 <?php /* ══════════════════════════ DOSSIER ═══════════════════════════ */ ?>
 <?php elseif ($onglet === 'dossier'): ?>
@@ -221,34 +264,59 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   <p class="aide top">Les textes du dossier de demande de fonds. Le résumé, les coproductions
      et les soutiens viennent de la Synthèse — inutile de les ressaisir ici.</p>
 
-  <form method="post" action="<?= e($lien('dossier')) ?>">
+  <?php /* SIX CARTES, DEUX PAR RANGÉE.  [Anna, 22.08.2026] C'était une colonne
+       de six grands textes empilés, et il fallait dérouler pour savoir ce que le
+       dossier contenait. Les cartes le disent d'un regard, et la moitié de la
+       largeur suffit à chaque texte: aucun ne se lit ligne à ligne, on les
+       remplit et on les relit. */ ?>
+  <form id="fDos" method="post" action="<?= e($lien('dossier')) ?>">
     <?= Auth::csrfField() ?>
     <input type="hidden" name="pf" value="champs">
-    <?= $champ('dossier.lettre', 'Lettre de motivation', (string)$d['dossier']['lettre'],
-               'Adressée au financeur: pourquoi ce projet, pourquoi maintenant, pourquoi vous.', 8) ?>
-    <?= $champ('dossier.description', 'Description du projet', (string)$d['dossier']['description'],
-               'Présentation détaillée. Le résumé court reste dans la Synthèse.', 8) ?>
-    <?= $champ('dossier.intention', 'Note d\'intention', (string)$d['dossier']['intention'],
-               'Le propos artistique, la démarche, l\'écriture.', 8) ?>
+  </form>
 
-    <div class="ch">
-      <label for="c-dossier-calendrier">Calendrier</label>
-      <?php $auto = ProdFiche::calendrierDepuisPlanning($d); ?>
+  <div class="grille2">
+    <?= $carte('Lettre de motivation',
+               $champ('dossier.lettre', '', (string)$d['dossier']['lettre'],
+                      'Adressée au financeur: pourquoi ce projet, pourquoi maintenant, pourquoi vous.', 8, 'fDos')) ?>
+
+    <?= $carte('Description du projet',
+               $champ('dossier.description', '', (string)$d['dossier']['description'],
+                      'Présentation détaillée. Le résumé court reste dans la Synthèse.', 8, 'fDos')) ?>
+
+    <?= $carte('Note d\'intention',
+               $champ('dossier.intention', '', (string)$d['dossier']['intention'],
+                      'Le propos artistique, la démarche, l\'écriture.', 8, 'fDos')) ?>
+
+    <?php /* LE CALENDRIER GARDE SON CORPS À LA MAIN: il montre d'abord ce que le
+         Planning contient déjà, et le bouton de son en-tête y renvoie plutôt que
+         de faire retaper les dates ici. */ ?>
+    <?php ob_start(); $auto = ProdFiche::calendrierDepuisPlanning($d); ?>
       <?php if ($auto !== ''): ?>
         <p class="aide">Les étapes du Planning, telles qu'elles y sont saisies:</p>
         <pre class="auto"><?= e($auto) ?></pre>
       <?php else: ?>
         <p class="aide">Aucune étape dans le Planning — rien à reprendre ici pour l'instant.</p>
       <?php endif; ?>
-      <textarea id="c-dossier-calendrier" name="v[dossier.calendrier]" rows="5" <?= $ecrit ? '' : 'readonly' ?>><?= e((string)$d['dossier']['calendrier']) ?></textarea>
-    </div>
+      <div class="ch">
+        <textarea id="c-dossier-calendrier" name="v[dossier.calendrier]" rows="5" form="fDos"
+                  <?= $ecrit ? '' : 'readonly' ?>><?= e((string)$d['dossier']['calendrier']) ?></textarea>
+      </div>
+    <?php $corpsCal = ob_get_clean(); ?>
+    <?= $carte('Calendrier', $corpsCal,
+               '<a class="carte-b2" href="' . e($lien('planning')) . '">Modifier les dates</a>') ?>
 
-    <?= $champ('dossier.publicCible', 'Public cible', (string)$d['dossier']['publicCible'],
-               'Âges, publics spécifiques, médiation.', 3) ?>
-    <?= $champ('dossier.benefice', 'Bénéfice pour la ville', (string)$d['dossier']['benefice'],
-               'Retombées locales: rayonnement, emploi, publics, partenariats.', 5) ?>
-    <?php if ($ecrit): ?><button type="submit">Enregistrer</button><?php endif; ?>
-  </form>
+    <?= $carte('Public cible',
+               $champ('dossier.publicCible', '', (string)$d['dossier']['publicCible'],
+                      'Âges, publics spécifiques, médiation.', 5, 'fDos')) ?>
+
+    <?= $carte('Bénéfice pour la ville',
+               $champ('dossier.benefice', '', (string)$d['dossier']['benefice'],
+                      'Retombées locales: rayonnement, emploi, publics, partenariats.', 5, 'fDos')) ?>
+  </div>
+
+  <?php if ($ecrit): ?>
+    <div class="barre-enr"><button type="submit" form="fDos">Enregistrer</button></div>
+  <?php endif; ?>
 
 <?php /* ══════════════════════════ PLANNING ══════════════════════════ */ ?>
 <?php elseif ($onglet === 'planning'): ?>
@@ -342,6 +410,50 @@ button[type=submit]{padding:9px 20px;font:inherit;font-size:14px;font-weight:600
 button[type=submit]:hover{opacity:.88}
 form.inline{display:inline}
 form.inline button{margin-bottom:14px}
+/* ── LES CARTES ───────────────────────────────────────────────────────────
+   [Anna, 22.08.2026] Deux par rangée, `auto-fit` et non deux colonnes figées:
+   sous 760 px de large deux cartes donneraient des zones de texte de six mots,
+   et elles passent l'une sous l'autre d'elles-mêmes.
+   `align-items:start` empêche une carte courte de s'étirer à la hauteur de sa
+   voisine — sans lui, « Public cible » prendrait la taille de la lettre de
+   motivation et son cadre serait vide aux trois quarts. */
+.grille2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr));
+  gap:18px;align-items:start;margin:4px 0 0}
+/* Une seule carte sur toute la largeur: même gouttière que la grille à deux,
+   pour que les bords s'alignent d'une rangée à l'autre. */
+.grille1{margin:4px 0 18px}
+.carte{border:1px solid var(--trait);border-radius:10px;background:var(--papier);
+  overflow:hidden}
+.carte-t{display:flex;align-items:center;gap:12px;padding:12px 16px;
+  background:var(--fond2);border-bottom:1px solid var(--trait)}
+.carte-t h3{margin:0;font-size:14.5px}
+.carte-d{margin-left:auto}
+.carte-b{padding:14px 16px}
+.carte-b .ch:last-child{margin-bottom:0}
+/* Une valeur qui vient du CMS se lit, ne se saisit pas: pas de cadre autour. */
+.carte-b p.fixe{margin:0;padding:8px 0;font-size:14px}
+.carte-b .aide{margin:10px 0 0}
+/* Le bouton d'en-tête de la carte d'identité: c'est l'action de l'écran, donc
+   plein et jaune comme dans le modèle, et non en contour comme un renvoi. */
+.b-jaune{margin-top:0;padding:7px 16px;font-size:13px;
+  background:var(--jaune,#FFD24D);color:var(--encre)}
+/* Un bouton d'en-tête est un renvoi, pas l'action de la carte: en contour. */
+.carte-b2{display:inline-block;padding:5px 12px;border:1px solid var(--trait);
+  border-radius:5px;font-size:12.5px;text-decoration:none;color:var(--encre);
+  background:var(--papier);white-space:nowrap}
+.carte-b2:hover{background:var(--fond2)}
+/* L'ENREGISTREMENT SE RANGE À DROITE, comme les autres barres d'action. */
+.barre-enr{display:flex;justify-content:flex-end;margin-top:18px}
+.barre-enr button[type=submit]{margin-top:0}
+/* TROIS COLONNES, ET NON « autant qu'il en tient ».  [22.08.2026] Écrit d'abord
+   en `auto-fit minmax(220px)`, il en produisait cinq sur un grand écran: le
+   montant du budget et sa monnaie se retrouvaient dans une case de 220 px et la
+   monnaie repassait sous le montant — le défaut qu'on venait de corriger. Trois
+   est la proportion du modèle, et elle se tient. */
+.trois{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 20px}
+@media (max-width:900px){.trois{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.trois{grid-template-columns:minmax(0,1fr)}}
+
 /* LE MONTANT ET SA MONNAIE SUR UNE LIGNE.  [Anna, 22.08.2026]
    « a parte budget do projet, porque tem campos em duas linhas? deixa o valor e
    a moeda na mesma linha ».
@@ -349,9 +461,12 @@ form.inline button{margin-bottom:14px}
    ici. Les deux champs héritaient donc du `width:100%` de `dd input, dd select`
    et n'avaient pas d'autre choix que de s'empiler. Un montant et sa monnaie
    sont une seule donnée: ils se lisent d'un trait. */
-dd.paire{display:flex;gap:8px;align-items:center}
-dd.paire input{flex:1;min-width:0}
-dd.paire select{width:auto;flex:0 0 auto;padding-right:8px}
+/* La règle visait `dd.paire`, du temps où le budget vivait dans une liste de
+   définitions. La carte l'a mis dans un `div`, et la règle a cessé de le voir:
+   la monnaie est repassée sous le montant. On vise la classe, pas la balise. */
+.paire{display:flex;gap:8px;align-items:center}
+.paire input{flex:1 1 auto;min-width:0}
+.paire select{width:auto;flex:0 0 auto;padding-right:8px}
 
 /* L'ÉQUIPE NE PREND QUE LA PLACE QU'IL LUI FAUT.  [Anna, 22.08.2026]
    « la partie équipe de projet, c'est trop large, il faut que ce soit plus
