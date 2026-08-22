@@ -111,57 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             dash_flash('Rôle enregistré.');
         }
     }
-    /* ── LE DEUXIÈME FACTEUR, LE SIEN ET PAS CELUI DES AUTRES ────────────────
-       [revue de sécurité, 22.08.2026, point 3]
-
-       CHACUN N'AGIT QUE SUR SON PROPRE COMPTE, et c'est délibéré: le secret est
-       posé dans une application qu'on tient dans la main. Poser celui d'un autre
-       n'a pas de sens, et le retirer à un autre serait un moyen de contourner le
-       facteur qu'on vient d'installer.
-
-       `dash_exige_ecriture()` a déjà refusé plus haut à qui n'est pas direction;
-       le jour où d'autres rôles arriveront ici, cette section devra être sortie
-       de cette garde — un compte production a besoin de son facteur autant que
-       les autres. C'est écrit pour qu'on y pense. */
-    $moi = (int)($_SESSION['lv_admin_id'] ?? 0);
-    $a2f = (string)($_POST['a2f'] ?? '');
-
-    if ($a2f === 'preparer' && $moi > 0) {
-        /* On écrit un secret neuf mais on n'active rien: tant qu'un code n'a pas
-           été prouvé, le compte doit pouvoir entrer sans. Sinon une application
-           mal configurée enferme dehors. */
-        DB::update('users', ['totp_secret' => Crypto::chiffrer(Totp::secret()), 'totp_actif' => 0],
-                   'id = ?', [$moi]);
-        dash_flash('Un secret a été préparé. Posez-le dans votre application, puis prouvez un code.');
-
-    } elseif ($a2f === 'activer' && $moi > 0) {
-        $u = DB::one('SELECT totp_secret FROM users WHERE id = ?', [$moi]);
-        $sec = Crypto::dechiffrer((string)($u['totp_secret'] ?? ''));
-        $pas = $sec === '' ? null : Totp::verifier($sec, (string)($_POST['code'] ?? ''));
-        if ($pas === null) {
-            dash_flash('Ce code ne correspond pas. Rien n’a été activé.', 'err');
-        } else {
-            DB::update('users', ['totp_actif' => 1, 'totp_dernier_pas' => $pas], 'id = ?', [$moi]);
-            dash_flash('Deuxième facteur actif. Il sera demandé à la prochaine connexion.');
-        }
-
-    } elseif ($a2f === 'retirer' && $moi > 0) {
-        /* ON EXIGE UN CODE POUR RETIRER. Sans cela, une session volée — un poste
-           laissé ouvert — suffirait à désarmer le facteur et à rendre le mot de
-           passe seul suffisant pour toujours. */
-        $u = DB::one('SELECT totp_secret, totp_actif, totp_dernier_pas FROM users WHERE id = ?', [$moi]);
-        $sec = Crypto::dechiffrer((string)($u['totp_secret'] ?? ''));
-        $pas = $sec === '' ? null
-             : Totp::verifier($sec, (string)($_POST['code'] ?? ''),
-                              $u['totp_dernier_pas'] !== null ? (int)$u['totp_dernier_pas'] : null);
-        if ((int)($u['totp_actif'] ?? 0) === 1 && $pas === null) {
-            dash_flash('Ce code ne correspond pas. Le deuxième facteur reste actif.', 'err');
-        } else {
-            DB::update('users', ['totp_secret' => null, 'totp_actif' => 0, 'totp_dernier_pas' => null],
-                       'id = ?', [$moi]);
-            dash_flash('Deuxième facteur retiré.');
-        }
-    }
+    /* Le deuxième facteur se règle dans « Mon compte », ouvert à tous les rôles.
+       Il était traité ici, dans un écran réservé à la direction — donc hors
+       d'atteinte des comptes qui en ont autant besoin. */
 
     redirect('/dashboard.php?e=parametres');
 }
@@ -182,88 +134,12 @@ dash_haut('parametres', count($gens) . ' personne' . (count($gens) > 1 ? 's' : '
 ?>
 <?php dash_flash_html(); ?>
 <div class="zone">
-<?php /* ── MON DEUXIÈME FACTEUR ────────────────────────────────────────────────
-     [revue de sécurité, 22.08.2026, point 3] Il est en tête de cet écran et non
-     au fond: c'est la mesure qui change le plus le pire scénario, et une mesure
-     qu'on ne voit pas ne se prend pas.
-
-     PAS DE CODE QR, ET C'EST UN CHOIX. En fabriquer un demanderait une
-     bibliothèque, ou de charger une image chez un tiers — c'est-à-dire d'envoyer
-     le secret du deuxième facteur à quelqu'un d'autre. Toutes les applications
-     d'authentification savent recevoir une clef tapée à la main; elle est écrite
-     ci-dessous en groupes de quatre pour qu'on ne se trompe pas. */ ?>
-<?php
-$moiU = DB::one('SELECT email, totp_secret, totp_actif FROM users WHERE id = ?',
-                [(int)($_SESSION['lv_admin_id'] ?? 0)]);
-$monSecret = Crypto::dechiffrer((string)($moiU['totp_secret'] ?? ''));
-$monActif  = (int)($moiU['totp_actif'] ?? 0) === 1;
-?>
-<section class="tf">
-  <h2 class="tb">Mon deuxième facteur</h2>
-
-  <?php if ($monActif): ?>
-    <p class="tf-ok">Actif. Un code de votre application est demandé à chaque connexion.</p>
-    <p class="aide">Si vous changez de téléphone, retirez-le d’abord ici, puis reposez-le
-       sur le nouveau. Si vous l’avez perdu, il se retire depuis le serveur —
-       <code>php db/retirer_2fa.php votre@adresse</code> — et c’est la seule autre voie.</p>
-    <form method="post" class="tf-f">
-      <?= Auth::csrfField() ?>
-      <input type="hidden" name="a2f" value="retirer">
-      <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-             placeholder="Code actuel" required>
-      <button type="submit" class="tf-b">retirer</button>
-    </form>
-
-  <?php elseif ($monSecret !== ''): ?>
-    <p class="aide">Ouvrez votre application d’authentification, ajoutez un compte
-       « saisir une clef », et recopiez celle-ci. Puis prouvez un code: tant qu’il n’est pas
-       prouvé, rien n’est exigé à la connexion.</p>
-    <p class="tf-s"><?= e(Totp::lisible($monSecret)) ?></p>
-    <p class="aide">Compte: <strong><?= e((string)$moiU['email']) ?></strong> · Émetteur:
-       <strong>Le Voisin</strong> · 6 chiffres, 30 secondes.</p>
-    <form method="post" class="tf-f">
-      <?= Auth::csrfField() ?>
-      <input type="hidden" name="a2f" value="activer">
-      <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-             placeholder="Code à six chiffres" required autocomplete="one-time-code">
-      <button type="submit" class="tf-b tf-oui">activer</button>
-    </form>
-    <form method="post" class="tf-f">
-      <?= Auth::csrfField() ?>
-      <input type="hidden" name="a2f" value="retirer">
-      <button type="submit" class="tf-b">annuler et effacer ce secret</button>
-    </form>
-
-  <?php else: ?>
-    <p class="aide">Un mot de passe volé ouvre aujourd’hui tout le dashboard: les fiches du
-       personnel avec leurs AVS et leurs IBAN, les contacts, les contrats, les accès
-       comptables. Un code à six chiffres change cela.</p>
-    <form method="post" class="tf-f">
-      <?= Auth::csrfField() ?>
-      <input type="hidden" name="a2f" value="preparer">
-      <button type="submit" class="tf-b tf-oui">préparer une clef</button>
-    </form>
-  <?php endif; ?>
-</section>
-
-<style>
-.tf{margin:0 0 26px;padding:16px 18px;border:1px solid var(--trait);border-radius:10px;
-  background:var(--fond2);max-width:720px}
-.tf h2.tb{margin:0 0 8px;font-size:15px}
-.tf .aide{margin:0 0 10px}
-.tf-ok{margin:0 0 8px;font-weight:600}
-.tf-s{margin:12px 0;padding:12px 14px;background:var(--papier);border:1px solid var(--trait);
-  border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:16px;letter-spacing:.06em;
-  word-break:break-all;-webkit-user-select:all;user-select:all}
-.tf-f{display:flex;gap:8px;align-items:center;margin:8px 0 0;flex-wrap:wrap}
-.tf-f input{width:auto;min-width:150px;padding:7px 10px;font:inherit;font-size:14px;
-  border:1px solid var(--trait);border-radius:5px;background:var(--papier);color:var(--encre)}
-button.tf-b{margin:0;padding:7px 15px;font:inherit;font-size:13.5px;font-weight:600;
-  border:1px solid var(--trait);border-radius:5px;background:var(--papier);color:var(--doux);
-  cursor:pointer}
-button.tf-b:hover{color:var(--encre);border-color:var(--encre)}
-button.tf-b.tf-oui{background:var(--jaune,#FFD24D);border-color:var(--jaune,#FFD24D);color:var(--encre)}
-</style>
+<?php /* LE DEUXIÈME FACTEUR A DÉMÉNAGÉ DANS « Mon compte ».  [22.08.2026]
+     Il était ici, dans un écran réservé à la direction — donc hors d'atteinte
+     des comptes qui en ont autant besoin. Un geste qui ne concerne que soi n'a
+     rien à faire dans les réglages de la maison. */ ?>
+<p class="aide" style="margin:0 0 20px">Votre mot de passe et votre deuxième facteur se règlent
+   dans <a href="/dashboard.php?e=compte"><strong>Mon compte</strong></a>.</p>
 
 
 <h3 class="sect">L'équipe</h3>

@@ -100,6 +100,19 @@ const DASH_ECRANS = [
     'marketing'      => ['Marketing', 'ok', []],
 
     'parametres'     => ['Paramètres et équipe', 'ok', []],
+
+    /* ── MON COMPTE, OUVERT À TOUS LES RÔLES.  [22.08.2026] ──────────────────
+       Il naît d'un défaut que j'ai créé le matin même. Le deuxième facteur
+       s'activait dans Paramètres, réservé à la direction; et depuis que
+       `/admin/` l'est aussi, un compte `production` ne pouvait NI poser son
+       facteur NI changer son mot de passe. On lui demandait de se protéger sans
+       lui en donner le moyen.
+
+       C'EST UN ÉCRAN DE PERSONNE, PAS DE RÉGLAGES. On n'y agit que sur soi, et
+       c'est pour cela qu'il est ouvert à tout le monde: son mot de passe et son
+       deuxième facteur ne regardent que soi. Les rôles, les comptes des autres
+       et les réglages de la maison restent dans Paramètres. */
+    'compte'         => ['Mon compte', 'ok', []],
 ];
 
 /** L'écran servi quand aucun n'est demandé. */
@@ -166,6 +179,10 @@ const DASH_ACCES = [
 
     // Qui donne les rôles doit déjà les avoir.
     'parametres'     => ['direction'=>'ecrit'],
+
+    /* Tous les rôles, en écriture: on y change SON mot de passe et SON facteur.
+       Un rôle qui ne pourrait qu'y lire n'aurait rien à y faire. */
+    'compte'         => ['direction'=>'ecrit', 'production'=>'ecrit', 'lecture'=>'ecrit'],
 ];
 
 /** Les rôles déclarés, du plus fermé au plus ouvert. */
