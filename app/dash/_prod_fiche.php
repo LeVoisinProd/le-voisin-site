@@ -48,14 +48,21 @@ $titre = trim((string)($p['title_fr'] ?: $p['title_en'])) ?: 'Spectacle';
 $lien  = fn(string $o): string => '/dashboard.php?e=projets&p=' . $pid . '&o=' . $o;
 
 /** Un champ texte qui s'enregistre avec le formulaire qui l'entoure. */
-$champ = function (string $chemin, string $label, string $val, string $aide = '', int $lignes = 0) use ($ecrit): string {
+/* `$form` EST CE QUI PERMET DE DÉPLACER UN BLOC SANS LE DÉTACHER. [22.08.2026]
+   Un champ qui porte `form="fSyn"` appartient au formulaire `fSyn` même s'il est
+   écrit ailleurs dans la page — c'est du HTML standard. C'est ainsi que les
+   statistiques descendent sous l'équipe tout en restant sous le même bouton
+   Enregistrer. Sans cela il en faudrait un second, et une page où deux boutons
+   n'enregistrent pas la même chose est une page où l'on perd son travail. */
+$champ = function (string $chemin, string $label, string $val, string $aide = '', int $lignes = 0, string $form = '') use ($ecrit): string {
     $id = 'c-' . str_replace('.', '-', $chemin);
     $h  = '<div class="ch"><label for="' . $id . '">' . e($label) . '</label>';
     if ($aide !== '') $h .= '<p class="aide">' . e($aide) . '</p>';
     $ro = $ecrit ? '' : ' readonly';
+    $fa = $form !== '' ? ' form="' . e($form) . '"' : '';
     $h .= $lignes > 0
-        ? '<textarea id="' . $id . '" name="v[' . e($chemin) . ']" rows="' . $lignes . '"' . $ro . '>' . e($val) . '</textarea>'
-        : '<input type="text" id="' . $id . '" name="v[' . e($chemin) . ']" value="' . e($val) . '"' . $ro . '>';
+        ? '<textarea id="' . $id . '" name="v[' . e($chemin) . ']" rows="' . $lignes . '"' . $ro . $fa . '>' . e($val) . '</textarea>'
+        : '<input type="text" id="' . $id . '" name="v[' . e($chemin) . ']" value="' . e($val) . '"' . $ro . $fa . '>';
     return $h . '</div>';
 };
 
@@ -118,7 +125,7 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 <?php /* ══════════════════════════ SYNTHÈSE ══════════════════════════ */ ?>
 <?php if ($onglet === 'synthese'): ?>
 
-  <form method="post" action="<?= e($lien('synthese')) ?>">
+  <form id="fSyn" method="post" action="<?= e($lien('synthese')) ?>">
     <?= Auth::csrfField() ?>
     <input type="hidden" name="pf" value="champs">
 
@@ -182,20 +189,31 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
       </div>
     </div>
 
-    <h3>Statistiques</h3>
-    <div class="quatre">
-      <?= $champ('statistiques.representations', 'Représentations', (string)$d['statistiques']['representations']) ?>
-      <?= $champ('statistiques.spectateurs', 'Spectateurs', (string)$d['statistiques']['spectateurs']) ?>
-      <?= $champ('statistiques.recettes', 'Recettes', (string)$d['statistiques']['recettes']) ?>
-      <?= $champ('statistiques.villes', 'Villes jouées', (string)$d['statistiques']['villes']) ?>
-    </div>
-    <?= $champ('statistiques.notes', 'Notes', (string)$d['statistiques']['notes'], '', 2) ?>
-
-    <?php if ($ecrit): ?><button type="submit">Enregistrer</button><?php endif; ?>
   </form>
+
+  <?php /* L'ÉQUIPE AU MILIEU, LES STATISTIQUES À LA FIN.  [Anna, 22.08.2026]
+       « dans la partie synthèse mettre les infos de statistique à la fin,
+       monter équipe du projet ». Qui fait le spectacle se lit avant combien de
+       fois il s'est joué.
+
+       Le formulaire de la synthèse se ferme ici, au-dessus de l'équipe — qui
+       est un formulaire à part et ne peut pas s'imbriquer. Les statistiques
+       s'écrivent en dessous et lui appartiennent quand même, par leur
+       `form="fSyn"`: voir la closure `$champ` en haut de ce fichier. */ ?>
 
   <h3 class="sep">Équipe du projet</h3>
   <?php require __DIR__ . '/_prod_equipe.php'; ?>
+
+  <h3 class="sep">Statistiques</h3>
+  <div class="quatre">
+    <?= $champ('statistiques.representations', 'Représentations', (string)$d['statistiques']['representations'], '', 0, 'fSyn') ?>
+    <?= $champ('statistiques.spectateurs', 'Spectateurs', (string)$d['statistiques']['spectateurs'], '', 0, 'fSyn') ?>
+    <?= $champ('statistiques.recettes', 'Recettes', (string)$d['statistiques']['recettes'], '', 0, 'fSyn') ?>
+    <?= $champ('statistiques.villes', 'Villes jouées', (string)$d['statistiques']['villes'], '', 0, 'fSyn') ?>
+  </div>
+  <?= $champ('statistiques.notes', 'Notes', (string)$d['statistiques']['notes'], '', 2, 'fSyn') ?>
+
+  <?php if ($ecrit): ?><button type="submit" form="fSyn">Enregistrer</button><?php endif; ?>
 
 <?php /* ══════════════════════════ DOSSIER ═══════════════════════════ */ ?>
 <?php elseif ($onglet === 'dossier'): ?>
