@@ -134,6 +134,32 @@ class Auth
         session_regenerate_id(true);
     }
 
+    /**
+     * Qui entre dans quelle partie de l'administration du site.
+     * [22.08.2026, après la faille trouvée par Anna]
+     *
+     * ELLE EST ÉCRITE COMME CELLE DU DASHBOARD, et pour la même raison: une
+     * table qu'on lit d'un regard vaut mieux qu'une condition dispersée dans
+     * douze fichiers. Le défaut est le refus — une zone non déclarée n'est
+     * ouverte à personne d'autre que la direction.
+     *
+     * `entite:projects` EST OUVERTE À LA PRODUCTION. Anna: « Mirta peut éditer
+     * la partie projets ». Ce sont les fiches du catalogue public — titre,
+     * présentation, distribution, images. C'est le travail de production, et
+     * c'est déjà elle qui écrit ces mêmes pièces dans le dashboard.
+     *
+     * CE QUI RESTE FERMÉ, ET POURQUOI. Les comptes et les réglages, parce qu'y
+     * toucher c'est se donner des droits. Les collaborateurs et leurs documents,
+     * parce que ce sont des contrats, des fiches de salaire et des pièces
+     * d'identité — le même contenu que l'écran Personnel, fermé de l'autre côté.
+     * Le journal des accès, parce qu'il dit qui a lu quoi. Et les pages du site,
+     * parce qu'une page publique engage la maison autrement qu'une fiche.
+     */
+    public const ADMIN_ACCES = [
+        'dash'             => ['direction', 'production'],
+        'entite:projects'  => ['direction', 'production'],
+    ];
+
     /** Le rôle du compte connecté, lu en base. '' si personne n'est connecté. */
     public static function role(): string
     {
@@ -178,9 +204,17 @@ class Auth
      * page par page quand le besoin se dit est le seul ordre sûr. L'inverse
      * laisse ouvert ce qu'on a oublié de fermer.
      */
-    public static function requireAdmin(bool $api = false): void
+    /** Ce rôle peut-il ouvrir cette zone de l'administration? */
+    public static function zoneOuverte(string $zone, ?string $role = null): bool
     {
-        if (self::check() && self::role() === 'direction') return;
+        $r = $role ?? self::role();
+        if ($r === 'direction') return true;
+        return $r !== '' && in_array($r, self::ADMIN_ACCES[$zone] ?? [], true);
+    }
+
+    public static function requireAdmin(bool $api = false, string $zone = ''): void
+    {
+        if (self::check() && ($zone !== '' ? self::zoneOuverte($zone) : self::role() === 'direction')) return;
         if (self::check()) {
             /* Connecté mais pas au bon niveau: on le dit, on ne renvoie pas vers
                la page de connexion — qui laisserait croire à une session

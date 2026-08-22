@@ -1,7 +1,7 @@
 <?php
 /** Tableau de bord de l'administration.   [V10-CMS-BILINGUE] */
 require __DIR__ . '/_inc.php';
-Auth::requireAdmin();
+Auth::requireAdmin(false, 'dash');
 
 $counts = [
     'dash_pages'    => (int)DB::val('SELECT COUNT(*) FROM pages'),

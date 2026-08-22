@@ -1,7 +1,7 @@
 <?php
 /** Fiche d'un module.   [V10-CMS-BILINGUE] [V14-DUPLIQUER] */
 require __DIR__ . '/_inc.php';
-Auth::requireAdmin();
+Auth::requireAdmin(false, 'entite:' . (string)($_GET['e'] ?? ''));
 
 $entity = (string)($_GET['e'] ?? '');
 $def = Content::def($entity);

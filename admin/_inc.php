@@ -148,13 +148,22 @@ function admin_top(string $title, string $active = ''): void
 <div class="shell">
 <aside class="side">
   <?= admin_marque() ?>
+  <?php /* LE MENU NE MONTRE QUE CE QUI S'OUVRE.  [22.08.2026] Un lien qui mène à
+       un refus n'est pas une sécurité de moins, c'est une gêne de plus: on
+       clique, on se demande si c'est cassé, on reclique. La serrure reste sur
+       chaque page — ceci ne fait que ne pas proposer la porte. */ ?>
+  <?php $dir = Auth::role() === 'direction'; ?>
   <nav>
     <a href="<?= e(admin_url()) ?>"<?= $active === 'dash' ? ' class="on"' : '' ?>><?= e(ta('nav_dash')) ?></a>
+    <?php if ($dir): ?>
     <a href="<?= e(admin_url('pages.php')) ?>"<?= $active === 'pages' ? ' class="on"' : '' ?>><?= e(ta('nav_pages')) ?></a>
+    <?php endif; ?>
     <p class="side-sep"><?= e(ta('nav_modules')) ?></p>
     <?php foreach ($entities as $key => $def): ?>
+      <?php if (!Auth::zoneOuverte('entite:' . $key)) continue; ?>
     <a href="<?= e(admin_url('list.php?e=' . $key)) ?>"<?= $active === 'e:' . $key ? ' class="on"' : '' ?>><?= e(tc($def['menu'])) ?></a>
     <?php endforeach; ?>
+    <?php if ($dir): ?>
     <p class="side-sep"><?= e(ta('nav_espace')) ?></p>
     <a href="<?= e(admin_url('collaborators.php')) ?>"<?= $active === 'collab' ? ' class="on"' : '' ?>><?= e(ta('nav_collab')) ?></a>
     <?php /* [13.08.2026] Les documents entre les personnes et le journal : on y
@@ -165,6 +174,13 @@ function admin_top(string $title, string $active = ''): void
     <p class="side-sep"><?= e(ta('nav_config')) ?></p>
     <a href="<?= e(admin_url('settings.php')) ?>"<?= $active === 'settings' ? ' class="on"' : '' ?>><?= e(ta('nav_settings')) ?></a>
     <a href="<?= e(admin_url('users.php')) ?>"<?= $active === 'users' ? ' class="on"' : '' ?>><?= e(ta('nav_users')) ?></a>
+    <?php endif; ?>
+    <?php /* La sortie vers le dashboard: quelqu'un qui n'a ici que les projets
+         passe le plus clair de son temps là-bas. */ ?>
+    <?php if (!$dir): ?>
+    <p class="side-sep">Dashboard</p>
+    <a href="<?= e(url('/dashboard.php')) ?>">Aller au dashboard</a>
+    <?php endif; ?>
   </nav>
   <div class="side-foot">
     <a href="<?= e(url('/' . I18n::$default)) ?>" target="_blank"><?= e(ta('nav_site')) ?> <?= Ico::ext() ?></a>
