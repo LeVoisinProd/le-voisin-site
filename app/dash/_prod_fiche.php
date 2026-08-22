@@ -169,11 +169,32 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 
   <?php ob_start(); ?>
     <div class="trois">
-      <div class="ch"><label>Titre</label><p class="fixe"><?= e($titre) ?></p></div>
-      <div class="ch"><label>Création</label>
-        <p class="fixe"><?= $p['year_creation'] ? e((string)$p['year_creation']) : '—' ?></p></div>
-      <div class="ch"><label>Durée</label>
-        <p class="fixe"><?= $p['duration_min'] ? (int)$p['duration_min'] . ' min' : '—' ?></p></div>
+      <?php /* CES CHAMPS ÉCRIVENT DANS LE CMS, PAS ICI.  [Anna, 22.08.2026]
+           « esta parte do projeto tem que ser a página de onde saem todas as
+           infos sobre o projeto, é a fonte ». Ils étaient en lecture seule, avec
+           une note qui disait d'aller les changer dans l'administration du site.
+
+           ON NE LES RECOPIE PAS, ON ÉCRIT À LA SOURCE: `projects`, la table que
+           le site public lit pour son catalogue. Les dupliquer ici aurait fait
+           deux vérités, et au premier écart personne pour dire laquelle est la
+           bonne. Ce qui se change ici change la page publique dans l'instant —
+           c'est le prix de n'avoir qu'une vérité, et il est assumé.
+
+           LE TITRE ANGLAIS EST LÀ AUSSI: le catalogue est bilingue, et corriger
+           le français en laissant l'anglais d'avant ferait deux pages qui ne
+           parlent pas de la même pièce. */ ?>
+      <div class="ch"><label for="c-title-fr">Titre</label>
+        <input type="text" id="c-title-fr" name="cms[title_fr]" form="fSyn"
+               value="<?= e((string)$p['title_fr']) ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
+      <div class="ch"><label for="c-title-en">Titre (EN)</label>
+        <input type="text" id="c-title-en" name="cms[title_en]" form="fSyn"
+               value="<?= e((string)$p['title_en']) ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
+      <div class="ch"><label for="c-annee">Année de création</label>
+        <input type="text" id="c-annee" name="cms[year_creation]" form="fSyn" inputmode="numeric"
+               value="<?= $p['year_creation'] ? e((string)$p['year_creation']) : '' ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
+      <div class="ch"><label for="c-duree">Durée (minutes)</label>
+        <input type="text" id="c-duree" name="cms[duration_min]" form="fSyn" inputmode="numeric"
+               placeholder="75" value="<?= $p['duration_min'] ? (int)$p['duration_min'] : '' ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
 
       <div class="ch"><label for="c-phase">Phase</label>
         <select id="c-phase" name="prod[phase]" form="fSyn" <?= $ecrit ? '' : 'disabled' ?>>
@@ -192,9 +213,11 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="ch"><label for="c-resp">Responsable</label>
-        <input type="text" id="c-resp" name="prod[responsable]" form="fSyn"
-               value="<?= e((string)($prod['responsable'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
+      <?php /* « Responsable » A ÉTÉ RETIRÉ.  [Anna, 22.08.2026] « tirar essa
+           parte de Responsable da parte da synthese do projet, não tem mais
+           isso ». La colonne reste en base et n'est plus ni lue ni écrite ici:
+           la vider dans la foulée effacerait ce qui y est déjà écrit sans qu'on
+           puisse le relire. Qui fait quoi se lit dans la carte Équipe. */ ?>
 
       <div class="ch"><label for="c-lieuc">Lieu de création</label>
         <input type="text" id="c-lieuc" name="prod[lieu_creation]" form="fSyn"
@@ -204,9 +227,19 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
            isso? ». C'est la valeur brute de la liste fermée du CMS — `all` veut
            dire « Tout public ». Elle s'affichait telle quelle, ce qui ne veut
            rien dire pour qui lit. Même table que le site: `app/config/entities.php`. */ ?>
-      <?php $PUBLICS = ['young' => 'Jeune public', 'all' => 'Tout public', 'adult' => 'Adultes']; ?>
-      <div class="ch"><label>Public</label>
-        <p class="fixe"><?= e($PUBLICS[(string)($p['public_cible'] ?? '')] ?? '—') ?></p></div>
+      <?php /* Liste fermée, et c'est le CMS qui la ferme: le catalogue du site
+           s'en sert comme filtre, et trois fiches qui écrivent la même chose de
+           trois façons donneraient trois filtres. Même table qu'en ligne,
+           `app/config/entities.php`. */ ?>
+      <?php $PUBLICS = ['' => '— non précisé —', 'young' => 'Jeune public',
+                        'all' => 'Tout public', 'adult' => 'Adultes']; ?>
+      <div class="ch"><label for="c-public">Public</label>
+        <select id="c-public" name="cms[public_cible]" form="fSyn" <?= $ecrit ? '' : 'disabled' ?>>
+          <?php foreach ($PUBLICS as $kp => $lp): ?>
+            <option value="<?= e($kp) ?>" <?= (string)($p['public_cible'] ?? '') === $kp ? 'selected' : '' ?>><?= e($lp) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
       <div class="ch"><label for="c-budget">Budget du projet</label>
         <div class="paire">
           <input type="text" id="c-budget" name="prod[budget]" form="fSyn"
@@ -219,10 +252,13 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
         </div>
       </div>
     </div>
-    <p class="aide">Le titre, la durée et le public viennent du CMS et se modifient dans
-       l'administration du site: les recopier ici ferait deux vérités. Le budget est celui du
-       projet artistique, <strong>pas l'argent qui passe par Le Voisin</strong> — le détail se
-       saisit dans l'onglet Budget.</p>
+    <p class="aide"><strong>Le titre, l'année, la durée et le public s'écrivent dans le
+       catalogue du site.</strong> Ils ne sont pas recopiés ici: c'est la même donnée, et la
+       modifier change la page publique dans l'instant. Changer le titre entraîne aussi les
+       dates et les offres qui portent l'ancien. L'adresse publique de la fiche, elle, ne
+       bouge pas.</p>
+    <p class="aide">Le budget est celui du projet artistique, <strong>pas l'argent qui passe
+       par Le Voisin</strong> — le détail se saisit dans l'onglet Budget.</p>
   <?php $corpsInfos = ob_get_clean(); ?>
 
   <div class="grille1">

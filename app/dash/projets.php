@@ -82,7 +82,89 @@ if ($pcms > 0) {
                 if ($b !== '' && !is_numeric($b)) unset($maj['budget']);
             }
             if ($maj) { ProdFiche::ligne($pcms); DB::update('projet_prod', $maj, 'project_id = ?', [$pcms]); }
-            dash_flash($n || $maj ? 'Enregistré.' : 'Rien à enregistrer.');
+
+            /* ── CE QUI APPARTIENT AU CMS S'ÉCRIT DANS LE CMS.  [Anna, 22.08.2026] ──
+               « esta parte do projeto tem que ser a página de onde saem todas as
+               infos sobre o projeto, é a fonte ».
+
+               ON NE RECOPIE RIEN, ON ÉCRIT À LA SOURCE. Le titre, l'année, la
+               durée et le public vivent dans `projects`, la table que le site
+               public lit pour son catalogue. Les dupliquer dans `projet_prod`
+               aurait fait deux vérités et, au premier écart, personne pour dire
+               laquelle est la bonne. Conséquence assumée et dite à Anna: ce qui
+               se change ici change la page publique dans l'instant.
+
+               LE SLUG NE BOUGE PAS. Il porte l'adresse publique de la fiche; le
+               refaire à chaque changement de titre casserait tous les liens déjà
+               partagés, y compris ceux qui sont dans des dossiers envoyés.
+
+               LE RENOMMAGE EMPORTE LES DATES ET LES OFFRES AVEC LUI, et c'est la
+               seule partie délicate: `booking.projet` et `offer.projet` portent
+               le TITRE en clair, pas l'identifiant. Mesuré avant d'écrire une
+               ligne: 71 des 86 dates se rattachent à leur pièce par ce texte.
+               Renommer sans les suivre les aurait détachées en silence — la
+               fiche association aurait cessé d'afficher les dates, sans erreur
+               nulle part. */
+            $cm = (array)($_POST['cms'] ?? []);
+            if ($cm) {
+                $mc  = [];
+                $ancienTitre = (string)$p['title_fr'];
+
+                foreach (['title_fr', 'title_en'] as $c) {
+                    if (!isset($cm[$c])) continue;
+                    $v = mb_substr(trim((string)$cm[$c]), 0, 255);
+                    /* Un titre français vide rendrait la pièce introuvable et
+                       détacherait ses dates. On refuse plutôt que d'obéir. */
+                    if ($c === 'title_fr' && $v === '') continue;
+                    $mc[$c] = $v ?: null;
+                }
+                if (isset($cm['year_creation'])) {
+                    $a = (int)preg_replace('/\D/', '', (string)$cm['year_creation']);
+                    $mc['year_creation'] = ($a >= 1900 && $a <= 2100) ? $a : null;
+                }
+                if (isset($cm['duration_min'])) {
+                    /* « 75 », « 75 min » et « 1h15 » arrivent tous les trois. Les
+                       deux premiers se lisent; le troisième est laissé tel quel
+                       plutôt qu'écrit à 1 — l'aide du champ dit d'écrire des
+                       minutes, et une durée fausse voyage jusqu'au contrat. */
+                    $t = trim((string)$cm['duration_min']);
+                    $mc['duration_min'] = $t === '' ? null
+                        : (preg_match('/^\s*(\d{1,4})\s*(min)?\s*$/i', $t, $mm) ? (int)$mm[1] : null);
+                    if ($t !== '' && $mc['duration_min'] === null) unset($mc['duration_min']);
+                }
+                if (isset($cm['public_cible'])) {
+                    $v = (string)$cm['public_cible'];
+                    if (in_array($v, ['', 'young', 'all', 'adult'], true)) $mc['public_cible'] = $v;
+                }
+
+                if ($mc) {
+                    $pdo = DB::pdo();
+                    $pdo->beginTransaction();
+                    try {
+                        DB::update('projects', $mc + ['updated_at' => date('Y-m-d H:i:s')],
+                                   'id = ?', [$pcms]);
+                        $nouveau = $mc['title_fr'] ?? $ancienTitre;
+                        if ($nouveau !== $ancienTitre && $ancienTitre !== '') {
+                            $st = $pdo->prepare('UPDATE booking SET projet = ? WHERE projet = ?');
+                            $st->execute([$nouveau, $ancienTitre]);
+                            $nb = $st->rowCount();
+                            $st = $pdo->prepare('UPDATE offer SET projet = ? WHERE projet = ?');
+                            $st->execute([$nouveau, $ancienTitre]);
+                            $no = $st->rowCount();
+                            $pdo->commit();
+                            dash_flash('Enregistré. Le titre a changé: ' . $nb . ' date(s) et '
+                                     . $no . ' offre(s) suivent, et la page publique du site aussi.');
+                            redirect($retour);
+                        }
+                        $pdo->commit();
+                    } catch (Throwable $ex) {
+                        $pdo->rollBack();
+                        throw $ex;
+                    }
+                }
+            }
+
+            dash_flash($n || $maj || !empty($mc) ? 'Enregistré.' : 'Rien à enregistrer.');
 
         } elseif ($act === 'liste_ajouter') {
             $l = array_map(fn($x) => mb_substr(trim((string)$x), 0, 500), (array)($_POST['l'] ?? []));
