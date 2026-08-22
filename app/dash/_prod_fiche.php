@@ -122,6 +122,15 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   <?php /* Les quatre qui sortent de la maison s'impriment aussi en anglais. La
        langue se choisit AVANT d'ouvrir: rouvrir la page pour changer de langue
        fait perdre le réglage d'impression déjà posé. */ ?>
+  <?php /* LE DOCUMENT COMPLET.  [Anna, 22.08.2026] « quero um pdf geral
+       reunindo cada pdf de todas as infos de todas as etapas ». Il n'y a pas
+       d'onglet « Tout » dans la barre — on ne consulte pas dix onglets d'un
+       coup — mais il y a un document qui les rassemble, et son bouton se pose
+       ici. En contour: c'est le geste rare, et le plein est déjà pris par le
+       document qu'on regarde. */ ?>
+  <a class="bt-pdf bt-pdf-en" href="<?= e($lien('tout')) ?>&amp;imprimer=1"
+     target="_blank" rel="noopener"
+     title="Les dix onglets dans un seul document, une partie par page">PDF — Tout</a>
   <?php if (in_array($onglet, ['dossier','fdr','technique','devis'], true)): ?>
     <a class="bt-pdf bt-pdf-en" href="<?= e($lien($onglet)) ?>&amp;imprimer=1&amp;lang=en"
        target="_blank" rel="noopener" title="Same document, English labels">PDF — English</a>
@@ -253,8 +262,24 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   <?php $corpsInfos = ob_get_clean(); ?>
 
   <div class="grille1">
-    <?= $carte('Informations du projet', $corpsInfos,
-               $ecrit ? '<button type="submit" form="fSyn" class="b-jaune">Enregistrer</button>' : '') ?>
+    <?php /* LE BOUTON DE REPRISE N'APPARAÎT QUE S'IL Y A QUELQUE CHOSE À
+         REPRENDRE, et qu'il reste de la place pour le mettre. Un bouton qui
+         répond « rien à faire » une fois sur deux cesse d'être lu. */ ?>
+    <?php ob_start();
+      $peutReprendre = $ecrit
+          && ((trim((string)$d['resume']) === '' && trim((string)$p['intro_fr']) !== '')
+           || (trim((string)$d['dossier']['description']) === '' && trim((string)$p['body_fr']) !== ''));
+      if ($peutReprendre): ?>
+      <form method="post" action="<?= e($lien('synthese')) ?>" class="inline">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="pf" value="cms_reprendre">
+        <button type="submit" class="carte-b2"
+                title="Remplit le résumé et la description avec les textes publiés sur le site. N'écrase rien.">Reprendre les textes du site</button>
+      </form>
+    <?php endif;
+      if ($ecrit) echo '<button type="submit" form="fSyn" class="b-jaune">Enregistrer</button>';
+      $actionsInfos = ob_get_clean(); ?>
+    <?= $carte('Informations du projet', $corpsInfos, $actionsInfos) ?>
   </div>
 
   <?php ob_start(); require __DIR__ . '/_prod_equipe.php'; $corpsEquipe = ob_get_clean(); ?>
@@ -263,6 +288,17 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
     <?= $carte('Résumé du spectacle',
                $champ('resume', '', (string)$d['resume'],
                       'Le pitch, tel qu\'on l\'envoie. C\'est lui que le Dossier reprend.', 7, 'fSyn')) ?>
+    <?php /* LE GÉNÉRIQUE DU SITE, MONTRÉ ET NON REPRIS.  [Anna, 22.08.2026]
+         Le catalogue porte un texte de distribution sur quatorze pièces, et il
+         dit souvent tout ce qu'on cherche. Mais c'est de la prose — « mise en
+         scène X, avec Y et Z, lumières W » — et la découper en personnes à
+         l'aveugle produirait des lignes fausses, du genre « Lara Epp, Ariel
+         Doron » qu'on trouve déjà dans les reprises. On le montre donc à côté,
+         à recopier ou à ignorer: la machine lit mal, l'œil lit bien. */ ?>
+    <?php if (trim((string)($p['distribution_fr'] ?? '')) !== ''): ?>
+      <?php $corpsEquipe .= '<details class="gen"><summary>Le générique publié sur le site</summary>'
+                          . '<pre class="gen-t">' . e((string)$p['distribution_fr']) . '</pre></details>'; ?>
+    <?php endif; ?>
     <?= $carte('Équipe du projet', $corpsEquipe) ?>
 
     <?= $carte('Coproductions',
@@ -495,6 +531,14 @@ form.inline button{margin-bottom:14px}
 .trois{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 20px}
 @media (max-width:900px){.trois{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:620px){.trois{grid-template-columns:minmax(0,1fr)}}
+
+/* Le générique du site: replié par défaut, parce qu'il fait mille caractères et
+   qu'on ne l'ouvre que le jour où l'on remplit l'équipe. */
+.gen{margin-top:14px;border-top:1px solid var(--trait);padding-top:12px}
+.gen summary{font-size:12.5px;color:var(--doux);cursor:pointer}
+.gen summary:hover{color:var(--encre)}
+.gen-t{margin:10px 0 0;font-size:12.5px;line-height:1.55;white-space:pre-wrap;
+  background:var(--fond2);border-radius:6px;padding:10px 12px;max-height:280px;overflow:auto}
 
 /* LE MONTANT ET SA MONNAIE SUR UNE LIGNE.  [Anna, 22.08.2026]
    « a parte budget do projet, porque tem campos em duas linhas? deixa o valor e

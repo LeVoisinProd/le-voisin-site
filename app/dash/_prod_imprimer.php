@@ -54,8 +54,13 @@ $prod  = ProdFiche::ligne($pcms);
 $titre = trim((string)($p['title_fr'] ?: $p['title_en'])) ?: 'Spectacle';
 
 /** Les quatre bilingues passent par le dictionnaire; les autres restent en français. */
-const DOC_BILINGUE = ['dossier' => 'doc_t_dossier', 'fdr' => 'doc_t_fdr',
-                      'technique' => 'doc_t_technique', 'devis' => 'doc_t_devis'];
+/* `defined()` pour la même raison que `CONTRATS` dans la Rémunération: un
+   `const` de fichier ne se redéclare pas, et PHP 9 en fera une erreur fatale.
+   Aujourd'hui rien ne l'inclut deux fois; le document complet a rendu ce fichier
+   plus réutilisable, et c'est justement le moment de poser la garde. */
+if (!defined('DOC_BILINGUE')) define('DOC_BILINGUE',
+    ['dossier' => 'doc_t_dossier', 'fdr' => 'doc_t_fdr',
+     'technique' => 'doc_t_technique', 'devis' => 'doc_t_devis']);
 $NOMS = [
     'synthese'     => 'Synthèse',
     'planning'     => 'Planning',
@@ -64,8 +69,18 @@ $NOMS = [
     'budget'       => 'Budget',
     'droits'       => 'Déclaration de droits d\'auteur',
 ];
-$bil  = isset(DOC_BILINGUE[$onglet]);
-$quoi = $bil ? $tr(DOC_BILINGUE[$onglet]) : ($NOMS[$onglet] ?? 'Fiche de production');
+/* Les intitulés des dix parties du document complet. Ils ne sortent pas de
+   `$NOMS`, qui ne couvre que les six non bilingues. */
+$NOMS_TOUT = [
+    'synthese' => 'Synthèse',        'dossier'      => 'Dossier de demande de fonds',
+    'planning' => 'Planning',        'logistique'   => 'Logistique',
+    'technique' => 'Fiche technique','fdr'          => 'Feuille de route',
+    'remuneration' => 'Rémunération','budget'       => 'Budget',
+    'devis' => 'Devis de cession',   'droits'       => 'Droits d\'auteur',
+];
+$bil  = $onglet !== 'tout' && isset(DOC_BILINGUE[$onglet]);
+$quoi = $onglet === 'tout' ? 'Fiche complète'
+      : ($bil ? $tr(DOC_BILINGUE[$onglet]) : ($NOMS[$onglet] ?? 'Fiche de production'));
 
 /* Le porteur, imprimé sous le titre: un document qui part sans dire quelle
    association le porte oblige le destinataire à demander. */
@@ -93,7 +108,26 @@ $ajout = static function (string $titre, string $type, $donnees) use (&$blocs): 
 $mt = static fn($v, $dev = '') => $v === null || $v === ''
     ? '' : number_format((float)$v, 2, ',', ' ') . ($dev ? ' ' . $dev : '');
 
-switch ($onglet) {
+/* ── LE DOCUMENT COMPLET.  [Anna, 22.08.2026] ───────────────────────────────
+   « quero um pdf geral reunindo cada pdf de todas as infos de todas as etapas ».
+
+   ON NE COPIE PAS DIX MISES EN PAGE, ON PARCOURT LA MÊME DIX FOIS. Chaque
+   onglet décrit déjà ses blocs; il suffit de ne pas s'arrêter au premier. Un
+   second fichier qui referait le travail aurait divergé à la première
+   correction faite sur un seul des deux.
+
+   LE DOCUMENT COMPLET EST EN FRANÇAIS, SANS CHOIX DE LANGUE. Quatre onglets sur
+   dix sont bilingues et six ne le sont pas: un document « anglais » qui bascule
+   en français au sixième titre serait pire qu'un document français assumé. Le
+   bouton anglais reste sur chaque onglet, là où il veut dire quelque chose. */
+$TOUS_ONGLETS = ['synthese','dossier','planning','logistique','technique','fdr',
+                 'remuneration','budget','devis','droits'];
+$aFaire = $onglet === 'tout' ? $TOUS_ONGLETS : [$onglet];
+
+foreach ($aFaire as $ongCour):
+if ($onglet === 'tout') $ajout($NOMS_TOUT[$ongCour] ?? $ongCour, 'section', ' ');
+
+switch ($ongCour) {
 
 case 'synthese':
     $ajout('Résumé',        'texte', (string)$d['resume']);
@@ -425,6 +459,8 @@ case 'droits':
     $ajout('Notes',                'texte', (string)($d['droits']['notes'] ?? ''));
     break;
 }
+endforeach;
+
 /* ── LA TRADUCTION DES TEXTES LIBRES ────────────────────────────────────────
    [16.08.2026] Anna: « eu nao quero escrever o segundo campo, quero que a
    traducao seja automatica ». Les intitulés viennent du dictionnaire; ce qui
@@ -512,6 +548,16 @@ $sansMoteur = $resteFr && !Traduction::configured();
   .sign{margin-top:34px;padding-top:12px;border-top:1px solid #ddd;display:grid;
     grid-template-columns:1fr 1fr;gap:30px;font-size:12px;color:#555}
   .sign .l{margin-top:34px;border-top:1px solid #999;padding-top:4px}
+  /* ── LE TITRE D'UNE PARTIE, dans le document complet ──────────────────────
+     Il commence une page: dix parties bout à bout sans coupure donneraient un
+     document où le Budget commence au milieu de la page de la Logistique, et
+     personne ne retrouve rien. La première ne saute pas — elle suit le titre du
+     document. */
+  h2.part{font-size:17px;text-transform:none;letter-spacing:0;color:#111;
+    margin:34px 0 14px;padding-bottom:8px;border-bottom:2px solid #111;
+    break-before:page;page-break-before:always}
+  h2.part:first-of-type{break-before:auto;page-break-before:auto;margin-top:8px}
+
   /* ── UNE PERSONNE: SON PORTRAIT, SON NOM, SA BIO ──────────────────────────
      `break-inside:avoid` parce qu'une bio coupée entre deux pages avec le
      portrait resté sur la précédente ne se lit plus comme une fiche. */
@@ -560,7 +606,9 @@ $sansMoteur = $resteFr && !Traduction::configured();
 <?php endif; ?>
 
 <?php foreach ($blocs as $b): ?>
-  <?php if ($b['t'] !== ''): ?><h2><?= e($b['t']) ?></h2><?php endif; ?>
+  <?php if ($b['t'] !== ''): ?>
+    <h2<?= $b['type'] === 'section' ? ' class="part"' : '' ?>><?= e($b['t']) ?></h2>
+  <?php endif; ?>
 
   <?php if ($b['type'] === 'texte'): ?>
     <pre class="t"><?= e((string)$b['d']) ?></pre>
@@ -569,6 +617,10 @@ $sansMoteur = $resteFr && !Traduction::configured();
     <dl><?php foreach ($b['d'] as $k => $v): ?>
       <dt><?= e((string)$k) ?></dt><dd><?= e((string)$v) ?></dd>
     <?php endforeach; ?></dl>
+
+  <?php elseif ($b['type'] === 'section'): ?>
+    <?php /* Rien à imprimer: le titre du bloc suffit, et il est déjà écrit
+         au-dessus. La classe sert seulement à le distinguer en CSS. */ ?>
 
   <?php elseif ($b['type'] === 'gens'): ?>
     <?php foreach ($b['d'] as $g): ?>

@@ -166,6 +166,46 @@ if ($pcms > 0) {
 
             dash_flash($n || $maj || !empty($mc) ? 'Enregistré.' : 'Rien à enregistrer.');
 
+        } elseif ($act === 'cms_reprendre') {
+            /* ── REPRENDRE LES TEXTES DÉJÀ EN LIGNE.  [Anna, 22.08.2026] ─────────
+               « preencher as informações dos projets com as informações que já
+               estão online no site de Le Voisin, não quero preencher tudo de
+               novo à mão ».
+
+               ELLE A RAISON ET LES CHIFFRES LE DISENT: le catalogue du site
+               porte un texte de présentation sur 17 pièces et un chapô sur 10,
+               tandis que le dashboard n'a un résumé que sur 1 fiche de 21. Tout
+               était déjà écrit, une fois, ailleurs.
+
+               ON NE REMPLIT QUE CE QUI EST VIDE. Jamais d'écrasement: si
+               quelqu'un a retravaillé le résumé pour un dossier, la version du
+               site — plus ancienne et écrite pour le public — ne doit pas la
+               reprendre. Le bouton peut donc se cliquer deux fois sans dégât, et
+               c'est ce qui permet de le cliquer sans réfléchir.
+
+               DEUX CHAMPS SEULEMENT, ET C'EST DÉLIBÉRÉ. `intro_fr` est un chapô,
+               donc un résumé; `body_fr` est une présentation détaillée, donc la
+               description du dossier. `distribution_fr` n'est pas repris: c'est
+               un texte de générique, et le découper en personnes à l'aveugle
+               produirait des lignes fausses dans l'équipe. Il est montré à côté
+               de l'équipe, à recopier ou à ignorer. */
+            $dd  = ProdFiche::donnees($pcms);
+            $n   = 0;
+            $prs = [];
+            if (trim((string)($dd['resume'] ?? '')) === '' && trim((string)$p['intro_fr']) !== '') {
+                ProdFiche::champ($pcms, 'resume', (string)$p['intro_fr']);
+                $n++; $prs[] = 'le résumé';
+            }
+            if (trim((string)($dd['dossier']['description'] ?? '')) === ''
+                && trim((string)$p['body_fr']) !== '') {
+                ProdFiche::champ($pcms, 'dossier.description', (string)$p['body_fr']);
+                $n++; $prs[] = 'la description du projet';
+            }
+            dash_flash($n
+                ? 'Repris du site: ' . implode(' et ', $prs) . '. Rien d’autre n’a été touché.'
+                : 'Rien à reprendre: soit le site n’a pas ces textes, soit ils sont déjà remplis ici.',
+                $n ? 'ok' : 'err');
+
         } elseif ($act === 'liste_ajouter') {
             $l = array_map(fn($x) => mb_substr(trim((string)$x), 0, 500), (array)($_POST['l'] ?? []));
 
@@ -305,8 +345,12 @@ if ($pcms > 0) {
        as etapas (…) tem que poder imprimir ». La liste fermée reste une liste
        fermée — `$onglet` vient de l'URL, et on n'inclut pas un fichier d'après
        une chaîne qu'un visiteur choisit. */
+    /* `tout` EST UN ONGLET QUI N'EXISTE PAS À L'ÉCRAN.  [Anna, 22.08.2026]
+       « quero um pdf geral reunindo cada pdf de todas as infos de todas as
+       etapas ». Il n'y a pas de onglet « Tout » dans la barre — on ne consulte
+       pas dix onglets d'un coup — mais il y a un document qui les rassemble. */
     if (($_GET['imprimer'] ?? '') === '1' && in_array($onglet,
-        ['synthese','dossier','planning','logistique','technique','fdr',
+        ['tout','synthese','dossier','planning','logistique','technique','fdr',
          'remuneration','budget','devis','droits'], true)) {
         require __DIR__ . '/_prod_imprimer.php';
         return;
