@@ -237,8 +237,15 @@ class ProdFiche
             'droits'        => ['auteurs'=>[],'cols'=>[],'editeur'=>'','repartition'=>'','notes'=>'','ssa'=>[]],
             'fdr'           => ['texte'=>''],
             'diffusionDocs' => ['dossier'=>'','fiches'=>'','photos'=>'','autres'=>[]],
+            /* `contacts` AU PLURIEL, EN PLUS DE `contact`.  [Anna, 22.08.2026]
+               « as infos principais dos contatos da equipe e da equipe do
+               teatro ». Une équipe de théâtre n'est pas une personne: il y a le
+               régisseur général, celui du son, celui qui ouvre la porte le matin.
+               Le champ unique reste, avec ce qu'il contient déjà — mesuré: rien,
+               sur aucun projet — et la liste prend le relais. */
             'technique'     => ['plateau'=>[], 'temps'=>[], 'besoins'=>[],
                                 'contact'=>['nom'=>'','role'=>'','email'=>'','tel'=>''],
+                                'contacts'=>[],
                                 'adaptations'=>'', 'notes'=>'', 'versions'=>[]],
         ];
     }
@@ -403,6 +410,12 @@ class ProdFiche
         'temps'   => 'TECH_TEMPS',
         'besoins' => 'TECH_BESOINS',
         'contact' => null,   // quatre clefs fixes, listées ci-dessous
+        /* `contacts` N'EST PAS ICI, ET C'EST VOULU. Cette table déclare les
+           GROUPES DE CHAMPS que `champ()` accepte; les contacts du lieu sont une
+           LISTE, écrite par `liste_ajouter` comme l'équipe ou la logistique.
+           L'y mettre faisait chercher une constante `self::liste` qui n'existe
+           pas — un chemin forgé aurait suffi à faire tomber la page. Absente,
+           la clef est refusée proprement. */
     ];
     private const TECH_CONTACT = ['nom' => 1, 'role' => 1, 'email' => 1, 'tel' => 1];
 

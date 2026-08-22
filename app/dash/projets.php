@@ -419,6 +419,16 @@ if ($pcms > 0) {
             require __DIR__ . '/_prod_budget_imprimer.php';
             return;
         }
+        /* LA FEUILLE DE ROUTE AUSSI.  [Anna, 22.08.2026] Elle sortait en texte
+           brut dans un `<pre>`, sans un seul numéro de téléphone. Un document
+           qu'on lit un téléphone à la main a besoin d'autre chose qu'un bloc de
+           lignes. Le document complet garde le rendu commun: c'est un recueil. */
+        if ($onglet === 'fdr') {
+            $d    = ProdFiche::donnees($pcms);
+            $prod = ProdFiche::ligne($pcms);
+            require __DIR__ . '/_prod_fdr_imprimer.php';
+            return;
+        }
         require __DIR__ . '/_prod_imprimer.php';
         return;
     }

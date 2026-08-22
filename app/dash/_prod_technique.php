@@ -85,7 +85,7 @@ $val = static fn(string $groupe, string $cle): string => (string)($t[$groupe][$c
                . 'les salles où ça ne rentre pas.', 3) ?>
     </div>
     <div class="bl">
-      <h4>Qui répond aux questions techniques</h4>
+      <h4>Qui répond aux questions techniques, chez nous</h4>
       <p class="aide">Le lieu écrit directement à cette personne. Sans elle, tout passe
          par le bureau et se perd d'un jour.</p>
       <?= $champ('technique.contact.nom',   'Nom',           (string)($t['contact']['nom']   ?? '')) ?>
@@ -98,6 +98,86 @@ $val = static fn(string $groupe, string $cle): string => (string)($t[$groupe][$c
 
   <?php if ($ecrit): ?><div class="act"><button type="submit">Enregistrer</button></div><?php endif; ?>
 </form>
+
+<?php /* ── L'ÉQUIPE DU LIEU.  [Anna, 22.08.2026] ─────────────────────────────
+     « as infos principais dos contatos da equipe e da equipe do teatro ».
+
+     UNE ÉQUIPE DE THÉÂTRE N'EST PAS UNE PERSONNE. Il y a le régisseur général,
+     celui du son, celui qui ouvre la porte le matin, et parfois l'administratrice
+     qui répond des contrats. Le champ unique au-dessus reste — c'est notre
+     interlocuteur à nous — et cette liste porte les leurs.
+
+     ELLE EST HORS DU GRAND FORMULAIRE parce que ce sont des LIGNES et non des
+     champs, et que le HTML interdit d'imbriquer un formulaire dans un autre. */ ?>
+<h3 class="sep">L'équipe du lieu</h3>
+<p class="aide">Qui on trouve sur place. La Feuille de route les imprime, avec les contacts
+   de notre équipe: c'est ce qu'on cherche à l'arrivée, un téléphone à la main.</p>
+
+<?php $lieuC = $d['technique']['contacts'] ?? []; ?>
+<?php if ($lieuC): ?>
+  <div class="tbl"><table>
+    <thead><tr><th>Nom</th><th>Rôle</th><th>Courriel</th><th>Téléphone</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($lieuC as $c): $cid = (string)($c['id'] ?? ''); $fc = 'fLc-' . $cid; ?>
+      <tr>
+        <?php if ($ecrit): ?>
+          <?php foreach (['nom'=>'Nom','role'=>'Rôle','email'=>'Courriel','tel'=>'Téléphone'] as $k => $ph): ?>
+            <td><input type="text" name="l[<?= $k ?>]" form="<?= e($fc) ?>" placeholder="<?= e($ph) ?>"
+                       value="<?= e((string)($c[$k] ?? '')) ?>"></td>
+          <?php endforeach; ?>
+          <td class="d lc-act">
+            <form method="post" action="<?= e($lien('technique')) ?>" id="<?= e($fc) ?>" class="inline">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="pf" value="liste_modifier">
+              <input type="hidden" name="ou" value="technique.contacts">
+              <input type="hidden" name="ligne" value="<?= e($cid) ?>">
+              <button type="submit" class="lc-b">enregistrer</button>
+            </form>
+            <form method="post" action="<?= e($lien('technique')) ?>" class="inline"
+                  onsubmit="return confirm('Retirer cette personne ?')">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="pf" value="liste_retirer">
+              <input type="hidden" name="ou" value="technique.contacts">
+              <input type="hidden" name="ligne" value="<?= e($cid) ?>">
+              <button type="submit" class="x">×</button>
+            </form>
+          </td>
+        <?php else: ?>
+          <td><?= e((string)($c['nom'] ?? '')) ?></td>
+          <td class="sec"><?= e((string)($c['role'] ?? '')) ?></td>
+          <td class="sec"><?= e((string)($c['email'] ?? '')) ?></td>
+          <td class="sec"><?= e((string)($c['tel'] ?? '')) ?></td>
+          <td></td>
+        <?php endif; ?>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div>
+<?php else: ?>
+  <p class="aide">Personne encore.</p>
+<?php endif; ?>
+
+<?php if ($ecrit): ?>
+<form method="post" action="<?= e($lien('technique')) ?>" class="ajl">
+  <?= Auth::csrfField() ?>
+  <input type="hidden" name="pf" value="liste_ajouter">
+  <input type="hidden" name="ou" value="technique.contacts">
+  <input type="text" name="l[nom]"   placeholder="Nom" size="18" required>
+  <input type="text" name="l[role]"  placeholder="Rôle — régie, son, accueil…" size="22">
+  <input type="text" name="l[email]" placeholder="Courriel" size="20">
+  <input type="text" name="l[tel]"   placeholder="Téléphone" size="16">
+  <button type="submit">ajouter</button>
+</form>
+<?php endif; ?>
+
+<style>
+.lc-act{white-space:nowrap;width:1%}
+button.lc-b{padding:3px 9px;font-size:11.5px;font-weight:500;background:transparent;
+  color:var(--doux);border:1px solid var(--trait);border-radius:4px;cursor:pointer;
+  font-family:inherit;margin:0 4px 0 0}
+button.lc-b:hover{color:var(--encre);border-color:var(--encre)}
+</style>
+
 
 <h3 class="sep">Les versions du document</h3>
 <p class="aide">Une fiche technique sans sa date fait déplacer un camion pour rien. Le
