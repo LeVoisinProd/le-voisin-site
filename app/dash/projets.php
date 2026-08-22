@@ -187,7 +187,29 @@ if ($pcms > 0) {
             if (($l['qui_choix'] ?? '') !== '') $l['qui'] = (string)$l['qui_choix'];
             unset($l['quand_date'], $l['qui_choix']);
 
-            ProdFiche::ajouter($pcms, (string)($_POST['ou'] ?? ''), $l);
+            /* ── UNE PERSONNE AJOUTÉE ARRIVE AVEC LES JOURNÉES DU PLANNING ──
+               [Anna, 22.08.2026] « no dashboard já estava tudo automatizado:
+               quando incluíamos uma pessoa ele já pré-preenchia as datas que
+               estavam preenchidas no planning do projeto ».
+
+               ON COCHE TOUT, ET ON DÉCOCHE ENSUITE. C'est le sens de marche qui
+               demande le moins de gestes: la plupart des gens font la période
+               entière, et ceux qui n'en font qu'une partie sont l'exception. Le
+               contraire — tout décoché — obligerait à cliquer trois cases pour
+               le cas courant et laisserait des lignes à zéro jour que personne
+               ne remarque.
+
+               SI LE PLANNING EST VIDE, RIEN N'EST COCHÉ et le champ « Jours »
+               reste saisissable à la main: on n'invente pas des dates. */
+            $ouAj = (string)($_POST['ou'] ?? '');
+            if ($ouAj === 'remuneration' && ($l['jours_dates'] ?? '') === '') {
+                $jj = ProdFiche::toutesLesJournees(ProdFiche::donnees($pcms));
+                if ($jj) {
+                    $l['jours_dates'] = implode(',', $jj);
+                    if (trim((string)($l['jours'] ?? '')) === '') $l['jours'] = (string)count($jj);
+                }
+            }
+            ProdFiche::ajouter($pcms, $ouAj, $l);
             dash_flash('Ligne ajoutée.');
 
         } elseif ($act === 'liste_retirer') {
@@ -207,13 +229,45 @@ if ($pcms > 0) {
                `ProdFiche::modifier` résout contre les listes existantes et qui
                refuse tout chemin inconnu, plus le motif ci-dessous qui écarte
                les noms de champ fabriqués. */
-            $n = 0;
+            /* UN GROUPE DE CASES ARRIVE EN TABLEAU.  [22.08.2026] Les journées
+               travaillées d'une personne sont cochées une à une et repartent
+               donc en `l[jours_dates][]`. On les recolle par des virgules: une
+               liste de dates dans une chaîne se relit sans schéma, et le reste
+               du code n'a rien à apprendre. */
+            $n   = 0;
+            $ou  = (string)($_POST['ou'] ?? '');
+            $lig = (string)($_POST['ligne'] ?? '');
+            $vus = [];
             foreach ((array)($_POST['l'] ?? []) as $champ => $val) {
                 if (!preg_match('/^[a-z_]{1,24}$/', (string)$champ)) continue;
-                ProdFiche::modifier($pcms, (string)($_POST['ou'] ?? ''),
-                                    (string)($_POST['ligne'] ?? ''),
-                                    (string)$champ, mb_substr(trim((string)$val), 0, 500));
+                /* On jette les vides avant de recoller: le formulaire porte un
+                   champ vide en tête, pour que tout décocher envoie quand même
+                   la clef. Sans ce filtre la valeur stockée commencerait par une
+                   virgule — sans conséquence, mais illisible à qui la relit. */
+                $v = is_array($val)
+                    ? implode(',', array_filter(array_map(fn($x) => trim((string)$x), $val),
+                                                fn($x) => $x !== ''))
+                    : trim((string)$val);
+                ProdFiche::modifier($pcms, $ou, $lig, (string)$champ, mb_substr($v, 0, 500));
+                $vus[] = (string)$champ;
                 $n++;
+            }
+
+            /* LE NOMBRE DE JOURS N'EST PLUS TAPÉ, IL EST COMPTÉ. Le laisser à la
+               main à côté des cases donnerait deux vérités sur le même écran, et
+               c'est celle qu'on ne regarde pas qui part dans le contrat. Le
+               décocher d'un jour doit donc le faire descendre tout seul.
+               Une case décochée n'envoie rien: `jours_dates` absent du POST veut
+               dire « aucune », et c'est pour cela que le formulaire porte un
+               champ vide en tête. */
+            if ($ou === 'remuneration' && in_array('jours_dates', $vus, true)) {
+                $dd = ProdFiche::donnees($pcms);
+                foreach (($dd['remuneration'] ?? []) as $r) {
+                    if (($r['id'] ?? '') !== $lig) continue;
+                    $j = array_filter(explode(',', (string)($r['jours_dates'] ?? '')));
+                    ProdFiche::modifier($pcms, $ou, $lig, 'jours', (string)count($j));
+                    break;
+                }
             }
             dash_flash($n ? 'Ligne enregistrée.' : 'Rien à enregistrer.');
 

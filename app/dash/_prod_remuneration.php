@@ -27,6 +27,10 @@ const CONTRATS = [
 ];
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */
 
+$etapesJ = ProdFiche::joursDuPlanning($d);
+$JSEM    = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+$MOISC   = ['','jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+
 $tot = 0.0;
 foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)($r['montant'] ?? 0));
 ?>
@@ -45,12 +49,13 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
       <th class="d">Jours</th><th class="d">Montant</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($d['remuneration'] as $r): ?>
+      <?php $coches = array_filter(explode(',', (string)($r['jours_dates'] ?? ''))); ?>
       <tr>
         <td><?= e((string)($r['personne'] ?? '')) ?></td>
         <td class="sec"><?= e((string)($r['fonction'] ?? '')) ?></td>
         <td class="sec"><?= e(CONTRATS[(string)($r['contrat'] ?? '')] ?? (string)($r['contrat'] ?? '')) ?></td>
         <td class="sec"><?= e((string)($r['periode'] ?? '')) ?></td>
-        <td class="d sec"><?= e((string)($r['jours'] ?? '')) ?></td>
+        <td class="d sec"><?= $coches ? count($coches) : e((string)($r['jours'] ?? '')) ?></td>
         <td class="d"><?= ($r['montant'] ?? '') !== ''
             ? number_format((float)str_replace(',', '.', (string)$r['montant']), 2, ',', ' ')
               . ' ' . e((string)($r['devise'] ?? '')) : '' ?></td>
@@ -67,6 +72,48 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
           <?php endif; ?>
         </td>
       </tr>
+      <?php /* ── LES JOURNÉES DE CETTE PERSONNE-LÀ ────────────────────────────
+           [Anna, 22.08.2026] « no dashboard já estava tudo automatizado: quando
+           incluíamos uma pessoa ele já pré-preenchia as datas que estavam
+           preenchidas no planning do projeto ».
+
+           ELLES SONT SOUS LA LIGNE ET NON DANS UNE COLONNE: trois journées
+           tiennent dans une case, quinze n'y tiennent pas, et une tournée en a
+           quinze. Une seconde rangée les laisse respirer sans étirer le tableau.
+
+           CHAQUE PERSONNE A SON FORMULAIRE. Un seul pour toute la page ferait
+           repartir les cases de tout le monde à chaque enregistrement, et le
+           dernier à écrire gagnerait — c'est le défaut qu'on a déjà payé sur les
+           paquets du site. */ ?>
+      <?php if ($ecrit && $etapesJ): ?>
+      <tr class="rj">
+        <td colspan="7">
+          <form method="post" action="<?= e($lien('remuneration')) ?>" class="jrs">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="pf" value="liste_modifier">
+            <input type="hidden" name="ou" value="remuneration">
+            <input type="hidden" name="ligne" value="<?= e((string)($r['id'] ?? '')) ?>">
+            <?php /* Une case décochée n'envoie rien: sans ce champ vide, tout
+                 décocher n'enverrait pas `jours_dates` du tout et la ligne
+                 garderait ses anciennes journées. */ ?>
+            <input type="hidden" name="l[jours_dates][]" value="">
+            <?php foreach ($etapesJ as $et): ?>
+              <div class="jrs-e">
+                <span class="jrs-t"><?= e($et['titre']) ?></span>
+                <?php foreach ($et['jours'] as $j): $ts = strtotime($j); ?>
+                  <label class="jr<?= in_array((int)date('w', $ts), [0,6], true) ? ' we' : '' ?>">
+                    <input type="checkbox" name="l[jours_dates][]" value="<?= e($j) ?>"
+                           <?= in_array($j, $coches, true) ? 'checked' : '' ?>>
+                    <?= $JSEM[(int)date('w', $ts)] ?> <?= (int)date('j', $ts) ?> <?= $MOISC[(int)date('n', $ts)] ?>
+                  </label>
+                <?php endforeach; ?>
+              </div>
+            <?php endforeach; ?>
+            <button type="submit" class="jrs-b">enregistrer les jours</button>
+          </form>
+        </td>
+      </tr>
+      <?php endif; ?>
     <?php endforeach; ?>
     </tbody>
     <tfoot><tr><td colspan="5">Total</td>
@@ -162,3 +209,25 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
 })();
 </script>
 <?php endif; ?>
+
+<style>
+/* LES JOURNÉES D'UNE PERSONNE. [22.08.2026] Une rangée sous sa ligne, groupée
+   par étape du Planning: la date seule ne dit pas si l'on parle de la résidence
+   ou du jeu, et c'est justement ce qui change qui vient et qui ne vient pas. */
+tr.rj > td{padding-top:0;padding-bottom:12px;border-bottom:1px solid var(--trait)}
+form.jrs{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.jrs-e{display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center}
+.jrs-t{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
+  margin-right:4px}
+label.jr{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;
+  padding:3px 8px;border:1px solid var(--trait);border-radius:14px;cursor:pointer;
+  white-space:nowrap}
+label.jr:has(input:checked){background:var(--encre);color:var(--papier);border-color:var(--encre)}
+label.jr.we{opacity:.7}
+label.jr input{margin:0;width:auto}
+/* En contour et non en plein: cocher des cases n'est pas l'action principale de
+   l'écran, et deux boutons noirs par personne feraient une page de boutons. */
+button.jrs-b{margin-top:2px;padding:4px 11px;font-size:12px;font-weight:500;
+  background:transparent;color:var(--doux);border:1px solid var(--trait)}
+button.jrs-b:hover{color:var(--encre);border-color:var(--encre);opacity:1}
+</style>

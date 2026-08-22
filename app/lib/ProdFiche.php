@@ -828,6 +828,84 @@ class ProdFiche
      * en tableau dans le dossier », et le texte se recopie d'un bouton plutôt
      * que de se ressaisir.
      */
+    /**
+     * Les étapes du Planning dépliées en journées.  [Anna, 22.08.2026]
+     *
+     * « no dashboard já estava tudo automatizado: quando incluíamos uma pessoa
+     * ele já pré-preenchia as datas que estavam preenchidas no planning do
+     * projeto ».
+     *
+     * ELLES SONT DÉPLIÉES ICI ET NON DANS L'ÉCRAN parce que trois endroits en
+     * ont besoin — la ligne de rémunération qui les coche, l'ajout qui les
+     * pré-remplit, et le compte de jours qui en sort. Trois boucles écrites
+     * séparément auraient dérivé au premier cas limite, et le premier cas limite
+     * est une étape dont la fin manque.
+     *
+     * UNE ÉTAPE SANS FIN VAUT UN JOUR, celui de son début: c'est ainsi qu'on
+     * saisit une date isolée. Une étape sans début ne vaut rien et ne produit
+     * aucune journée — on ne devine pas.
+     *
+     * LE GARDE-FOU DE 400 JOURS reste, comme dans l'ancienne grille: une faute
+     * de frappe dans une année produirait sinon des milliers de cases.
+     *
+     * @return array<int,array{cle:string,titre:string,jours:array<int,string>}>
+     */
+    public static function joursDuPlanning(array $d): array
+    {
+        $MOIS = ['', 'jan', 'fév', 'mar', 'avr', 'mai', 'jun',
+                 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc'];
+        $out  = [];
+        $vus  = 0;
+
+        $etapes = $d['planning']['dates'] ?? [];
+        usort($etapes, fn($a, $b) => (string)($a['debut'] ?? '9999') <=> (string)($b['debut'] ?? '9999'));
+
+        foreach ($etapes as $e) {
+            $deb = trim((string)($e['debut'] ?? ''));
+            if ($deb === '') continue;
+            $fin = trim((string)($e['fin'] ?? '')) ?: $deb;
+            if ($fin < $deb) $fin = $deb;
+
+            $t  = strtotime($deb . ' 12:00:00');
+            $tf = strtotime($fin . ' 12:00:00');
+            if ($t === false || $tf === false) continue;
+
+            $jours = [];
+            while ($t <= $tf && $vus++ < 400) {
+                $jours[] = date('Y-m-d', $t);
+                $t = strtotime('+1 day', $t);
+            }
+            if (!$jours) continue;
+
+            $lib = self::PHASES[$e['phase'] ?? ''] ?? 'Étape';
+            $d1  = (int)date('j', strtotime($jours[0]));
+            $m1  = $MOIS[(int)date('n', strtotime($jours[0]))];
+            $dn  = (int)date('j', strtotime($jours[count($jours) - 1]));
+            $mn  = $MOIS[(int)date('n', strtotime($jours[count($jours) - 1]))];
+            $lieu = trim((string)($e['lieu'] ?? '')) ?: trim((string)($e['ville'] ?? ''));
+
+            $out[] = [
+                'cle'   => (string)($e['id'] ?? $jours[0]),
+                'titre' => $lib . ' — ' . $d1 . ' ' . $m1
+                         . (count($jours) > 1 ? ' → ' . $dn . ' ' . $mn : '')
+                         . ' (' . count($jours) . ' j)'
+                         . ($lieu !== '' ? ' · ' . $lieu : ''),
+                'jours' => $jours,
+            ];
+        }
+        return $out;
+    }
+
+    /** Toutes les journées du planning, à plat et sans doublon. */
+    public static function toutesLesJournees(array $d): array
+    {
+        $j = [];
+        foreach (self::joursDuPlanning($d) as $e) foreach ($e['jours'] as $x) $j[$x] = true;
+        $j = array_keys($j);
+        sort($j);
+        return $j;
+    }
+
     public static function calendrierDepuisPlanning(array $d): string
     {
         $dates = $d['planning']['dates'] ?? [];
