@@ -403,28 +403,146 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
 <?php /* ════════════════════ FEUILLE DE ROUTE ════════════════════════ */ ?>
 <?php elseif ($onglet === 'fdr'): ?>
 
-  <p class="aide top">Rédigée depuis le Planning, l'Équipe et la Logistique, puis
-     <strong>modifiable librement</strong>. La régénérer remplace le texte ci-dessous:
-     ce qui a été écrit à la main est alors perdu, et c'est pour cela qu'on le demande.</p>
+  <?php /* ── L'ÉCRAN MONTRE CE QUE LE DOCUMENT CONTIENDRA.  [Anna, 22.08.2026]
+       « não vejo diferença ». Elle avait raison de le dire: j'avais refait le
+       DOCUMENT et laissé l'écran tel quel — une zone de texte brut. On ouvre
+       l'onglet, on voit la même chose qu'hier, et on conclut que rien n'a bougé.
 
-  <?php if ($ecrit): ?>
-    <form method="post" action="<?= e($lien('fdr')) ?>" class="inline"
-          onsubmit="return confirm('Régénérer la feuille de route ? Le texte actuel sera remplacé.')">
+       Ce qui s'affiche ici n'est pas modifiable et c'est voulu: chaque bloc se
+       remplit là où il vit — l'équipe dans la Synthèse, les contacts du lieu
+       dans la Fiche technique, la logistique dans son onglet. Le montrer ici
+       évite d'aller vérifier ailleurs avant d'imprimer, et dit d'un regard ce
+       qui manquera sur le papier. */ ?>
+
+  <?php
+  /* Les mêmes lectures que le document, pour que l'écran ne puisse pas mentir. */
+  $fFiches = [];
+  try {
+      foreach (DB::all("SELECT prenom, nom, email, telephone FROM rh_employe
+                         WHERE supprime_le IS NULL") as $f) {
+          $n = trim(((string)$f['prenom']) . ' ' . ((string)$f['nom']));
+          if ($n !== '') $fFiches[mb_strtolower($n)] = $f;
+      }
+  } catch (Throwable $ex) { }
+
+  $fEquipe = [];
+  foreach (($d['equipe'] ?? []) as $m) {
+      $n = trim(((string)($m['prenom'] ?? '')) . ' ' . ((string)($m['nom'] ?? '')));
+      if ($n === '') continue;
+      $f = $fFiches[mb_strtolower($n)] ?? null;
+      $fEquipe[] = ['nom' => $n, 'fonction' => (string)($m['fonction'] ?? ''),
+                    'tel' => (string)($f['telephone'] ?? ''), 'email' => (string)($f['email'] ?? '')];
+  }
+
+  $fLieu = $d['technique']['contacts'] ?? [];
+  $fSeul = $d['technique']['contact'] ?? [];
+  if (array_filter(array_map('strval', $fSeul))) array_unshift($fLieu, $fSeul);
+
+  $fLogi = 0;
+  foreach (ProdFiche::LOGI as $k => $_v) $fLogi += count($d['logistique'][$k] ?? []);
+  $fSansContact = count(array_filter($fEquipe, fn($x) => $x['tel'] === '' && $x['email'] === ''));
+  ?>
+
+  <div class="grille2">
+    <?php ob_start(); ?>
+      <?php if (!$fEquipe): ?>
+        <p class="aide">Personne. Elle se saisit dans la Synthèse.</p>
+      <?php endif; ?>
+      <ul class="fdr-l">
+        <?php foreach ($fEquipe as $m): ?>
+          <li>
+            <span class="fdr-n"><?= e($m['nom']) ?></span>
+            <?php if ($m['fonction'] !== ''): ?><span class="fdr-f"><?= e($m['fonction']) ?></span><?php endif; ?>
+            <?php $c = array_filter([$m['tel'], $m['email']]); ?>
+            <span class="fdr-c<?= $c ? '' : ' fdr-vide' ?>">
+              <?= $c ? e(implode(' · ', $c)) : 'pas de fiche au Personnel — sortira sans contact' ?></span>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php $corpsEq = ob_get_clean(); ?>
+    <?= $carte('Notre équipe', $corpsEq,
+               '<a class="carte-b2" href="' . e($lien('synthese')) . '">Modifier</a>') ?>
+
+    <?php ob_start(); ?>
+      <?php if (!$fLieu): ?>
+        <p class="aide">Personne encore. Elle se saisit dans la Fiche technique — c'est ce qui
+           manque le plus souvent, et c'est ce qu'on cherche en arrivant.</p>
+      <?php endif; ?>
+      <ul class="fdr-l">
+        <?php foreach ($fLieu as $c): ?>
+          <li>
+            <span class="fdr-n"><?= e((string)($c['nom'] ?? '')) ?: '—' ?></span>
+            <?php if (($c['role'] ?? '') !== ''): ?><span class="fdr-f"><?= e((string)$c['role']) ?></span><?php endif; ?>
+            <?php $x = array_filter([(string)($c['tel'] ?? ''), (string)($c['email'] ?? '')]); ?>
+            <?php if ($x): ?><span class="fdr-c"><?= e(implode(' · ', $x)) ?></span><?php endif; ?>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php $corpsLieu = ob_get_clean(); ?>
+    <?= $carte('L\'équipe du lieu', $corpsLieu,
+               '<a class="carte-b2" href="' . e($lien('technique')) . '">Modifier</a>') ?>
+  </div>
+
+  <?php ob_start(); ?>
+    <?php if (!$fLogi): ?>
+      <p class="aide">Rien encore. Les voyages, l'hébergement et les repas se saisissent
+         dans l'onglet Logistique, personne par personne.</p>
+    <?php else: ?>
+      <p class="aide"><?= $fLogi ?> ligne<?= $fLogi > 1 ? 's' : '' ?>, rangée<?= $fLogi > 1 ? 's' : '' ?>
+         par personne dans le document.</p>
+      <ul class="fdr-l">
+        <?php foreach (ProdFiche::LOGI as $cle => $lib): ?>
+          <?php foreach (($d['logistique'][$cle] ?? []) as $l): ?>
+            <li>
+              <span class="fdr-n"><?= e((string)($l['qui'] ?? '')) ?: 'sans personne' ?></span>
+              <span class="fdr-f"><?= e((string)($l['quand'] ?? '')) ?> · <?= e((string)($l['libelle'] ?? '')) ?></span>
+              <span class="fdr-c"><?= e(trim(((string)($l['depart'] ?? ''))
+                    . ((($l['depart'] ?? '') !== '' && ($l['arrivee'] ?? '') !== '') ? ' → ' : '')
+                    . ((string)($l['arrivee'] ?? '')))) ?></span>
+            </li>
+          <?php endforeach; ?>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+  <?php $corpsLg = ob_get_clean(); ?>
+
+  <?php ob_start(); ?>
+    <p class="aide">Ce que les champs ne savent pas dire — un code de porte, une consigne,
+       le nom du bar où l'on se retrouve. Il s'imprime en tête du document.</p>
+    <form method="post" action="<?= e($lien('fdr')) ?>" id="fFdr">
       <?= Auth::csrfField() ?>
-      <input type="hidden" name="pf" value="fdr_generer">
-      <button type="submit">Générer depuis les onglets</button>
+      <input type="hidden" name="pf" value="champs">
     </form>
+    <div class="ch">
+      <textarea name="v[fdr.texte]" rows="8" form="fFdr" <?= $ecrit ? '' : 'readonly' ?>><?= e((string)$d['fdr']['texte']) ?></textarea>
+    </div>
+    <?php if ($ecrit): ?>
+      <div class="barre-enr"><button type="submit" form="fFdr">Enregistrer</button></div>
+    <?php endif; ?>
+  <?php $corpsTx = ob_get_clean(); ?>
+
+  <div class="grille2">
+    <?= $carte('Logistique', $corpsLg,
+               '<a class="carte-b2" href="' . e($lien('logistique')) . '">Modifier</a>') ?>
+    <?= $carte('À savoir', $corpsTx) ?>
+  </div>
+
+  <?php if ($fSansContact > 0): ?>
+    <p class="aide" style="margin-top:14px"><strong><?= $fSansContact ?></strong>
+       personne<?= $fSansContact > 1 ? 's' : '' ?> de l'équipe sortira<?= $fSansContact > 1 ? 'nt' : '' ?>
+       sans téléphone ni courriel: leur nom ne correspond à aucune fiche du Personnel.
+       Les contacts viennent de là et ne se resaisissent pas ici.</p>
   <?php endif; ?>
 
-  <form method="post" action="<?= e($lien('fdr')) ?>">
-    <?= Auth::csrfField() ?>
-    <input type="hidden" name="pf" value="champs">
-    <div class="ch">
-      <label for="c-fdr">Feuille de route</label>
-      <textarea id="c-fdr" name="v[fdr.texte]" rows="24" class="mono" <?= $ecrit ? '' : 'readonly' ?>><?= e((string)$d['fdr']['texte']) ?></textarea>
-    </div>
-    <?php if ($ecrit): ?><button type="submit">Enregistrer</button><?php endif; ?>
-  </form>
+  <style>
+  .fdr-l{list-style:none;margin:0;padding:0}
+  .fdr-l li{padding:6px 0;border-bottom:1px solid var(--trait)}
+  .fdr-l li:last-child{border-bottom:0}
+  .fdr-n{font-weight:600;font-size:13.5px}
+  .fdr-f{color:var(--doux);font-size:12.5px;margin-left:8px}
+  .fdr-c{display:block;font-size:12.5px;color:var(--encre);margin-top:1px}
+  .fdr-c.fdr-vide{color:var(--doux);font-style:italic}
+  </style>
 
 <?php /* ═══════════════════════ RÉMUNÉRATION ═════════════════════════ */ ?>
 <?php elseif ($onglet === 'remuneration'): ?>
