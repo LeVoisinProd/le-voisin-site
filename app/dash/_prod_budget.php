@@ -27,6 +27,29 @@
 declare(strict_types=1);
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */
 
+/* ── À QUOI SE RAPPORTE UNE LIGNE.  [Anna, 22.08.2026] ──────────────────────
+   « na parte para ajouter uma nova linha de frais, incluir o campo projet
+   entier, ou as fases de cada etapa ».
+
+   Une charge n'appartient pas toujours au projet entier: le décor se paie une
+   fois, mais les défraiements se rattachent à la résidence de mars ou à la série
+   de novembre. Sans ce champ, un budget de tournée est un tas.
+
+   VIDE VEUT DIRE « PROJET ENTIER », et c'est ce qui permet de ne rien casser:
+   toutes les lignes déjà saisies restent ce qu'elles sont sans qu'on les
+   reprenne. */
+$ETAPES_B = [];
+foreach (($d['planning']['dates'] ?? []) as $etB) {
+    $f = static fn($x) => ($t = strtotime((string)$x)) ? date('d.m.Y', $t) : (string)$x;
+    $a = (string)($etB['debut'] ?? ''); $b = (string)($etB['fin'] ?? '');
+    $lb = trim(implode(' · ', array_filter([
+        ($a === '' && $b === '') ? '' : (($b === '' || $b === $a) ? $f($a) : $f($a) . ' – ' . $f($b)),
+        ProdFiche::PHASES[$etB['phase'] ?? ''] ?? '',
+        trim(((string)($etB['lieu'] ?? '')) . (($etB['ville'] ?? '') ? ', ' . $etB['ville'] : ''), ', '),
+    ])));
+    if ($lb !== '') $ETAPES_B[] = $lb;
+}
+
 $B  = ProdFiche::budgetParPoste($d);
 $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
 ?>
@@ -80,9 +103,56 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
                 <input type="hidden" name="ligne" value="<?= e($lid) ?>">
                 <input type="text" name="l[libelle]" value="<?= e((string)($l['libelle'] ?? '')) ?>"
                        placeholder="Libellé" class="bd-lib">
+                <?php if ($ETAPES_B): ?>
+                  <select name="l[etape]" class="bd-et">
+                    <option value="">Projet entier</option>
+                    <?php foreach ($ETAPES_B as $lb): ?>
+                      <option value="<?= e($lb) ?>" <?= (string)($l['etape'] ?? '') === $lb ? 'selected' : '' ?>><?= e($lb) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                <?php endif; ?>
                 <input type="text" name="l[montant]" value="<?= e((string)($l['montant'] ?? '')) ?>"
                        inputmode="decimal" class="bd-mt">
-                <span class="bd-dev">CHF</span>
+<select name="l[devise]" class="bd-dv">
+  <?php foreach (['CHF','EUR'] as $dv): ?>
+    <option <?= (string)($l['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
+  <?php endforeach; ?>
+
+          <?php if ($ecrit && $cle !== 'personnel'): ?>
+            <?php /* LA LIGNE D'AJOUT DU POSTE, sous ses lignes et à la même
+                 largeur: on écrit là où on lit. Le poste est celui-ci, il ne se
+                 choisit pas. « Frais de personnel » n'en a pas — il se remplit
+                 depuis la Rémunération, et une saisie ici ferait un double
+                 compte avec la somme automatique. */ ?>
+            <form method="post" action="<?= e($lien('budget')) ?>" class="bd-l bd-aj">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="pf" value="liste_ajouter">
+              <input type="hidden" name="ou" value="budget">
+              <input type="hidden" name="l[sens]" value="depense">
+              <input type="hidden" name="l[poste]" value="<?= e($cle) ?>">
+              <input type="text" name="l[libelle]" placeholder="Ajouter une ligne" required class="bd-lib">
+              <?php if ($ETAPES_B): ?>
+                <select name="l[etape]" class="bd-et" title="À quoi se rapporte cette ligne">
+                  <option value="">Projet entier</option>
+                  <?php foreach ($ETAPES_B as $lb): ?>
+                    <option value="<?= e($lb) ?>"><?= e($lb) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              <?php endif; ?>
+              <input type="text" name="l[montant]" placeholder="Montant" inputmode="decimal" class="bd-mt">
+              <select name="l[devise]" class="bd-dv"><option>CHF</option><option>EUR</option></select>
+              <button type="submit" class="bd-plus" title="Ajouter">+</button>
+            </form>
+          <?php endif; ?>
+</select>
+<?php /* LE MONTANT CONVERTI SE MONTRE À CÔTÉ, avec la date du taux.
+     Une ligne en euros dont on ne verrait que « 1 200 EUR » ne dit
+     pas ce qu'elle pèse dans le total, et c'est le total qui part au
+     financeur. */ ?>
+<?php if ((string)($l['devise'] ?? 'CHF') === 'EUR'): ?>
+  <span class="bd-cv" title="Taux BCE du <?= e((string)($l['taux_jour'] ?? '?')) ?>">
+    = <?= $mt((float)$l['_m']) ?> CHF</span>
+<?php endif; ?>
                 <button type="submit" class="bd-ok" title="Enregistrer">✓</button>
               </form>
               <?php /* LE BOUTON D'EFFACEMENT ENVOYAIT `id`, LE SERVEUR LIT `ligne`.
@@ -154,7 +224,19 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
           </select>
           <input type="text" name="l[montant]" value="<?= e((string)($l['montant'] ?? '')) ?>"
                  inputmode="decimal" class="bd-mt">
-          <span class="bd-dev">CHF</span>
+<select name="l[devise]" class="bd-dv">
+  <?php foreach (['CHF','EUR'] as $dv): ?>
+    <option <?= (string)($l['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
+  <?php endforeach; ?>
+</select>
+<?php /* LE MONTANT CONVERTI SE MONTRE À CÔTÉ, avec la date du taux.
+     Une ligne en euros dont on ne verrait que « 1 200 EUR » ne dit
+     pas ce qu'elle pèse dans le total, et c'est le total qui part au
+     financeur. */ ?>
+<?php if ((string)($l['devise'] ?? 'CHF') === 'EUR'): ?>
+  <span class="bd-cv" title="Taux BCE du <?= e((string)($l['taux_jour'] ?? '?')) ?>">
+    = <?= $mt((float)$l['_m']) ?> CHF</span>
+<?php endif; ?>
           <button type="submit" class="bd-ok" title="Enregistrer">✓</button>
         </form>
         <form method="post" action="<?= e($lien('budget')) ?>" class="bd-sup"
@@ -189,24 +271,17 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
   </div>
 </div>
 
+<?php /* LE FORMULAIRE D'AJOUT GLOBAL EST PARTI D'ICI.  [Anna, 22.08.2026]
+     « colocar o botão de mais dentro do budget ao lado do montant, não embaixo ».
+
+     Il vivait tout en bas, avec un menu pour choisir le poste. Deux gestes de
+     trop: descendre jusqu'à lui, puis redire dans quel poste on écrit — alors
+     qu'on venait de regarder ce poste-là. Chaque poste porte désormais sa propre
+     ligne d'ajout, juste sous ses lignes, et le poste n'a plus à se choisir
+     puisqu'il est celui sous lequel on écrit. */ ?>
 <?php if ($ecrit): ?>
-<form method="post" action="<?= e($lien('budget')) ?>" class="bd-add">
-  <?= Auth::csrfField() ?>
-  <input type="hidden" name="pf" value="liste_ajouter">
-  <input type="hidden" name="ou" value="budget">
-  <input type="hidden" name="l[sens]" value="depense">
-  <div class="bd-add-t">Ajouter une ligne de charge</div>
-  <select name="l[poste]">
-    <?php foreach (ProdFiche::BUDGET_POSTES as $k => $v): ?>
-      <option value="<?= $k ?>"><?= e($v) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <input type="text" name="l[libelle]" placeholder="Libellé — location décor, affiches…" required>
-  <input type="text" name="l[montant]" placeholder="Montant" size="10" inputmode="decimal">
-  <button type="submit">+ Ajouter</button>
-</form>
-<p class="aide">Le poste « Frais de personnel » se remplit depuis l'onglet Rémunération: une
-   ligne de salaire ajoutée ici ferait un double compte avec la somme automatique.</p>
+  <p class="aide">Le poste « Frais de personnel » se remplit depuis l'onglet Rémunération: une
+     ligne de salaire ajoutée ici ferait un double compte avec la somme automatique.</p>
 <?php endif; ?>
 
 <style>
@@ -230,6 +305,15 @@ form.bd-ed select.bd-nat-s{flex:0 0 auto;max-width:150px;font-size:12px;color:va
 button.bd-ok{background:none;border:0;padding:0 2px;color:var(--doux);cursor:pointer;
   font-size:13px;font-family:inherit}
 button.bd-ok:hover{color:var(--encre)}
+form.bd-aj{margin-top:6px;opacity:.75}
+form.bd-aj:hover,form.bd-aj:focus-within{opacity:1}
+form.bd-aj input,form.bd-aj select{border-color:var(--trait)}
+button.bd-plus{flex:0 0 auto;padding:3px 10px;font-size:14px;line-height:1.2;font-weight:700;
+  border:0;border-radius:5px;background:var(--jaune,#FFD24D);color:var(--encre);cursor:pointer;
+  font-family:inherit;margin:0}
+form.bd-ed select.bd-dv{flex:0 0 66px;font-size:12px}
+form.bd-ed select.bd-et{flex:0 1 160px;font-size:11.5px;color:var(--doux)}
+.bd-cv{font-size:11.5px;color:var(--doux);white-space:nowrap}
 form.bd-sup{margin:-25px 0 0;text-align:right;height:0;position:relative;z-index:1}
 
 .bd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 46px;align-items:start}

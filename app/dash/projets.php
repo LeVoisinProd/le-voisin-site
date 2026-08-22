@@ -274,6 +274,15 @@ if ($pcms > 0) {
                     if (trim((string)($l['jours'] ?? '')) === '') $l['jours'] = (string)count($jj);
                 }
             }
+            /* ── UNE LIGNE DE BUDGET EN EUROS FIGE SON TAUX.  [Anna, 22.08.2026]
+               Le taux du jour est relevé une fois, à l'écriture, et recopié sur
+               la ligne avec sa date. C'est ce qui rend le total stable: sans
+               cela, le budget changerait à chaque ouverture de l'écran. */
+            if ($ouAj === 'budget' && ($l['devise'] ?? 'CHF') === 'EUR') {
+                $tx = Change::eurChf();
+                $l['taux']      = (string)$tx['taux'];
+                $l['taux_jour'] = $tx['jour'];
+            }
             ProdFiche::ajouter($pcms, $ouAj, $l);
             dash_flash('Ligne ajoutée.');
 
@@ -325,6 +334,27 @@ if ($pcms > 0) {
                Une case décochée n'envoie rien: `jours_dates` absent du POST veut
                dire « aucune », et c'est pour cela que le formulaire porte un
                champ vide en tête. */
+            /* Changer la monnaie d'une ligne relève un nouveau taux; changer
+               autre chose ne touche pas celui qui est déjà figé. Passer en
+               francs efface le taux, qui n'aurait plus de sens. */
+            if ($ou === 'budget' && in_array('devise', $vus, true)) {
+                $dd = ProdFiche::donnees($pcms);
+                foreach (($dd['budget'] ?? []) as $bl) {
+                    if (($bl['id'] ?? '') !== $lig) continue;
+                    if ((string)($bl['devise'] ?? 'CHF') === 'EUR') {
+                        if (trim((string)($bl['taux'] ?? '')) === '') {
+                            $tx = Change::eurChf();
+                            ProdFiche::modifier($pcms, $ou, $lig, 'taux', (string)$tx['taux']);
+                            ProdFiche::modifier($pcms, $ou, $lig, 'taux_jour', $tx['jour']);
+                        }
+                    } else {
+                        ProdFiche::modifier($pcms, $ou, $lig, 'taux', '');
+                        ProdFiche::modifier($pcms, $ou, $lig, 'taux_jour', '');
+                    }
+                    break;
+                }
+            }
+
             if ($ou === 'remuneration' && in_array('jours_dates', $vus, true)) {
                 $dd = ProdFiche::donnees($pcms);
                 foreach (($dd['remuneration'] ?? []) as $r) {
@@ -377,6 +407,18 @@ if ($pcms > 0) {
     if (($_GET['imprimer'] ?? '') === '1' && in_array($onglet,
         ['tout','synthese','dossier','planning','logistique','technique','fdr',
          'remuneration','budget','devis','droits'], true)) {
+        /* LE BUDGET A SA PROPRE PAGE.  [Anna, 22.08.2026] « na hora de imprimir
+           o budget colocar num formato como esse, em 2 colunas ». Le rendu
+           commun empile des blocs, ce qui va très bien aux neuf autres onglets;
+           un budget se lit en deux colonnes face à face, sinon il faut retenir
+           un total en lisant l'autre. Le document complet, lui, garde le rendu
+           commun: c'est un recueil, pas une pièce comptable. */
+        if ($onglet === 'budget') {
+            $d    = ProdFiche::donnees($pcms);
+            $prod = ProdFiche::ligne($pcms);
+            require __DIR__ . '/_prod_budget_imprimer.php';
+            return;
+        }
         require __DIR__ . '/_prod_imprimer.php';
         return;
     }

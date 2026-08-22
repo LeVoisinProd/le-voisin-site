@@ -580,9 +580,28 @@ class ProdFiche
         $mt = static fn($x): float
             => (float)str_replace([' ', "'", ',', ' '], ['', '', '.', ''], (string)($x ?? 0));
 
+        /* ── UNE LIGNE PEUT ÊTRE EN EUROS.  [Anna, 22.08.2026] ─────────────────
+           « deixar a escolha da moeda dos valores em euro e chf, quando for em
+           chf fazer a conversão com a taxa cambial do dia ».
+
+           LE TAUX EST CELUI QUI A ÉTÉ FIGÉ SUR LA LIGNE, jamais celui
+           d'aujourd'hui — sa réponse à la question posée. Un budget dont le
+           total change tous les matins ne s'envoie pas à un financeur et ne se
+           compare pas à celui du mois dernier.
+
+           Les totaux sont en francs, parce que c'est la monnaie des comptes:
+           mélanger deux monnaies dans une addition ne donne pas un nombre. */
         $produits = []; $totProd = 0.0;
         foreach ($d['budget'] ?? [] as $l) {
             $m = $mt($l['montant'] ?? 0);
+            $dev = (string)($l['devise'] ?? 'CHF');
+            if ($dev === 'EUR') {
+                $tx = (float)($l['taux'] ?? 0);
+                /* Une ligne en euros sans taux ne peut pas s'additionner. On la
+                   compte pour zéro et l'écran la signale, plutôt que de la
+                   convertir au hasard: un budget faux ne se voit pas. */
+                $m = $tx > 0 ? round($m * $tx, 2) : 0.0;
+            }
             if (($l['sens'] ?? 'depense') === 'recette') {
                 $produits[] = $l + ['_m' => $m];
                 $totProd += $m;
