@@ -54,7 +54,11 @@ $engs = $neuf ? [] : DB::all(
       ORDER BY debut DESC", [$pid]);
 
 $nom = trim(($p['prenom'] ?? '') . ' ' . ($p['nom'] ?? ''));
-dash_haut('personnel', $neuf ? 'nouvelle personne' : e($nom));
+/* L'état se lit dans le titre de la fiche, pas seulement dans un champ: on doit
+   savoir qu'on regarde quelqu'un du passé avant de lui écrire. */
+dash_haut('personnel', $neuf ? 'nouvelle personne'
+    : e($nom) . (!$neuf && (int)($p['actif'] ?? 1) === 0
+        ? ' <span class="anc">ancienne collaboration</span>' : ''));
 
 /* PRÉCÉDENT ET SUIVANT, COMME AILLEURS. [Anna, 21.08.2026] « na parte
    personnel colocar tb os botões de próximo e anterior ». Quatre-vingt-onze
@@ -99,6 +103,8 @@ $lienF = fn($n) => url('/dashboard.php?e=personnel&p=' . (int)$n) . $ctxF;
 .fil-p .pas{color:var(--encre);font-weight:600}
 .fil-p .pas.mort{color:var(--doux);opacity:.35}
 .fil-p .rang{color:var(--doux);font-variant-numeric:tabular-nums}
+.anc{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--trait);
+  color:var(--doux);margin-left:8px;white-space:nowrap;font-weight:400}
 </style>
 <?php endif; ?>
 <?php
@@ -115,6 +121,22 @@ dash_flash_html();
   <div class="grille">
     <h2 class="titre-bloc">Identité</h2>
     <?php
+    /* ── ACTIVE OU ANCIENNE: EN TÊTE, ET DIT EN CLAIR.  [Anna, 22.08.2026] ──
+       « na página de cada pessoa ainda não tem o botão para dizer se a pessoa é
+       ativa ou inativa, tem muita gente que é do passado ».
+
+       LE CHAMP EXISTAIT, ET C'EST PIRE QUE S'IL AVAIT MANQUÉ. Il s'appelait
+       « Dans les listes » et vivait au bas du bloc Emploi, entre la devise et la
+       couleur de repérage. Personne ne va chercher là si quelqu'un travaille
+       encore ici, et le résultat se mesure: sur les quatre-vingt-onze fiches,
+       QUATRE-VINGT-ONZE sont actives et aucune ne porte le passé.
+
+       Il monte donc en tête, sous le nom, et prend le mot qu'on emploie. Une
+       question qui se pose à l'ouverture de la fiche ne se range pas en bas. */
+    ch('actif', 'Collaboration', (string)($p['actif'] ?? 1), [],
+       ['type' => 'select', 'choix' => [1 => 'en cours', 0 => 'terminée — ancienne collaboration'],
+        'aide' => 'Une collaboration terminée sort des listes de choix, mais la fiche reste: '
+                . 'les contrats, les salaires et les déclarations d\'une personne partie se relisent.']);
     ch('prenom',   'Prénom',            $p['prenom']   ?? '');
     ch('nom',      'Nom',               $p['nom']      ?? '');
     /* DEUX NOMS POUR DEUX USAGES, ET ILS NE SE REMPLACENT PAS.  [Anna, 22.08.2026]
@@ -196,8 +218,8 @@ dash_flash_html();
        ['type' => 'select', 'choix' => ['CHF' => 'CHF', 'EUR' => 'EUR']]);
     ch('couleur', 'Couleur de repérage', $p['couleur'] ?? '', [],
        ['type' => 'color', 'aide' => 'pour suivre sa ligne sur un planning']);
-    ch('actif', 'Dans les listes', (string)($p['actif'] ?? 1), [],
-       ['type' => 'select', 'choix' => [1 => 'oui, active ou actif', 0 => 'non, ancien·ne']]);
+    /* « Dans les listes » a déménagé en tête de la fiche, sous le nom, et
+       s'appelle maintenant ce qu'il est. Voir le bloc Identité. */
     ?>
 
     <h2 class="titre-bloc">Ce qui est chiffré</h2>

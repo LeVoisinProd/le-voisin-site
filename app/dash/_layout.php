@@ -545,6 +545,21 @@ if (in_array($hote, ['localhost', '127.0.0.1', '[::1]', '::1'], true)): ?>
 
 function dash_bas(): void
 {
+    /* ── UN MESSAGE NE SURVIT PAS À SA PAGE.  [Anna, 22.08.2026] ─────────────
+       « porque tem uma faixa escrita "ligne ajoutée"… não fiz nada. »
+
+       Elle avait raison et le mécanisme le permettait: le message est gardé en
+       session jusqu'à ce qu'un écran l'affiche, et QUATRE ÉCRANS NE L'AFFICHENT
+       JAMAIS — accueil, documentation, finances, offres. Une ligne ajoutée aux
+       Offres restait donc en attente et surgissait à la visite suivante d'un
+       écran qui, lui, sait afficher — parfois des heures plus tard, sur une page
+       où personne n'avait rien fait.
+
+       On le jette ici, au pied de chaque page. Les quatre écrans l'affichent
+       désormais aussi, mais cette ligne est ce qui garantit qu'aucun message ne
+       traînera jamais: c'est le pied de page que personne ne peut oublier
+       d'appeler, puisque sans lui la page ne se ferme pas. */
+    unset($_SESSION['dash_flash']);
     ?>
 </main>
 </div>

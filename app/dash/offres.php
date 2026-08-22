@@ -124,6 +124,8 @@ $sousTitre = $n['nouvelle'] > 0
     : $total . ' devis et demandes en cours';
 
 dash_haut('offres', $sousTitre);
+
+dash_flash_html();
 ?>
 <?php /* LA FEUILLE DE STYLE EN TÊTE, ET NON EN PIED. [Anna, 22.08.2026]
      « améliorer la mise en page », « le mot précédent n'est pas cliquable ».

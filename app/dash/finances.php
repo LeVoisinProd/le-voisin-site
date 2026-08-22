@@ -300,6 +300,8 @@ if ($vue === 'releve' && ($_GET['imprimer'] ?? '') === '1'):
 endif;
 
 dash_haut('finances', 'saison ' . $saison . '-' . ($saison + 1) . ' · ' . count($lignes) . ' dates');
+
+dash_flash_html();
 ?>
 <div class="onglets">
   <a href="/dashboard.php?e=finances&amp;s=<?= $saison ?>" class="<?= $vue==='apercu'?'ici':'' ?>">Aperçu</a>

@@ -78,6 +78,7 @@ $aCompleter = (int)DB::val("SELECT COUNT(*) FROM docutheque
 dash_haut('documentation', $aCompleter > 0
     ? '<strong>' . $aCompleter . '</strong> document' . ($aCompleter > 1 ? 's' : '') . ' à compléter'
     : 'tout est prêt');
+dash_flash_html();
 ?>
 
 <div class="onglets">

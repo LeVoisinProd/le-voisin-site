@@ -102,6 +102,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             elseif ($c === 'actif') $cols[$c] = $v === '1' ? 1 : 0;
             else $cols[$c] = $v;
         }
+        /* ── LE NOIR N'EST PAS UNE COULEUR CHOISIE.  [Anna, 22.08.2026] ──────
+           « o que quer dizer esse ponto na Yumi ». C'est la « couleur de
+           repérage », celle qui sert à suivre la ligne de quelqu'un sur un
+           planning. Personne ne l'avait choisie pour elle.
+
+           UN `<input type="color">` N'A PAS D'ÉTAT VIDE. Sans valeur il
+           s'affiche noir et il envoie `#000000` à chaque enregistrement: toute
+           fiche sauvegardée repartait donc avec une pastille noire, que personne
+           n'avait demandée et que rien ne permettait d'enlever.
+
+           On traite donc le noir pur comme une absence. C'est une perte
+           théorique — quelqu'un pourrait vouloir du noir — mais sur un planning
+           blanc une pastille noire ne repère rien, et le vrai choix est déjà
+           impossible à distinguer du défaut. */
+        if (array_key_exists('couleur', $cols)
+            && in_array(strtolower(trim((string)$cols['couleur'])), ['#000000', '#000', ''], true)) {
+            $cols['couleur'] = null;
+        }
+
         if (isset($_POST['actif']) === false && $id > 0) unset($cols['actif']);
 
         /* L'AVS ET L'IBAN PASSENT PAR LE CHIFFREMENT, jamais par $CH_EMP. Les

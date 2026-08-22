@@ -173,6 +173,7 @@ $fmt = fn($v) => number_format((float)$v, 0, ',', ' ');
 dash_haut('accueil', $urgent
     ? $urgent . ' chose' . ($urgent > 1 ? 's' : '') . ' demandent une décision'
     : 'rien d\'urgent');
+dash_flash_html();
 ?>
 <div class="zone">
 
