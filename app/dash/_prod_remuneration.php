@@ -33,6 +33,33 @@ if (!defined('CONTRATS')) define('CONTRATS', [
 ]);
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */
 
+/* ── LE TARIF DE CHAQUE PERSONNE, TEL QU'IL EST DANS SA FICHE.  [Anna, 22.08.2026]
+   « não tem os valores do salário honorário ».
+
+   IL EST MONTRÉ, PAS APPLIQUÉ. La fiche du Personnel porte un salaire mensuel ou
+   un tarif horaire; le montant de cette ligne-ci reste écrit à la main, parce
+   qu'une rémunération se négocie par production et qu'un calcul automatique
+   poserait un chiffre que personne n'a décidé. Ce qu'on supprime, c'est d'avoir
+   à ouvrir une autre page pour se rappeler le tarif.
+
+   Le rapprochement se fait par le nom, comme pour les portraits du dossier: les
+   lignes ajoutées depuis la liste du Personnel correspondent, les anciennes non.
+   Une personne sans fiche n'affiche rien — pas un zéro. */
+$tarifs = [];
+try {
+    foreach (DB::all("SELECT prenom, nom, paie_mensuelle, paie_horaire, devise
+                        FROM rh_employe WHERE supprime_le IS NULL") as $t) {
+        $n = trim(((string)$t['prenom']) . ' ' . ((string)$t['nom']));
+        if ($n === '') continue;
+        $dv = (string)($t['devise'] ?? 'CHF') ?: 'CHF';
+        if ((float)($t['paie_horaire'] ?? 0) > 0) {
+            $tarifs[$n] = rtrim(rtrim(number_format((float)$t['paie_horaire'], 2, '.', ''), '0'), '.') . ' ' . $dv . '/h';
+        } elseif ((float)($t['paie_mensuelle'] ?? 0) > 0) {
+            $tarifs[$n] = number_format((float)$t['paie_mensuelle'], 0, '.', ' ') . ' ' . $dv . '/mois';
+        }
+    }
+} catch (Throwable $e) { /* un tarif absent n'empêche personne de saisir */ }
+
 $etapesJ = ProdFiche::joursDuPlanning($d);
 $JSEM    = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 $MOISC   = ['','jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
@@ -56,27 +83,75 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
     <tbody>
     <?php foreach ($d['remuneration'] as $r): ?>
       <?php $coches = array_filter(explode(',', (string)($r['jours_dates'] ?? ''))); ?>
+      <?php $rid = (string)($r['id'] ?? ''); $fr = 'fRm-' . $rid;
+            $tar = $tarifs[trim((string)($r['personne'] ?? ''))] ?? ''; ?>
+      <?php /* ── TOUTE LA LIGNE SE CORRIGE.  [Anna, 22.08.2026] ─────────────────
+           « não tem os valores do salário honorário, a quantidade de dias está
+           errada e não se pode mudar esses campos ».
+
+           Rien n'était modifiable: la ligne se lisait et s'effaçait, un point.
+           Un montant se négocie, une période se précise, et un nombre de jours
+           faux doit pouvoir se corriger à la main même quand il vient des cases.
+
+           LE NOMBRE DE JOURS EST DÉSORMAIS CE QUI EST ÉCRIT DANS LE CHAMP, et
+           non le compte des cases. Les cases le mettent à jour quand on les
+           enregistre — c'est l'automatisme demandé hier — mais elles ne
+           l'écrasent plus à l'affichage. Un chiffre qu'on tape et qui ne reste
+           pas est pire que pas de champ du tout. */ ?>
       <tr>
-        <td><?= e((string)($r['personne'] ?? '')) ?></td>
-        <td class="sec"><?= e((string)($r['fonction'] ?? '')) ?></td>
-        <td class="sec"><?= e(CONTRATS[(string)($r['contrat'] ?? '')] ?? (string)($r['contrat'] ?? '')) ?></td>
-        <td class="sec"><?= e((string)($r['periode'] ?? '')) ?></td>
-        <td class="d sec"><?= $coches ? count($coches) : e((string)($r['jours'] ?? '')) ?></td>
-        <td class="d"><?= ($r['montant'] ?? '') !== ''
-            ? number_format((float)str_replace(',', '.', (string)$r['montant']), 2, ',', ' ')
-              . ' ' . e((string)($r['devise'] ?? '')) : '' ?></td>
-        <td class="d">
-          <?php if ($ecrit): ?>
+        <?php if ($ecrit): ?>
+          <td><input type="text" name="l[personne]" form="<?= e($fr) ?>"
+                     value="<?= e((string)($r['personne'] ?? '')) ?>">
+            <?php if ($tar !== ''): ?><span class="tarif" title="Tarif de sa fiche du Personnel"><?= e($tar) ?></span><?php endif; ?></td>
+          <td><input type="text" name="l[fonction]" form="<?= e($fr) ?>"
+                     value="<?= e((string)($r['fonction'] ?? '')) ?>"></td>
+          <td><select name="l[contrat]" form="<?= e($fr) ?>">
+                <option value="">— contrat —</option>
+                <?php foreach (CONTRATS as $ck => $cv): ?>
+                  <?php if ($ck === 'CH') continue; /* l'ancien code, gardé en lecture seule */ ?>
+                  <option value="<?= e($ck) ?>" <?= (string)($r['contrat'] ?? '') === $ck ? 'selected' : '' ?>><?= e($cv) ?></option>
+                <?php endforeach; ?>
+              </select></td>
+          <td><input type="text" name="l[periode]" form="<?= e($fr) ?>"
+                     value="<?= e((string)($r['periode'] ?? '')) ?>"></td>
+          <td class="d"><input type="text" name="l[jours]" form="<?= e($fr) ?>" class="rm-j"
+                     value="<?= e((string)($r['jours'] ?? '')) ?>" inputmode="numeric"></td>
+          <td class="d"><input type="text" name="l[montant]" form="<?= e($fr) ?>" class="rm-m"
+                     value="<?= e((string)($r['montant'] ?? '')) ?>" inputmode="decimal"
+                     placeholder="Montant">
+            <select name="l[devise]" form="<?= e($fr) ?>" class="rm-d">
+              <?php foreach (['CHF','EUR'] as $dv): ?>
+                <option <?= (string)($r['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
+              <?php endforeach; ?>
+            </select></td>
+          <td class="d rm-act">
+            <form method="post" action="<?= e($lien('remuneration')) ?>" id="<?= e($fr) ?>" class="inline">
+              <?= Auth::csrfField() ?>
+              <input type="hidden" name="pf" value="liste_modifier">
+              <input type="hidden" name="ou" value="remuneration">
+              <input type="hidden" name="ligne" value="<?= e($rid) ?>">
+              <button type="submit" class="rm-b">enregistrer</button>
+            </form>
             <form method="post" action="<?= e($lien('remuneration')) ?>" class="inline"
                   onsubmit="return confirm('Supprimer cette ligne ?')">
               <?= Auth::csrfField() ?>
               <input type="hidden" name="pf" value="liste_retirer">
               <input type="hidden" name="ou" value="remuneration">
-              <input type="hidden" name="ligne" value="<?= e((string)($r['id'] ?? '')) ?>">
+              <input type="hidden" name="ligne" value="<?= e($rid) ?>">
               <button type="submit" class="x">×</button>
             </form>
-          <?php endif; ?>
-        </td>
+          </td>
+        <?php else: ?>
+          <td><?= e((string)($r['personne'] ?? '')) ?></td>
+          <td class="sec"><?= e((string)($r['fonction'] ?? '')) ?></td>
+          <td class="sec"><?= e(CONTRATS[(string)($r['contrat'] ?? '')] ?? (string)($r['contrat'] ?? '')) ?></td>
+          <td class="sec"><?= e((string)($r['periode'] ?? '')) ?></td>
+          <td class="d sec"><?= e((string)($r['jours'] ?? '')) ?></td>
+          <td class="d"><?= ($r['montant'] ?? '') !== ''
+              ? number_format((float)str_replace(',', '.', (string)$r['montant']), 2, ',', ' ')
+                . ' ' . e((string)($r['devise'] ?? '')) : '' ?></td>
+          <td></td>
+        <?php endif; ?>
       </tr>
       <?php /* ── LES JOURNÉES DE CETTE PERSONNE-LÀ ────────────────────────────
            [Anna, 22.08.2026] « no dashboard já estava tudo automatizado: quando
@@ -220,6 +295,24 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
 /* LES JOURNÉES D'UNE PERSONNE. [22.08.2026] Une rangée sous sa ligne, groupée
    par étape du Planning: la date seule ne dit pas si l'on parle de la résidence
    ou du jeu, et c'est justement ce qui change qui vient et qui ne vient pas. */
+/* La ligne saisissable: les champs restent discrets, on lit un tableau et on
+   corrige au passage. Le cadre revient au survol et à la saisie. */
+table input,table select{width:100%;min-width:0;box-sizing:border-box;padding:4px 6px;
+  font:inherit;font-size:13px;border:1px solid transparent;border-radius:4px;
+  background:transparent;color:var(--encre)}
+table input:hover,table select:hover{border-color:var(--trait)}
+table input:focus,table select:focus{border-color:var(--encre);background:var(--papier);outline:none}
+table input.rm-j{width:52px;text-align:right}
+table input.rm-m{width:88px;text-align:right;font-variant-numeric:tabular-nums}
+table select.rm-d{width:62px;font-size:12px}
+td.rm-act{white-space:nowrap;width:1%}
+button.rm-b{padding:3px 9px;font-size:11.5px;font-weight:500;background:transparent;
+  color:var(--doux);border:1px solid var(--trait);border-radius:4px;cursor:pointer;
+  font-family:inherit;margin:0 4px 0 0}
+button.rm-b:hover{color:var(--encre);border-color:var(--encre)}
+/* Le tarif de la fiche, sous le nom: une indication, pas une valeur du tableau. */
+.tarif{display:block;font-size:11px;color:var(--doux);padding-left:6px}
+
 tr.rj > td{padding-top:0;padding-bottom:12px;border-bottom:1px solid var(--trait)}
 form.jrs{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .jrs-e{display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center}

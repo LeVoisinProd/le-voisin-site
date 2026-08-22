@@ -86,44 +86,75 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
           <?php endif; ?>
         <?php endif; ?>
 
-          <?php foreach ($p['lignes'] as $l): $lid = (string)($l['id'] ?? ''); ?>
-            <?php if ($ecrit): ?>
-              <?php /* ── LA LIGNE SE CORRIGE SUR PLACE.  [Anna, 22.08.2026] ──────
-                   « mesmo nas charges, deixar a possibilidade de editar os
-                   valores ». Un montant de budget se renégocie; l'effacer pour le
-                   retaper faisait perdre le libellé et le poste avec.
+          <?php /* ── UN SEUL RANG PAR LIGNE, ET LE + AVEC LES AUTRES.  [Anna, 22.08.2026]
+               « os botões de + têm que estar na mesma linha quando adicionamos
+               uma charge ou produit, e está tudo deformado na mise en page ».
 
-                   ICI LE FORMULAIRE ENTOURE VRAIMENT LA LIGNE, parce que ce sont
-                   des `div` et non des cellules de tableau: pas besoin du détour
-                   par `form="..."` qu'imposent le Planning et l'Équipe. */ ?>
-              <form method="post" action="<?= e($lien('budget')) ?>" class="bd-l bd-ed">
-                <?= Auth::csrfField() ?>
-                <input type="hidden" name="pf" value="liste_modifier">
-                <input type="hidden" name="ou" value="budget">
-                <input type="hidden" name="ligne" value="<?= e($lid) ?>">
-                <input type="text" name="l[libelle]" value="<?= e((string)($l['libelle'] ?? '')) ?>"
-                       placeholder="Libellé" class="bd-lib">
+               ELLE A RAISON ET C'ÉTAIT PIRE QU'UN DÉFAUT D'ALIGNEMENT: le HTML
+               lui-même était cassé. Deux insertions automatiques successives
+               avaient laissé le formulaire d'ajout À L'INTÉRIEUR de celui qui
+               corrige, et le bouton d'effacement flottait en marge négative et
+               hauteur nulle pour retomber au bout de la ligne. Un navigateur
+               démêle cela comme il peut, et ce qu'il peut n'est pas beau.
+
+               Ce bloc est réécrit à la main, d'un tenant. La ligne est un `div`
+               en flex sans retour à la ligne: chaque champ a le droit de maigrir
+               jusqu'à zéro, donc rien ne pousse le bouton en dessous. Le
+               formulaire qui corrige est déclaré vide et ses champs le nomment
+               par `form="bdE-xxx"`; celui qui efface est écrit à sa place, au
+               bout du rang. Plus rien à compenser. */ ?>
+          <?php foreach ($p['lignes'] as $l): $lid = (string)($l['id'] ?? ''); $fb = 'bdE-' . $lid; ?>
+            <?php if ($ecrit): ?>
+              <div class="bd-l bd-ed">
+                <form method="post" action="<?= e($lien('budget')) ?>" id="<?= e($fb) ?>" class="bd-f">
+                  <?= Auth::csrfField() ?>
+                  <input type="hidden" name="pf" value="liste_modifier">
+                  <input type="hidden" name="ou" value="budget">
+                  <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+                </form>
+                <input type="text" name="l[libelle]" form="<?= e($fb) ?>" class="bd-lib"
+                       value="<?= e((string)($l['libelle'] ?? '')) ?>" placeholder="Libellé">
                 <?php if ($ETAPES_B): ?>
-                  <select name="l[etape]" class="bd-et">
+                  <select name="l[etape]" form="<?= e($fb) ?>" class="bd-et">
                     <option value="">Projet entier</option>
                     <?php foreach ($ETAPES_B as $lb): ?>
                       <option value="<?= e($lb) ?>" <?= (string)($l['etape'] ?? '') === $lb ? 'selected' : '' ?>><?= e($lb) ?></option>
                     <?php endforeach; ?>
                   </select>
                 <?php endif; ?>
-                <input type="text" name="l[montant]" value="<?= e((string)($l['montant'] ?? '')) ?>"
-                       inputmode="decimal" class="bd-mt">
-<select name="l[devise]" class="bd-dv">
-  <?php foreach (['CHF','EUR'] as $dv): ?>
-    <option <?= (string)($l['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
-  <?php endforeach; ?>
+                <input type="text" name="l[montant]" form="<?= e($fb) ?>" class="bd-mt"
+                       value="<?= e((string)($l['montant'] ?? '')) ?>" inputmode="decimal">
+                <select name="l[devise]" form="<?= e($fb) ?>" class="bd-dv">
+                  <?php foreach (['CHF','EUR'] as $dv): ?>
+                    <option <?= (string)($l['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <?php if ((string)($l['devise'] ?? 'CHF') === 'EUR'): ?>
+                  <span class="bd-cv" title="Taux BCE du <?= e((string)($l['taux_jour'] ?? '?')) ?>">= <?= $mt((float)$l['_m']) ?> CHF</span>
+                <?php endif; ?>
+                <button type="submit" form="<?= e($fb) ?>" class="bd-ok" title="Enregistrer">✓</button>
+                <form method="post" action="<?= e($lien('budget')) ?>" class="bd-x"
+                      onsubmit="return confirm('Retirer cette ligne du budget ?')">
+                  <?= Auth::csrfField() ?>
+                  <input type="hidden" name="pf" value="liste_retirer">
+                  <input type="hidden" name="ou" value="budget">
+                  <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+                  <button type="submit" class="x" title="Retirer">×</button>
+                </form>
+              </div>
+            <?php else: ?>
+              <div class="bd-l">
+                <span><?= e((string)($l['libelle'] ?? '')) ?: '—' ?></span>
+                <b><?= $mt((float)$l['_m']) ?> CHF</b>
+              </div>
+            <?php endif; ?>
+          <?php endforeach; ?>
 
           <?php if ($ecrit && $cle !== 'personnel'): ?>
-            <?php /* LA LIGNE D'AJOUT DU POSTE, sous ses lignes et à la même
-                 largeur: on écrit là où on lit. Le poste est celui-ci, il ne se
-                 choisit pas. « Frais de personnel » n'en a pas — il se remplit
-                 depuis la Rémunération, et une saisie ici ferait un double
-                 compte avec la somme automatique. */ ?>
+            <?php /* La ligne d'ajout du poste, à la même largeur et au même rang:
+                 on écrit là où on lit. Le poste est celui-ci, il ne se choisit
+                 pas. « Frais de personnel » n'en a pas — il se remplit depuis la
+                 Rémunération, et une saisie ici ferait un double compte. */ ?>
             <form method="post" action="<?= e($lien('budget')) ?>" class="bd-l bd-aj">
               <?= Auth::csrfField() ?>
               <input type="hidden" name="pf" value="liste_ajouter">
@@ -144,37 +175,6 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
               <button type="submit" class="bd-plus" title="Ajouter">+</button>
             </form>
           <?php endif; ?>
-</select>
-<?php /* LE MONTANT CONVERTI SE MONTRE À CÔTÉ, avec la date du taux.
-     Une ligne en euros dont on ne verrait que « 1 200 EUR » ne dit
-     pas ce qu'elle pèse dans le total, et c'est le total qui part au
-     financeur. */ ?>
-<?php if ((string)($l['devise'] ?? 'CHF') === 'EUR'): ?>
-  <span class="bd-cv" title="Taux BCE du <?= e((string)($l['taux_jour'] ?? '?')) ?>">
-    = <?= $mt((float)$l['_m']) ?> CHF</span>
-<?php endif; ?>
-                <button type="submit" class="bd-ok" title="Enregistrer">✓</button>
-              </form>
-              <?php /* LE BOUTON D'EFFACEMENT ENVOYAIT `id`, LE SERVEUR LIT `ligne`.
-                   Il n'a donc JAMAIS rien effacé — éprouvé par le vrai chemin du
-                   POST: la ligne restait en base et l'écran se rechargeait comme
-                   si de rien n'était. Aucune erreur nulle part, ce qui est la
-                   pire façon de ne pas marcher. */ ?>
-              <form method="post" action="<?= e($lien('budget')) ?>" class="bd-sup"
-                    onsubmit="return confirm('Retirer cette ligne du budget ?')">
-                <?= Auth::csrfField() ?>
-                <input type="hidden" name="pf" value="liste_retirer">
-                <input type="hidden" name="ou" value="budget">
-                <input type="hidden" name="ligne" value="<?= e($lid) ?>">
-                <button type="submit" class="x" title="Retirer">×</button>
-              </form>
-            <?php else: ?>
-              <div class="bd-l">
-                <span><?= e((string)($l['libelle'] ?? '')) ?: '—' ?></span>
-                <b><?= $mt((float)$l['_m']) ?> CHF</b>
-              </div>
-            <?php endif; ?>
-        <?php endforeach; ?>
 
         <?php if (!$p['lignes'] && $cle !== 'personnel'): ?>
           <div class="bd-l bd-rien"><span>—</span><b>0 CHF</b></div>
@@ -192,61 +192,63 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
     <div class="bd-t">Produits</div>
 
     <?php if ($ecrit): ?>
-      <form method="post" action="<?= e($lien('budget')) ?>" class="bd-add-p">
+      <?php /* La ligne d'ajout des produits: même rang, mêmes classes et même
+           bouton que celles des charges. Elle est en tête de la colonne et non
+           au pied, parce qu'un produit s'ajoute plus souvent qu'il ne se
+           relit. */ ?>
+      <form method="post" action="<?= e($lien('budget')) ?>" class="bd-l bd-aj">
         <?= Auth::csrfField() ?>
         <input type="hidden" name="pf" value="liste_ajouter">
         <input type="hidden" name="ou" value="budget">
         <input type="hidden" name="l[sens]" value="recette">
-        <input type="text" name="l[libelle]" placeholder="Partenaire (nom)" required>
-        <select name="l[nature]">
+        <input type="text" name="l[libelle]" placeholder="Partenaire" required class="bd-lib">
+        <select name="l[nature]" class="bd-et">
           <?php foreach (ProdFiche::BUDGET_PRODUITS as $k => $v): ?>
-            <option value="<?= $k ?>"><?= e($v) ?></option>
+            <option value="<?= e($k) ?>"><?= e($v) ?></option>
           <?php endforeach; ?>
         </select>
-        <input type="text" name="l[montant]" placeholder="Montant" size="9" inputmode="decimal">
-        <button type="submit" title="Ajouter">+</button>
+        <input type="text" name="l[montant]" placeholder="Montant" inputmode="decimal" class="bd-mt">
+        <select name="l[devise]" class="bd-dv"><option>CHF</option><option>EUR</option></select>
+        <button type="submit" class="bd-plus" title="Ajouter">+</button>
       </form>
     <?php endif; ?>
 
-    <?php foreach ($B['produits'] as $l): $lid = (string)($l['id'] ?? ''); ?>
+    <?php foreach ($B['produits'] as $l): $lid = (string)($l['id'] ?? ''); $fb = 'bdP-' . $lid; ?>
       <?php if ($ecrit): ?>
-        <form method="post" action="<?= e($lien('budget')) ?>" class="bd-l bd-ed">
-          <?= Auth::csrfField() ?>
-          <input type="hidden" name="pf" value="liste_modifier">
-          <input type="hidden" name="ou" value="budget">
-          <input type="hidden" name="ligne" value="<?= e($lid) ?>">
-          <input type="text" name="l[libelle]" value="<?= e((string)($l['libelle'] ?? '')) ?>"
-                 placeholder="Partenaire" class="bd-lib">
-          <select name="l[nature]" class="bd-nat-s">
+        <div class="bd-l bd-ed">
+          <form method="post" action="<?= e($lien('budget')) ?>" id="<?= e($fb) ?>" class="bd-f">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="pf" value="liste_modifier">
+            <input type="hidden" name="ou" value="budget">
+            <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+          </form>
+          <input type="text" name="l[libelle]" form="<?= e($fb) ?>" class="bd-lib"
+                 value="<?= e((string)($l['libelle'] ?? '')) ?>" placeholder="Partenaire">
+          <select name="l[nature]" form="<?= e($fb) ?>" class="bd-et">
             <?php foreach (ProdFiche::BUDGET_PRODUITS as $k => $v): ?>
               <option value="<?= e($k) ?>" <?= (string)($l['nature'] ?? '') === $k ? 'selected' : '' ?>><?= e($v) ?></option>
             <?php endforeach; ?>
           </select>
-          <input type="text" name="l[montant]" value="<?= e((string)($l['montant'] ?? '')) ?>"
-                 inputmode="decimal" class="bd-mt">
-<select name="l[devise]" class="bd-dv">
-  <?php foreach (['CHF','EUR'] as $dv): ?>
-    <option <?= (string)($l['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
-  <?php endforeach; ?>
-</select>
-<?php /* LE MONTANT CONVERTI SE MONTRE À CÔTÉ, avec la date du taux.
-     Une ligne en euros dont on ne verrait que « 1 200 EUR » ne dit
-     pas ce qu'elle pèse dans le total, et c'est le total qui part au
-     financeur. */ ?>
-<?php if ((string)($l['devise'] ?? 'CHF') === 'EUR'): ?>
-  <span class="bd-cv" title="Taux BCE du <?= e((string)($l['taux_jour'] ?? '?')) ?>">
-    = <?= $mt((float)$l['_m']) ?> CHF</span>
-<?php endif; ?>
-          <button type="submit" class="bd-ok" title="Enregistrer">✓</button>
-        </form>
-        <form method="post" action="<?= e($lien('budget')) ?>" class="bd-sup"
-              onsubmit="return confirm('Retirer ce produit ?')">
-          <?= Auth::csrfField() ?>
-          <input type="hidden" name="pf" value="liste_retirer">
-          <input type="hidden" name="ou" value="budget">
-          <input type="hidden" name="ligne" value="<?= e($lid) ?>">
-          <button type="submit" class="x" title="Retirer">×</button>
-        </form>
+          <input type="text" name="l[montant]" form="<?= e($fb) ?>" class="bd-mt"
+                 value="<?= e((string)($l['montant'] ?? '')) ?>" inputmode="decimal">
+          <select name="l[devise]" form="<?= e($fb) ?>" class="bd-dv">
+            <?php foreach (['CHF','EUR'] as $dv): ?>
+              <option <?= (string)($l['devise'] ?? 'CHF') === $dv ? 'selected' : '' ?>><?= $dv ?></option>
+            <?php endforeach; ?>
+          </select>
+          <?php if ((string)($l['devise'] ?? 'CHF') === 'EUR'): ?>
+            <span class="bd-cv" title="Taux BCE du <?= e((string)($l['taux_jour'] ?? '?')) ?>">= <?= $mt((float)$l['_m']) ?> CHF</span>
+          <?php endif; ?>
+          <button type="submit" form="<?= e($fb) ?>" class="bd-ok" title="Enregistrer">✓</button>
+          <form method="post" action="<?= e($lien('budget')) ?>" class="bd-x"
+                onsubmit="return confirm('Retirer ce produit ?')">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="pf" value="liste_retirer">
+            <input type="hidden" name="ou" value="budget">
+            <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+            <button type="submit" class="x" title="Retirer">×</button>
+          </form>
+        </div>
       <?php else: ?>
         <div class="bd-l">
           <span><?= e((string)($l['libelle'] ?? '')) ?: '—' ?>
@@ -287,34 +289,43 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
 <style>
 .bd-tete{display:flex;align-items:center;gap:16px;margin:0 0 16px}
 .bd-tete h3{margin:0;font-size:16px}
-/* ── UNE LIGNE DE BUDGET QUI SE CORRIGE ────────────────────────────────────
-   Les champs restent discrets: on lit une colonne de montants, on ne remplit pas
-   un formulaire. Le cadre revient au survol et à la saisie. Le bouton
-   d'effacement se glisse au bout de la ligne sans casser l'alignement — d'où la
-   marge négative et la hauteur nulle. */
-form.bd-ed{display:flex;align-items:center;gap:8px}
-form.bd-ed input,form.bd-ed select{padding:3px 6px;font:inherit;font-size:13px;
-  border:1px solid transparent;border-radius:4px;background:transparent;color:var(--encre)}
-form.bd-ed input:hover,form.bd-ed select:hover{border-color:var(--trait)}
-form.bd-ed input:focus,form.bd-ed select:focus{border-color:var(--encre);
-  background:var(--papier);outline:none}
-form.bd-ed input.bd-lib{flex:1 1 auto;min-width:0}
-form.bd-ed input.bd-mt{flex:0 0 84px;text-align:right;font-variant-numeric:tabular-nums}
-form.bd-ed select.bd-nat-s{flex:0 0 auto;max-width:150px;font-size:12px;color:var(--doux)}
-.bd-dev{font-size:12px;color:var(--doux)}
-button.bd-ok{background:none;border:0;padding:0 2px;color:var(--doux);cursor:pointer;
-  font-size:13px;font-family:inherit}
-button.bd-ok:hover{color:var(--encre)}
-form.bd-aj{margin-top:6px;opacity:.75}
+/* ── UNE LIGNE DE BUDGET: UN SEUL RANG.  [Anna, 22.08.2026] ────────────────
+   « os botões de + têm que estar na mesma linha, e está tudo deformado ».
+
+   `flex-wrap:nowrap` ET DES CHAMPS QUI ONT LE DROIT DE MAIGRIR: chaque `min-width:0`
+   permet au champ de rétrécir au lieu de pousser le bouton à la ligne suivante.
+   C'est le contraire de la version d'avant, qui laissait tout passer à la ligne
+   et compensait au jugé avec une marge négative — d'où le désordre.
+
+   `display:contents` SUR LE FORMULAIRE VIDE: il ancre les champs sans occuper
+   de place dans la rangée. Sans lui, il compterait comme un élément flex et
+   ouvrirait un trou. */
+.bd-l.bd-ed,form.bd-l.bd-aj{display:flex;flex-wrap:nowrap;align-items:center;gap:6px}
+form.bd-f{display:contents}
+form.bd-x{display:inline-flex;flex:0 0 auto;margin:0}
+.bd-ed input,.bd-ed select,.bd-aj input,.bd-aj select{min-width:0;padding:3px 6px;
+  font:inherit;font-size:13px;border:1px solid transparent;border-radius:4px;
+  background:transparent;color:var(--encre);box-sizing:border-box}
+.bd-aj input,.bd-aj select{border-color:var(--trait);background:var(--papier)}
+.bd-ed input:hover,.bd-ed select:hover{border-color:var(--trait)}
+.bd-ed input:focus,.bd-ed select:focus,.bd-aj input:focus,.bd-aj select:focus{
+  border-color:var(--encre);background:var(--papier);outline:none}
+.bd-l input.bd-lib{flex:1 1 80px}
+.bd-l select.bd-et{flex:0 1 128px;font-size:11.5px;color:var(--doux)}
+.bd-l input.bd-mt{flex:0 0 74px;text-align:right;font-variant-numeric:tabular-nums}
+.bd-l select.bd-dv{flex:0 0 60px;font-size:12px}
+.bd-cv{flex:0 0 auto;font-size:11px;color:var(--doux);white-space:nowrap}
+.bd-ed button.bd-ok{flex:0 0 auto;background:none;border:0;padding:0 2px;color:var(--doux);
+  cursor:pointer;font-size:13px;font-family:inherit;margin:0}
+.bd-ed button.bd-ok:hover{color:var(--encre)}
+form.bd-aj{margin-top:6px;opacity:.85}
 form.bd-aj:hover,form.bd-aj:focus-within{opacity:1}
-form.bd-aj input,form.bd-aj select{border-color:var(--trait)}
-button.bd-plus{flex:0 0 auto;padding:3px 10px;font-size:14px;line-height:1.2;font-weight:700;
+/* `.bd-aj button.bd-plus` et non `.bd-plus`: la règle générale de la fiche vise
+   `button[type=submit]`, qui pèse autant et vient après. Même piège que le
+   bouton de la Logistique il y a deux heures. */
+.bd-aj button.bd-plus{flex:0 0 auto;padding:2px 10px;font-size:14px;line-height:1.35;font-weight:700;
   border:0;border-radius:5px;background:var(--jaune,#FFD24D);color:var(--encre);cursor:pointer;
   font-family:inherit;margin:0}
-form.bd-ed select.bd-dv{flex:0 0 66px;font-size:12px}
-form.bd-ed select.bd-et{flex:0 1 160px;font-size:11.5px;color:var(--doux)}
-.bd-cv{font-size:11.5px;color:var(--doux);white-space:nowrap}
-form.bd-sup{margin:-25px 0 0;text-align:right;height:0;position:relative;z-index:1}
 
 .bd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 46px;align-items:start}
 @media (max-width:900px){ .bd{grid-template-columns:minmax(0,1fr)} }
@@ -345,18 +356,10 @@ form.bd-sup{margin:-25px 0 0;text-align:right;height:0;position:relative;z-index
 .bd-solde span{flex:1;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--doux)}
 .bd-solde b{font-size:16px;font-variant-numeric:tabular-nums}
 .bd-solde.plus b{color:#2f7d4f} .bd-solde.moins b{color:#c8452f}
-.bd-add-p{display:flex;gap:6px;margin:10px 0 4px;flex-wrap:wrap}
-.bd-add-p input[type=text]:first-of-type{flex:1;min-width:120px}
-.bd-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:26px 0 8px;
-  padding:13px 15px;background:var(--fond2);border-radius:6px}
-.bd-add-t{width:100%;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--doux)}
-.bd-add input[type=text]{flex:1;min-width:160px}
-.bd-add input,.bd-add select,.bd-add-p input,.bd-add-p select{padding:7px 9px;font:inherit;
-  font-size:13.5px;border:1px solid var(--trait);border-radius:5px;background:var(--papier);
-  color:var(--encre)}
-.bd-add button,.bd-add-p button{padding:7px 14px;font:inherit;font-size:13.5px;font-weight:600;
-  border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier);
-  cursor:pointer}
+/* Les règles des anciens formulaires d'ajout — `.bd-add` et `.bd-add-p` — sont
+   parties avec eux le 22.08.2026. Les deux lignes d'ajout portent maintenant
+   `.bd-l.bd-aj`, comme les lignes qu'elles complètent, et c'est ce qui les met
+   au même rang. */
 .bd-l .inline{display:inline}
 .bd-l .x{border:0;background:transparent;color:var(--doux);cursor:pointer;font-size:15px;padding:0 2px}
 .bd-l .x:hover{color:#c8452f}
