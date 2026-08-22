@@ -509,6 +509,19 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   <?php ob_start(); ?>
     <p class="aide">Ce que les champs ne savent pas dire — un code de porte, une consigne,
        le nom du bar où l'on se retrouve. Il s'imprime en tête du document.</p>
+    <?php /* LE BOUTON DE GÉNÉRATION ÉTAIT PARTI AVEC L'ANCIEN ÉCRAN, et c'est
+         une régression que j'ai introduite en refaisant l'onglet: le traitement
+         `fdr_generer` existait toujours, mais plus rien ne l'appelait. Anna:
+         « havia textos suplementaires ». Il revient ici, à côté du texte qu'il
+         écrit. */ ?>
+    <?php if ($ecrit): ?>
+      <form method="post" action="<?= e($lien('fdr')) ?>" class="inline"
+            onsubmit="return confirm('Écrire un brouillon depuis les onglets ? Le texte actuel sera remplacé.')">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="pf" value="fdr_generer">
+        <button type="submit" class="carte-b2">Écrire un brouillon depuis les onglets</button>
+      </form>
+    <?php endif; ?>
     <form method="post" action="<?= e($lien('fdr')) ?>" id="fFdr">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="pf" value="champs">
