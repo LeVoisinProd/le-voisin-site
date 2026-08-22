@@ -243,6 +243,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('/dashboard.php?e=bookings&v=prix');
     }
 
+    /* LE BROUILLON DE FACTURE CHEZ BEXIO. [Anna, 22.08.2026] « criar as infos
+       de uma fatura com as informações criadas para o evento, e deixar que eu
+       posso mudar manualmente ».
+
+       BROUILLON, JAMAIS ÉMIS: l'API crée en brouillon et « émettre » est un
+       appel séparé qu'on ne fait pas. Une facture émise porte un numéro et ne
+       s'annule que par une note de crédit.
+
+       L'ASSOCIATION VIENT DU SPECTACLE, pas de la date: c'est le porteur de la
+       pièce qui facture, et il vit dans `projet_prod`. La déduire ici évite
+       une deuxième vérité qui se tromperait le jour où une pièce change de
+       porteur. */
+    if (($_POST['bxf'] ?? '') === 'brouillon' && $id > 0) {
+        $bk = DB::one('SELECT * FROM booking WHERE id = ?', [$id]);
+        $org = DB::one('SELECT o.* FROM organisation o
+                          JOIN projet_prod pp ON pp.organisation_id = o.id
+                          JOIN projects p     ON p.id = pp.project_id
+                         WHERE p.title_fr = ? AND o.supprime_le IS NULL LIMIT 1',
+                       [(string)($bk['projet'] ?? '')]);
+        if (!$org) {
+            dash_flash('Impossible de savoir quelle association facture: le spectacle « '
+                     . (string)($bk['projet'] ?? '') . ' » n’est rattaché à aucun porteur.', 'err');
+        } else {
+            $deal = DB::all('SELECT * FROM deal_item WHERE booking_id = ? ORDER BY ordre, id', [$id]);
+            $r = Bexio::brouillonFacture($org, $bk, $deal);
+            dash_flash($r['message'] . ($r['ok'] ? ' Association: ' . $org['nom'] . '.' : ''),
+                       $r['ok'] ? '' : 'err');
+            if ($r['ok']) {
+                DB::insert('invoice', [
+                    'booking_id' => $id, 'type' => 'totale',
+                    'libelle'    => 'Brouillon bexio',
+                    'destinataire' => (string)($bk['venue'] ?? ''),
+                    'montant'    => array_sum(array_map(
+                                      fn($l) => (string)$l['charge'] === 'incluse' ? (float)$l['montant'] : 0,
+                                      $deal)),
+                    'devise'     => (string)($bk['devise'] ?? 'CHF'),
+                    'statut'     => 'brouillon',
+                    'bexio_id'   => (string)$r['id'],
+                    'notes'      => 'Créé depuis le dashboard. À relire et à émettre dans bexio.',
+                    'cree_a'     => date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+        redirect('/dashboard.php?e=bookings&b=' . $id . '&o=factures');
+    }
+
     /* LES NOTES SE CORRIGENT DEPUIS L'APERÇU. [Anna, 21.08.2026] « laisser
        cette partie éditable ». C'est la même raison que pour les grilles des
        associations le 20.08: écrire une note est déjà une écriture, et elle a
@@ -1062,6 +1108,17 @@ if ($id > 0) {
              'note_frais'=>'Note de frais','avoir'=>'Avoir'];
       $SF = ['brouillon'=>'brouillon','envoyee'=>'envoyée','payee'=>'payée','annulee'=>'annulée'];
 
+        /* CE QU'IL FAUT AVOIR AVANT DE PROPOSER LE BOUTON, et le dire quand il
+           manque. Un bouton qui échoue apprend à ne plus cliquer; un bouton qui
+           explique ce qui manque se répare tout seul. */
+        $bxOrg = DB::one('SELECT o.* FROM organisation o
+                            JOIN projet_prod pp ON pp.organisation_id = o.id
+                            JOIN projects p     ON p.id = pp.project_id
+                           WHERE p.title_fr = ? AND o.supprime_le IS NULL LIMIT 1',
+                         [(string)($b['projet'] ?? '')]);
+        $bxDeal = DB::all('SELECT * FROM deal_item WHERE booking_id = ? AND charge = "incluse"', [$id]);
+        $bxPret = $bxOrg && Bexio::configure($bxOrg) && $bxDeal;
+
       $facture = $paye = $du = 0.0;
       $enRetard = [];
       $auj = date('Y-m-d');
@@ -1148,6 +1205,42 @@ if ($id > 0) {
       <?php else: ?>
         <p class="sec">Aucune facture notée sur cette date.</p>
       <?php endif; ?>
+
+      <?php /* PRÉPARER LA FACTURE DANS BEXIO. [Anna, 22.08.2026]
+           Le brouillon porte ce que la date sait déjà: le lieu comme contact,
+           les lignes « incluse » du deal, et un titre qui dit la pièce, le
+           lieu, la date et le nombre de représentations. Rien n'est émis: on
+           relit dans bexio, on y met les comptes, et on émet là-bas.
+
+           LES TROIS CONDITIONS SONT DITES QUAND ELLES MANQUENT. Un bouton qui
+           échoue apprend à ne plus cliquer; un bouton qui explique ce qui
+           manque se répare tout seul. */ ?>
+      <div class="bx-f3">
+        <h4>Préparer dans bexio</h4>
+        <?php if (!$bxOrg): ?>
+          <p class="sec">Le spectacle « <?= e((string)($b['projet'] ?? '')) ?> » n’est rattaché
+             à aucune association: impossible de savoir qui facture.</p>
+        <?php elseif (!Bexio::configure($bxOrg)): ?>
+          <p class="sec"><?= e((string)$bxOrg['nom']) ?> n’a pas de jeton bexio. Il se colle sur
+             <a href="/dashboard.php?e=associations&amp;o=<?= (int)$bxOrg['id'] ?>">sa fiche</a>.</p>
+        <?php elseif (!$bxDeal): ?>
+          <p class="sec">Aucune ligne « incluse » dans le
+             <a href="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=deal">deal</a>: il n’y a rien
+             à facturer. Seules les lignes comprises dans le prix de cession partent — ce que le
+             lieu paie directement le serait deux fois.</p>
+        <?php elseif ($peutEcrire): ?>
+          <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=factures"
+                onsubmit="return confirm('Créer un BROUILLON de facture dans la comptabilité de <?=
+                  e(addslashes((string)$bxOrg['nom'])) ?> ? Rien ne sera émis.')">
+            <?= Auth::csrfField() ?>
+            <input type="hidden" name="bxf" value="brouillon">
+            <button type="submit">créer le brouillon</button>
+            <span class="sec"><?= count($bxDeal) ?> ligne<?= count($bxDeal) > 1 ? 's' : '' ?> ·
+              comptabilité <strong><?= e((string)($bxOrg['bexio_societe'] ?: $bxOrg['nom'])) ?></strong>
+              · le brouillon n’est <strong>pas</strong> émis</span>
+          </form>
+        <?php endif; ?>
+      </div>
 
       <?php if ($peutEcrire): ?>
       <form method="post" action="/dashboard.php?e=bookings&amp;b=<?= $id ?>&amp;o=factures" class="ajl">
@@ -1624,6 +1717,14 @@ if ($id > 0) {
    dessus. Le bouton reste à droite, discret: on écrit plus souvent qu'on
    n'enregistre, et un bouton noir plein sous chaque note ferait deux appels à
    l'action pour une page qui n'en a pas. */
+.bx-f3{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--trait);max-width:820px}
+.bx-f3 h4{margin:0 0 8px;font-size:13px}
+.bx-f3 p{margin:0;font-size:13px}
+.bx-f3 form{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.bx-f3 button{padding:7px 15px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
+.bx-f3 button:hover{background:var(--encre);color:#fff}
+.bx-f3 .sec{font-size:12.5px;color:var(--doux)}
 .fnote{margin:0}
 .fnote textarea{width:100%;box-sizing:border-box;padding:8px 10px;font:inherit;
   font-size:13.5px;line-height:1.45;border:1px solid var(--trait);border-radius:5px;
