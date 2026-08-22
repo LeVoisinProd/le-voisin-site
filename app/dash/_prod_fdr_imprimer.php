@@ -98,7 +98,19 @@ foreach (ProdFiche::LOGI as $cle => $lib) {
     }
 }
 
-$texte = trim((string)($d['fdr']['texte'] ?? ''));
+$texte  = trim((string)($d['fdr']['texte'] ?? ''));
+$fPl    = $d['fdr']['planning'] ?? [];
+$fTx    = $d['fdr']['textes']   ?? [];
+
+/* Le lieu et les dates, tels qu'ils s'écrivent en tête du modèle d'Anna:
+   « 19-21 November 2026 · Brussels, BE · Kaaitheater ». On les tire des étapes
+   plutôt que de les faire retaper. */
+$lieuTete = '';
+foreach (($d['planning']['dates'] ?? []) as $et) {
+    $l = trim(((string)($et['lieu'] ?? '')) . (($et['ville'] ?? '') ? ' · ' . $et['ville'] : '')
+            . (($et['pays'] ?? '') ? ', ' . $et['pays'] : ''), ' ·,');
+    if ($l !== '') { $lieuTete = $l; break; }
+}
 
 header('Content-Type: text/html; charset=utf-8');
 ?><!doctype html>
@@ -142,6 +154,15 @@ header('Content-Type: text/html; charset=utf-8');
   .lg-r { flex:1 1 auto; color:#444; }
   .lg-x { flex:0 0 auto; color:#8a8a8a; font-size:11.5px; }
 
+  /* L'HORAIRE: la date et l'heure ne se replient pas, le reste peut. */
+  table.pl { width:100%; border-collapse:collapse; margin:0 0 4px; }
+  table.pl th { text-align:left; font-size:9.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.09em; color:#8a8a8a; padding:0 10px 4px 0; border-bottom:1px solid #111; }
+  table.pl td { padding:5px 10px 5px 0; border-bottom:1px solid #e8e8e4; vertical-align:top;
+    font-size:12.5px; }
+  table.pl td.pl-d, table.pl td.pl-h { white-space:nowrap; }
+  table.pl td.pl-n { color:#666; }
+
   pre.t { white-space:pre-wrap; font:inherit; margin:0 0 8px; }
   footer { margin-top:26px; padding-top:9px; border-top:2px solid #111;
            display:flex; justify-content:space-between; gap:20px;
@@ -156,12 +177,34 @@ header('Content-Type: text/html; charset=utf-8');
   Feuille de route<?= $org ? ' · <b>' . e((string)$org['nom']) . '</b>' : '' ?><br>
   <?php if ($bornes): ?>Du <b><?= e($jour($bornes[0])) ?></b> au
     <b><?= e($jour($bornes[count($bornes) - 1])) ?></b><br><?php endif; ?>
+  <?php if ($lieuTete !== ''): ?><b><?= e($lieuTete) ?></b><br><?php endif; ?>
   imprimée le <?= date('d.m.Y') ?>
 </p>
 
 <?php if ($texte !== ''): ?>
   <h2>À savoir</h2>
   <pre class="t"><?= e($texte) ?></pre>
+<?php endif; ?>
+
+<?php if ($fPl): ?>
+  <?php /* L'HORAIRE VIENT AVANT LES CONTACTS, et non l'inverse. Sur place, la
+       première question est « à quelle heure », pas « qui ». Les contacts se
+       cherchent quand quelque chose ne va pas; l'horaire se lit tout le temps. */ ?>
+  <h2>Planning</h2>
+  <table class="pl">
+    <thead><tr><th>Date</th><th>Heure</th><th>Activité</th><th>Salle</th><th>Notes</th></tr></thead>
+    <tbody>
+    <?php foreach ($fPl as $l): ?>
+      <tr>
+        <td class="pl-d"><?= e((string)($l['date'] ?? '')) ?></td>
+        <td class="pl-h"><?= e((string)($l['heure'] ?? '')) ?></td>
+        <td><b><?= e((string)($l['activite'] ?? '')) ?></b></td>
+        <td><?= e((string)($l['salle'] ?? '')) ?></td>
+        <td class="pl-n"><?= e((string)($l['notes'] ?? '')) ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
 <?php endif; ?>
 
 <h2>Contacts</h2>
@@ -225,6 +268,18 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
   <?php endif; ?>
 <?php endif; ?>
+
+<?php /* CHAQUE CONSIGNE SOUS SON TITRE, et une section vide ne s'imprime pas.
+     Ce sont les paragraphes du modèle d'Anna — « All train and flight tickets
+     are booked », « There are no food restrictions from the team ». Ils se
+     lisent avant de poser une question au bureau, et c'est leur seul travail. */ ?>
+<?php foreach (['arrivee' => 'Arrivée', 'transports' => 'Transports',
+                'hebergement' => 'Hébergement', 'repas' => 'Repas',
+                'fin' => 'Départ'] as $k => $lib): ?>
+  <?php $t = trim((string)($fTx[$k] ?? '')); if ($t === '') continue; ?>
+  <h2><?= e($lib) ?></h2>
+  <pre class="t"><?= e($t) ?></pre>
+<?php endforeach; ?>
 
 <?php if (($d['planning']['dates'] ?? [])): ?>
   <h2>Étapes</h2>

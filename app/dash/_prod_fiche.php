@@ -506,6 +506,105 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
     <?php endif; ?>
   <?php $corpsLg = ob_get_clean(); ?>
 
+  <?php /* ── LE PLANNING DE LA FEUILLE DE ROUTE.  [Anna, 22.08.2026] ──────────
+       Son modèle porte un HORAIRE — date, heure, activité, salle, notes — et non
+       les étapes du projet. « Lun 22.09 · 18:00-19:00 · Salle ». Les étapes du
+       Planning disent des périodes de plusieurs jours; une feuille de route dit
+       ce qu'on fait à six heures du soir, et c'est ce qu'on lit sur place. */ ?>
+  <?php ob_start(); $fPl = $d['fdr']['planning'] ?? []; ?>
+    <?php if ($fPl): ?>
+      <div class="tbl"><table>
+        <thead><tr><th>Date</th><th>Heure</th><th>Activité</th><th>Salle</th><th>Notes</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach ($fPl as $l): $lid = (string)($l['id'] ?? ''); $fp = 'fPl-' . $lid; ?>
+          <tr>
+            <?php if ($ecrit): ?>
+              <?php foreach (['date'=>'Date','heure'=>'18:00–19:00','activite'=>'Activité',
+                              'salle'=>'Salle','notes'=>'Notes'] as $k => $ph): ?>
+                <td><input type="text" name="l[<?= $k ?>]" form="<?= e($fp) ?>" placeholder="<?= e($ph) ?>"
+                           value="<?= e((string)($l[$k] ?? '')) ?>"></td>
+              <?php endforeach; ?>
+              <td class="d pl-act">
+                <form method="post" action="<?= e($lien('fdr')) ?>" id="<?= e($fp) ?>" class="inline">
+                  <?= Auth::csrfField() ?>
+                  <input type="hidden" name="pf" value="liste_modifier">
+                  <input type="hidden" name="ou" value="fdr.planning">
+                  <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+                  <button type="submit" class="pl-b">enregistrer</button>
+                </form>
+                <form method="post" action="<?= e($lien('fdr')) ?>" class="inline"
+                      onsubmit="return confirm('Retirer cette ligne ?')">
+                  <?= Auth::csrfField() ?>
+                  <input type="hidden" name="pf" value="liste_retirer">
+                  <input type="hidden" name="ou" value="fdr.planning">
+                  <input type="hidden" name="ligne" value="<?= e($lid) ?>">
+                  <button type="submit" class="x">×</button>
+                </form>
+              </td>
+            <?php else: ?>
+              <?php foreach (['date','heure','activite','salle','notes'] as $k): ?>
+                <td class="sec"><?= e((string)($l[$k] ?? '')) ?></td>
+              <?php endforeach; ?>
+              <td></td>
+            <?php endif; ?>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table></div>
+    <?php else: ?>
+      <p class="aide">Rien encore. C'est l'horaire du séjour: montage, filages, représentations,
+         départ.</p>
+    <?php endif; ?>
+    <?php if ($ecrit): ?>
+      <form method="post" action="<?= e($lien('fdr')) ?>" class="ajl">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="pf" value="liste_ajouter">
+        <input type="hidden" name="ou" value="fdr.planning">
+        <input type="text" name="l[date]"     placeholder="Lun 22.09" size="10" required>
+        <input type="text" name="l[heure]"    placeholder="18:00–19:00" size="11">
+        <input type="text" name="l[activite]" placeholder="Activité" size="20">
+        <input type="text" name="l[salle]"    placeholder="Salle" size="14">
+        <input type="text" name="l[notes]"    placeholder="Notes" size="18">
+        <button type="submit">ajouter</button>
+      </form>
+    <?php endif; ?>
+  <?php $corpsPl = ob_get_clean(); ?>
+
+  <div class="grille1">
+    <?= $carte('Planning du séjour', $corpsPl) ?>
+  </div>
+
+  <?php /* ── LES TEXTES QUI ACCOMPAGNENT CHAQUE SECTION ──────────────────────
+       « havia textos suplementaires ». Dans son modèle: « All train and flight
+       tickets are booked », « There are no food restrictions from the team ».
+       Ils ne se déduisent d'aucune donnée, se réécrivent à chaque tournée, et
+       c'est eux qu'on lit avant de poser une question au bureau. */ ?>
+  <?php ob_start(); ?>
+    <form method="post" action="<?= e($lien('fdr')) ?>" id="fTx">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="pf" value="champs">
+    </form>
+    <?php foreach (['arrivee'    => ['Arrivée',     'Où se présenter, à qui, avec quoi.'],
+                    'transports' => ['Transports',  'Les billets sont-ils réservés, que faut-il garder.'],
+                    'hebergement'=> ['Hébergement', 'Où l’on dort, qui a la clef, jusqu’à quand.'],
+                    'repas'      => ['Repas',       'Régimes, per diem, qui paie et quand.'],
+                    'fin'        => ['Départ',      'Démontage, restitution, dernier train.']] as $k => [$lib, $aide]): ?>
+      <div class="ch">
+        <label for="c-fdrt-<?= $k ?>"><?= e($lib) ?></label>
+        <p class="aide"><?= e($aide) ?></p>
+        <textarea id="c-fdrt-<?= $k ?>" name="v[fdr.textes.<?= $k ?>]" rows="3" form="fTx"
+                  <?= $ecrit ? '' : 'readonly' ?>><?= e((string)($d['fdr']['textes'][$k] ?? '')) ?></textarea>
+      </div>
+    <?php endforeach; ?>
+    <?php if ($ecrit): ?>
+      <div class="barre-enr"><button type="submit" form="fTx">Enregistrer</button></div>
+    <?php endif; ?>
+  <?php $corpsTx2 = ob_get_clean(); ?>
+
+  <div class="grille1">
+    <?= $carte('Les consignes', $corpsTx2) ?>
+  </div>
+
   <?php ob_start(); ?>
     <p class="aide">Ce que les champs ne savent pas dire — un code de porte, une consigne,
        le nom du bar où l'on se retrouve. Il s'imprime en tête du document.</p>
@@ -555,6 +654,11 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
   .fdr-f{color:var(--doux);font-size:12.5px;margin-left:8px}
   .fdr-c{display:block;font-size:12.5px;color:var(--encre);margin-top:1px}
   .fdr-c.fdr-vide{color:var(--doux);font-style:italic}
+  .pl-act{white-space:nowrap;width:1%}
+  button.pl-b{padding:3px 9px;font-size:11.5px;font-weight:500;background:transparent;
+    color:var(--doux);border:1px solid var(--trait);border-radius:4px;cursor:pointer;
+    font-family:inherit;margin:0 4px 0 0}
+  button.pl-b:hover{color:var(--encre);border-color:var(--encre)}
   </style>
 
 <?php /* ═══════════════════════ RÉMUNÉRATION ═════════════════════════ */ ?>

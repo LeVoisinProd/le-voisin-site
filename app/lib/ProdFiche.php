@@ -235,7 +235,30 @@ class ProdFiche
             'partenaires'   => [],
             'admin'         => ['contratTexte'=>''],
             'droits'        => ['auteurs'=>[],'cols'=>[],'editeur'=>'','repartition'=>'','notes'=>'','ssa'=>[]],
-            'fdr'           => ['texte'=>''],
+            /* ── LA FEUILLE DE ROUTE, D'APRÈS LE MODÈLE D'ANNA.  [22.08.2026] ──
+               « havia textos suplementaires », « o pdf não está com essa
+               carinha ». Le modèle qu'elle montre porte trois choses que nous
+               n'avions pas:
+
+               `planning` — UN HORAIRE, ET NON LES ÉTAPES DU PROJET. Date, heure,
+               activité, salle, notes. « Lun 22.09 · 18:00-19:00 · Salle ». Les
+               étapes du Planning disent des périodes de plusieurs jours; une
+               feuille de route dit ce qu'on fait à six heures du soir.
+
+               `textes` — LES PARAGRAPHES QUI ACCOMPAGNENT CHAQUE SECTION. « All
+               train and flight tickets are booked », « There are no food
+               restrictions from the team ». Ce sont eux, les textes
+               supplémentaires: ils ne se déduisent d'aucune donnée et se
+               réécrivent à chaque tournée.
+
+               `salles` — LES CONTACTS PAR SALLE. Une tournée passe par plusieurs
+               lieux, et le régisseur de l'un n'est pas celui de l'autre.
+
+               `texte` reste: c'est le brouillon libre d'avant, et il porte ce
+               que personne n'a rangé ailleurs. */
+            'fdr'           => ['texte'=>'', 'planning'=>[], 'salles'=>[],
+                                'textes'=>['arrivee'=>'', 'transports'=>'',
+                                           'hebergement'=>'', 'repas'=>'', 'fin'=>'']],
             'diffusionDocs' => ['dossier'=>'','fiches'=>'','photos'=>'','autres'=>[]],
             /* `contacts` AU PLURIEL, EN PLUS DE `contact`.  [Anna, 22.08.2026]
                « as infos principais dos contatos da equipe e da equipe do
@@ -443,6 +466,11 @@ class ProdFiche
                 if (!array_key_exists($parts[2], self::DEVIS_PRODUCTION)) return false;
             } elseif ($parts[0] === 'devis' && $parts[1] === 'diffusion') {
                 if (!in_array($parts[2], ['heures', 'taux'], true)) return false;
+            } elseif ($parts[0] === 'fdr' && $parts[1] === 'textes') {
+                /* Les paragraphes de la feuille de route: une liste fermée, comme
+                   les autres. Ils se valident contre le modèle lui-même plutôt
+                   que contre une constante de plus — ils y sont déjà tous. */
+                if (!array_key_exists($parts[2], $vide['fdr']['textes'])) return false;
             } else {
                 return false;
             }
