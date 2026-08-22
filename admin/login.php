@@ -4,13 +4,30 @@ require __DIR__ . '/_inc.php';
 
 if (Auth::check()) redirect('/admin/');
 
+/* ── DEUX ÉTAPES QUAND LE DEUXIÈME FACTEUR EST POSÉ.  [22.08.2026] ──────────
+   La première n'accorde rien: `Auth::login()` retient seulement qui vient de
+   prouver son mot de passe, dans une clef de session qui n'ouvre aucune page.
+   C'est ce formulaire-ci qui ouvre la session, et seulement contre un code.
+
+   LE MESSAGE D'ERREUR EST LE MÊME dans les deux étapes. Dire « mot de passe
+   juste, code faux » confirme à qui essaie qu'il tient la moitié — autant le
+   lui écrire. */
 $error = '';
+$etape = Auth::attendCode() ? 'code' : 'mdp';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();
     if (Auth::throttled()) {
         $error = ta('log_throttled');
+    } elseif (($_POST['code'] ?? '') !== '' || $etape === 'code') {
+        if (Auth::loginCode((string)($_POST['code'] ?? ''))) {
+            redirect('/admin/');
+        }
+        $error = ta('log_bad');
+        $etape = Auth::attendCode() ? 'code' : 'mdp';
     } elseif (Auth::login((string)($_POST['email'] ?? ''), (string)($_POST['password'] ?? ''))) {
-        redirect('/admin/');
+        if (Auth::attendCode()) { $etape = 'code'; }
+        else { redirect('/admin/'); }
     } else {
         $error = ta('log_bad');
     }
@@ -30,11 +47,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?= admin_marque() ?>
   <?php if ($error): ?><div class="flash err"><?= e($error) ?></div><?php endif; ?>
   <?= Auth::csrfField() ?>
-  <div class="f"><label class="f-label"><?= e(ta('log_email')) ?></label>
-    <input type="email" name="email" required autofocus autocomplete="username"></div>
-  <div class="f"><label class="f-label"><?= e(ta('log_password')) ?></label>
-    <input type="password" name="password" required autocomplete="current-password"></div>
-  <button class="btn wide" type="submit"><?= e(ta('log_submit')) ?></button>
+  <?php if ($etape === 'code'): ?>
+    <?php /* `inputmode="numeric"` ouvre le pavé de chiffres sur un téléphone, et
+         `autocomplete="one-time-code"` laisse le trousseau d'Apple proposer le
+         code sans qu'on le recopie. */ ?>
+    <p class="f-label" style="margin-bottom:14px">Code à six chiffres de votre application d’authentification.</p>
+    <div class="f"><label class="f-label">Code</label>
+      <input type="text" name="code" required autofocus inputmode="numeric" pattern="[0-9]*"
+             maxlength="6" autocomplete="one-time-code"></div>
+    <button class="btn wide" type="submit">Entrer</button>
+  <?php else: ?>
+    <div class="f"><label class="f-label"><?= e(ta('log_email')) ?></label>
+      <input type="email" name="email" required autofocus autocomplete="username"></div>
+    <div class="f"><label class="f-label"><?= e(ta('log_password')) ?></label>
+      <input type="password" name="password" required autocomplete="current-password"></div>
+    <button class="btn wide" type="submit"><?= e(ta('log_submit')) ?></button>
+  <?php endif; ?>
   <?= admin_lang_switch('login-lang') ?>
 </form>
 </body>

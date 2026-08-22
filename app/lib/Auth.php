@@ -48,19 +48,89 @@ class Auth
             return false;
         }
         session_regenerate_id(true);
-        $_SESSION['lv_admin_id'] = (int)$u['id'];
-        DB::run('UPDATE users SET last_login = NOW() WHERE id = ?', [$u['id']]);
-        DB::delete('login_attempts', 'ip = ?', [self::ip()]);
+
         if (password_needs_rehash($u['pass_hash'], PASSWORD_DEFAULT)) {
             DB::update('users', ['pass_hash' => password_hash($pass, PASSWORD_DEFAULT)], 'id = ?', [$u['id']]);
         }
+
+        /* ── LE MOT DE PASSE NE SUFFIT PLUS QUAND LE DEUXIÈME FACTEUR EST POSÉ.
+           [revue de sécurité, 22.08.2026, point 3]
+
+           LA SESSION N'EST PAS OUVERTE ICI dans ce cas: on retient seulement
+           QUI vient de prouver son mot de passe, dans une clef qui n'ouvre rien.
+           Tant que le code n'est pas donné, `lv_admin_id` reste absent et
+           `Auth::check()` répond non — donc aucune page du dashboard ni de
+           l'administration ne s'ouvre. C'est la seule façon sûre de faire deux
+           étapes: la première n'accorde rien du tout.
+
+           Les tentatives ne sont pas effacées non plus: le compteur ne retombe
+           qu'une fois les deux facteurs donnés. */
+        if ((int)($u['totp_actif'] ?? 0) === 1 && trim((string)($u['totp_secret'] ?? '')) !== '') {
+            $_SESSION['lv_2fa_id']   = (int)$u['id'];
+            $_SESSION['lv_2fa_vu']   = time();
+            return true;
+        }
+
+        $_SESSION['lv_admin_id'] = (int)$u['id'];
+        DB::run('UPDATE users SET last_login = NOW() WHERE id = ?', [$u['id']]);
+        DB::delete('login_attempts', 'ip = ?', [self::ip()]);
+        return true;
+    }
+
+    /** Le mot de passe est prouvé, le code ne l'est pas encore. */
+    public static function attendCode(): bool
+    {
+        session_boot();
+        if (empty($_SESSION['lv_2fa_id'])) return false;
+        /* CINQ MINUTES POUR SORTIR SON TÉLÉPHONE, pas davantage. Une étape
+           laissée ouverte est un mot de passe prouvé qui attend sur un poste
+           qu'on a peut-être quitté. */
+        if (time() - (int)($_SESSION['lv_2fa_vu'] ?? 0) > 300) {
+            unset($_SESSION['lv_2fa_id'], $_SESSION['lv_2fa_vu']);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Deuxième étape: le code. Ouvre la session s'il est juste.
+     *
+     * LE PAS ACCEPTÉ EST RETENU, et c'est ce qui empêche de rejouer un code.
+     * Un code vaut trente secondes; sans cette mémoire, quelqu'un qui l'a vu
+     * par-dessus une épaule s'en sert dans la foulée.
+     */
+    public static function loginCode(string $code): bool
+    {
+        session_boot();
+        if (!self::attendCode()) return false;
+        if (self::throttled()) return false;
+
+        $id = (int)$_SESSION['lv_2fa_id'];
+        $u  = DB::one('SELECT * FROM users WHERE id = ?', [$id]);
+        if (!$u) return false;
+
+        $secret = Crypto::dechiffrer((string)($u['totp_secret'] ?? ''));
+        $pas = $secret === '' ? null
+             : Totp::verifier($secret, $code, $u['totp_dernier_pas'] !== null ? (int)$u['totp_dernier_pas'] : null);
+
+        if ($pas === null) {
+            DB::insert('login_attempts', ['ip' => self::ip(), 'email' => substr((string)$u['email'], 0, 180)]);
+            return false;
+        }
+
+        session_regenerate_id(true);
+        unset($_SESSION['lv_2fa_id'], $_SESSION['lv_2fa_vu']);
+        $_SESSION['lv_admin_id'] = $id;
+        DB::update('users', ['totp_dernier_pas' => $pas], 'id = ?', [$id]);
+        DB::run('UPDATE users SET last_login = NOW() WHERE id = ?', [$id]);
+        DB::delete('login_attempts', 'ip = ?', [self::ip()]);
         return true;
     }
 
     public static function logout(): void
     {
         session_boot();
-        unset($_SESSION['lv_admin_id']);
+        unset($_SESSION['lv_admin_id'], $_SESSION['lv_2fa_id'], $_SESSION['lv_2fa_vu']);
         session_regenerate_id(true);
     }
 
