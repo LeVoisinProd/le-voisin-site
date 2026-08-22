@@ -114,11 +114,56 @@ case 'dossier':
     foreach (['lettre' => 'doc_lettre', 'description' => 'doc_description',
               'intention' => 'doc_intention'] as $k => $t)
         $ajout($tr($t), 'texte', (string)($d['dossier'][$k] ?? ''));
+    /* ── LE CALENDRIER: LE TEXTE *ET* LES ÉTAPES.  [Anna, 22.08.2026] ────────
+       « quando se imprime o dossier não aparecem todas as datas, etapas de
+       trabalho, só o que está escrito no campo a preencher ».
+
+       LE TEXTE LIBRE REMPLAÇAIT LES ÉTAPES AU LIEU DE LES ACCOMPAGNER: la
+       reprise des étapes ne se faisait QUE si le champ était vide. Écrire une
+       phrase d'introduction faisait donc disparaître tout le calendrier — le
+       geste le plus naturel du monde effaçait la donnée la plus importante du
+       bloc, et sans rien dire.
+
+       Les deux ont chacun leur rôle et ne se remplacent pas: la phrase situe
+       (« création à l'automne 2026, après deux résidences »), le tableau donne
+       les dates. Le tableau se construit depuis le Planning et n'est jamais
+       retapé — c'est déjà ce que l'écran promet.
+
+       LE TITRE VA À CELUI QUI VIENT EN PREMIER, pour ne pas l'écrire deux fois:
+       si la phrase existe elle porte « Calendrier » et le tableau suit sans
+       titre; sinon le tableau le prend. */
     $cal = trim((string)($d['dossier']['calendrier'] ?? ''));
-    if ($cal === '') $cal = ProdFiche::calendrierDepuisPlanning($d);
     $ajout($tr('doc_calendrier'), 'texte', $cal);
+
+    $etapesDoc = $d['planning']['dates'] ?? [];
+    usort($etapesDoc, fn($a, $b) => (string)($a['debut'] ?? '9999') <=> (string)($b['debut'] ?? '9999'));
+    $jour = static fn($x) => ($t = strtotime((string)$x)) ? date('d.m.Y', $t) : (string)$x;
+    $ajout($cal !== '' ? '' : $tr('doc_calendrier'), 'table', [
+        'entete' => [$tr('doc_c_du'), $tr('doc_c_au'), $tr('doc_c_phase'),
+                     $tr('doc_c_lieu'), $tr('doc_c_ville'), $tr('doc_c_pays')],
+        'lignes' => array_map(fn($l) => [
+            $jour($l['debut'] ?? ''), $jour($l['fin'] ?? ''),
+            ProdFiche::PHASES[$l['phase'] ?? ''] ?? (string)($l['phase'] ?? ''),
+            (string)($l['lieu'] ?? ''), (string)($l['ville'] ?? ''), (string)($l['pays'] ?? ''),
+        ], $etapesDoc),
+    ]);
     foreach (['publicCible' => 'doc_public', 'benefice' => 'doc_benefice'] as $k => $t)
         $ajout($tr($t), 'texte', (string)($d['dossier'][$k] ?? ''));
+    /* ── L'ÉQUIPE DANS LE DOSSIER.  [Anna, 22.08.2026] ───────────────────────
+       « na parte dossier, colocar a listagem do nome das pessoas que foram
+       incluídas na parte équipe du projet ».
+
+       Elle est saisie une fois dans la Synthèse et sert partout: la reprendre à
+       la main dans le dossier ferait deux listes, dont une périmée. Un
+       financeur lit d'abord qui fait le spectacle. */
+    $ajout($tr('doc_equipe'), 'table', [
+        'entete' => [$tr('doc_c_nom'), $tr('doc_c_fonction')],
+        'lignes' => array_values(array_filter(array_map(fn($m) => [
+            trim(((string)($m['prenom'] ?? '')) . ' ' . ((string)($m['nom'] ?? ''))),
+            (string)($m['fonction'] ?? ''),
+        ], $d['equipe'] ?? []), fn($l) => trim($l[0]) !== '')),
+    ]);
+
     $ajout($tr('doc_resume'),   'texte', (string)$d['resume']);
     $ajout($tr('doc_copro'),    'texte', (string)$d['coproductions']);
     $ajout($tr('doc_soutiens'), 'texte', (string)$d['soutiens']);
