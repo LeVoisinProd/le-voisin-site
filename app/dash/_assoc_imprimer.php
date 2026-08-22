@@ -27,13 +27,13 @@
  * suisses n'ont ni RNA ni URSSAF, et une page de tirets se lit moins bien
  * qu'une page courte.
  *
- * Attend $o (la ligne organisation), $GENRES, $STATUTS, $GESTIONS.
+ * Attend $o (la ligne organisation), $GENRES, $STATUTS, $ACTIVITES.
  * L'exercice se lit dans l'adresse: la fiche n'a pas de `$annee` en portée à
  * cet endroit — vérifié au test, pas en relisant.
  */
 declare(strict_types=1);
 /** @var array $o */ /** @var array $GENRES */ /** @var array $STATUTS */
-/** @var array $GESTIONS */
+/** @var array $ACTIVITES */
 
 $annee = (int)($_GET['an'] ?? date('Y'));
 if ($annee < 2000 || $annee > 2100) $annee = (int)date('Y');
@@ -48,7 +48,9 @@ $SECTIONS = [
         'Nom légal'              => $o['nom_legal'] ?? '',
         'Genre'                  => $GENRES[$o['genre'] ?? ''] ?? '',
         'Statut'                 => $STATUTS[$o['statut'] ?? ''] ?? '',
-        'Ce que nous faisons'    => $GESTIONS[$o['gestion'] ?? ''] ?? ($o['gestion'] ?? ''),
+        'Ce que nous faisons'    => implode(' · ', array_map(
+             static fn($k) => $ACTIVITES[$k] ?? $k,
+             array_filter(explode(',', (string)($o['activites'] ?? ''))))),
         'Forme juridique'        => $o['forme_juridique'] ?? '',
         'Date de création'       => $o['date_creation'] ?? '',
         'Discipline'             => $o['discipline'] ?? '',

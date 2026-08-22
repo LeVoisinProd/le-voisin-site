@@ -58,6 +58,19 @@ const DELAIS_CANTON = [
   color:var(--doux);border-bottom:2px solid transparent}
 .ongl:hover{color:var(--encre)}
 .pane{display:none}
+/* LES CASES DE « Ce que nous faisons ».  [22.08.2026] Elles vivent ici et non
+   dans `dash_form_style()`: ce dernier est appelé par cinq écrans sur onze, et
+   une règle posée là ne suit pas le champ. Ce fichier-ci est chargé par la
+   branche « modifier » de la fiche association, qui est le seul endroit où ces
+   cases existent.
+   `.ch label{display:block}` transformerait chaque case en ligne pleine: on
+   remet l'affichage en ligne pour celles-ci, et le titre du groupe imite
+   l'étiquette des autres champs. */
+.ch .lbl{display:block;font-size:12.5px;color:var(--doux);margin-bottom:6px}
+.cases{display:flex;flex-wrap:wrap;gap:8px 18px}
+.ch label.case{display:inline-flex;align-items:center;gap:7px;margin:0;
+  font-size:13.5px;color:var(--encre);cursor:pointer}
+.ch label.case input{width:auto;margin:0}
 
 <?php foreach (array_keys(ASSOC_ONGLETS) as $k): ?>
 #ong-<?= $k ?>:checked ~ .ongbar .ongl-<?= $k ?>{color:var(--encre);font-weight:600;

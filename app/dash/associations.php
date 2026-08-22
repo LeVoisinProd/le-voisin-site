@@ -53,9 +53,18 @@ $GENRES  = ['association' => 'association', 'artiste' => 'artiste'];
    manque. Une association dont nous ne tenons pas la comptabilité n'aura
    jamais de jeton, et un écran qui continue de le réclamer apprend à ignorer
    ses propres alertes. */
-$GESTIONS = [
-    'complete'  => 'complète — administration et comptabilité',
-    'diffusion' => 'diffusion seulement — pas de comptabilité chez nous',
+/* TROIS MÉTIERS INDÉPENDANTS, ET NON DEUX FORMULES.  [Anna, 22.08.2026]
+   « deixar um menu que podemos escolher as opções (adm, prod, diff) ». Et, à la
+   question posée: plusieurs à la fois.
+
+   L'ANCIEN CHAMP MENTAIT PAR CONSTRUCTION: il offrait « complète » ou
+   « diffusion seulement », donc une association dont nous tenons la compta ET
+   dont nous vendons les dates devait choisir laquelle taire. Les trois sont
+   indépendants — on peut tenir les comptes sans jamais vendre une date. */
+$ACTIVITES = [
+    'adm'  => 'Administration',
+    'prod' => 'Production',
+    'diff' => 'Diffusion',
 ];
 
 $id = (int)($_GET['o'] ?? 0);
@@ -266,7 +275,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($saisi['nom'] === '') $err['nom'] = 'Sans nom, la fiche ne se retrouve pas.';
     if (!isset($GENRES[$saisi['genre']]))     $saisi['genre']  = 'artiste';
-    if (!isset($GESTIONS[$saisi['gestion'] ?? ''])) $saisi['gestion'] = 'complete';
+    /* Les cases arrivent en tableau et repartent en `SET` MySQL. On ne garde
+       que les clefs connues: une valeur inventée dans la requête ferait échouer
+       l'écriture de toute la fiche. Aucune case cochée est un état permis — une
+       association qu'on ne fait qu'héberger existe. */
+    $saisi['activites'] = implode(',', array_values(array_intersect(
+        array_keys($ACTIVITES), (array)($_POST['activites'] ?? []))));
     if (!isset($STATUTS[$saisi['statut']]))   $saisi['statut'] = 'actif';
     if ($saisi['devise_defaut'] === '')       $saisi['devise_defaut'] = 'CHF';
 
@@ -474,7 +488,9 @@ if ($id > 0) {
       $l('Discipline', $o['discipline']);
       $l('Direction artistique', $o['direction']);
       $l('Début de collaboration', $o['debut_collab']);
-      $l('Ce que nous faisons', $GESTIONS[$o['gestion']] ?? $o['gestion']);
+      $l('Ce que nous faisons', implode(' · ', array_map(
+          fn($k) => $ACTIVITES[$k] ?? $k,
+          array_filter(explode(',', (string)($o['activites'] ?? ''))))));
       $l('IDE', $o['ide']);
       $l('Registre', $o['registre']);
       $l('AVS employeur', $o['avs_employeur']);
@@ -747,7 +763,13 @@ if ($id > 0) {
          donc chez qui l'on est avant d'écrire quoi que ce soit. */ ?>
     <div class="bl bx" id="bx">
       <h3>bexio</h3>
-      <?php $bxOk = Bexio::configure($o); $bxCompta = ($o['gestion'] ?? 'complete') !== 'diffusion'; ?>
+      <?php /* LE JETON SUIT « Administration », et non plus « pas diffusion ».
+           [Anna, 22.08.2026] Question posée, réponse d'elle: qui fait
+           l'administration est qui tient la comptabilité. Une association que
+           nous ne faisons que diffuser n'aura jamais de jeton bexio, et un
+           écran qui continue de le réclamer apprend à ignorer ses alertes. */ ?>
+      <?php $bxOk = Bexio::configure($o);
+            $bxCompta = in_array('adm', explode(',', (string)($o['activites'] ?? '')), true); ?>
       <?php if (!$bxCompta && !$bxOk): ?>
         <p class="n">Nous ne tenons pas la comptabilité de cette association: elle n'a pas
            de jeton, et c'est normal. Pour en poser un, changez d'abord

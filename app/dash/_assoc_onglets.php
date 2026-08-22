@@ -38,9 +38,28 @@ declare(strict_types=1);
        ['placeholder'=>'Association (CH), SARL, association loi 1901…']);
     ch('date_creation', 'Date de création', $v('date_creation'), $err, ['type'=>'date']);
     ch('statut', 'Statut', $v('statut') ?: 'actif', $err, ['type'=>'select','choix'=>$STATUTS]);
-    ch('gestion', 'Ce que nous faisons', $v('gestion') ?: 'complete', $err,
-       ['type'=>'select','choix'=>$GESTIONS,
-        'aide'=>'« Diffusion seulement » retire la demande de jeton bexio: pas de comptabilité, pas de jeton']);
+    /* ── CE QUE NOUS FAISONS: DES CASES, ET NON UN MENU.  [Anna, 22.08.2026] ──
+       Trois métiers indépendants, cumulables. Écrit à la main plutôt qu'avec
+       `ch()`, qui ne connaît que le champ texte et le menu déroulant: lui
+       ajouter un troisième type pour un seul champ coûterait plus cher que ces
+       dix lignes. */
+    $actuelles = array_filter(explode(',', (string)($v('activites') ?? '')));
+    ?>
+    <div class="ch">
+      <span class="lbl">Ce que nous faisons</span>
+      <div class="cases">
+        <?php foreach ($ACTIVITES as $ka => $la): ?>
+          <label class="case">
+            <input type="checkbox" name="activites[]" value="<?= e($ka) ?>"
+                   <?= in_array($ka, $actuelles, true) ? 'checked' : '' ?>>
+            <?= e($la) ?>
+          </label>
+        <?php endforeach; ?>
+      </div>
+      <p class="aide">Sans « Administration », la fiche ne demande pas de jeton bexio:
+         pas de comptabilité chez nous, pas de jeton.</p>
+    </div>
+    <?php
     ch('discipline', 'Discipline', $v('discipline'), $err);
     ch('debut_collab', 'Début de collaboration', $v('debut_collab'), $err, ['type'=>'date']);
 
