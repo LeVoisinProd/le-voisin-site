@@ -269,6 +269,27 @@ td .sec { color:var(--doux); font-size:12.5px; }
    doit jamais se couper en deux lignes. */
 .neuf { padding:8px 16px; background:var(--jaune); color:#0d0d0d; border-radius:4px;
         text-decoration:none; font-size:13.5px; font-weight:600; white-space:nowrap; }
+
+/* LE FIL D'UNE FICHE: LE RETOUR À GAUCHE, LA NAVIGATION À DROITE.
+   [Anna, 22.08.2026] « mettre les liens de précédent suivant à droite, dans
+   toutes les pages du site ».
+
+   Les trois écrans qui en ont un l'écrivent avec leur propre classe — `.fil`
+   aux Événements, `.fil-o` aux Offres, `.fil-p` au Personnel — mais la forme
+   est la même partout: le retour d'abord, puis le groupe de navigation. Une
+   marge automatique sur le DEUXIÈME enfant pousse tout ce qui suit à droite,
+   sans avoir à toucher au balisage des trois fichiers.
+
+   ET LA FLÈCHE MORTE DOIT SE VOIR MORTE. Aux extrémités, « précédent » est un
+   `span` et non un lien; à 35 % d'opacité seulement, il ressemblait encore
+   assez à un lien pour qu'on clique dessus et croie l'écran cassé. Le curseur
+   et le soulignement disent maintenant la différence avant le clic. */
+.fil, .fil-o, .fil-p { display:flex; gap:16px; align-items:baseline; }
+.fil > :nth-child(2), .fil-o > :nth-child(2), .fil-p > :nth-child(2) { margin-left:auto; }
+.fil a.mod { margin-left:0; }
+.fil .pas, .fil-o .pas, .fil-p .pas { text-decoration:underline; text-underline-offset:3px; }
+.fil .pas.mort, .fil-o .pas.mort, .fil-p .pas.mort {
+        text-decoration:none; opacity:.3; cursor:default; }
 .neuf:hover { filter:brightness(.94); }
 /* LA BARRE DE RECHERCHE EST À DROITE. [Anna, 21.08.2026] « colocar os campos
    de recherche alinhados à direita », « e todos os outros do site ».

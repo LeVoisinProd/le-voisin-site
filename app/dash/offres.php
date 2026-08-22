@@ -125,6 +125,84 @@ $sousTitre = $n['nouvelle'] > 0
 
 dash_haut('offres', $sousTitre);
 ?>
+<?php /* LA FEUILLE DE STYLE EN TÊTE, ET NON EN PIED. [Anna, 22.08.2026]
+     « améliorer la mise en page », « le mot précédent n'est pas cliquable ».
+
+     Elle était écrite APRÈS le `return` de la fiche et après celui du
+     formulaire de création: ces deux écrans sortaient donc entièrement nus —
+     la liste de définitions sans grille, le fil sans mise en forme, et surtout
+     la flèche morte du premier élément avec l'aspect exact d'un lien vivant.
+     C'est ce qu'Anna a lu comme « le mot précédent n'est pas cliquable »: il
+     ne l'est pas, et rien ne le disait.
+
+     Sixième fois aujourd'hui qu'une règle posée au mauvais endroit d'un
+     fichier ne rend pas là où on l'attend. Le remède est le même à chaque
+     fois: la feuille précède les branches, jamais l'inverse. */ ?>
+<style>
+.tofr td{vertical-align:top}
+.tofr .cp{font-size:11.5px;color:var(--doux)}
+.neuve{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;max-width:900px;margin:0 0 8px}
+.neuve .tb{grid-column:1/-1;margin:14px 0 0;font-size:12px;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--doux);border-bottom:1px solid var(--trait);padding-bottom:5px}
+.neuve label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--doux)}
+.neuve label.large{grid-column:1/-1}
+.neuve input,.neuve select,.neuve textarea{padding:8px 10px;font:inherit;font-size:14px;
+  font-weight:400;text-transform:none;letter-spacing:0;color:var(--encre);
+  border:1px solid var(--trait);border-radius:5px;box-sizing:border-box;width:100%}
+.neuve .req{color:#c8452f}
+.neuve .act{grid-column:1/-1;display:flex;gap:12px;align-items:center;margin-top:18px;
+  padding-top:16px;border-top:1px solid var(--trait)}
+.neuve .act button{padding:9px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier)}
+.neuve .act .sec2{color:var(--doux);font-size:13.5px;text-decoration:none}
+@media (max-width:760px){ .neuve{grid-template-columns:1fr} }
+.pieces-o{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--trait)}
+.pieces-o h4{margin:0 0 8px;font-size:13px}
+.pieces-o .n{color:var(--doux);font-size:12px}
+.pieces-o .pl{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:5px}
+.pieces-o .pl li{display:flex;gap:10px;align-items:baseline;font-size:13.5px}
+.pieces-o .pl a{color:var(--encre)}
+.pieces-o .pl form{margin:0}
+.pieces-o .pl .x{border:0;background:none;color:var(--doux);cursor:pointer;font-size:15px;padding:0 4px}
+.pieces-o .pl .x:hover{color:#c8452f}
+.pieces-o .ajl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
+.pieces-o .fic{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--doux)}
+.pieces-o button[type=submit]{padding:6px 14px;font:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
+.filtres{display:flex;gap:14px;flex-wrap:wrap;padding:0 0 18px;font-size:13.5px}
+/* Le fil de la fiche. Les fleches gardent leur place aux extremites: un bouton
+   qui disparait decale les autres sous le curseur. */
+.fil-o{display:flex;gap:16px;align-items:baseline;margin:0 0 20px;font-size:13px}
+.fil-o a{color:var(--doux);text-decoration:none}
+.fil-o a:hover{color:var(--encre)}
+.fil-o .pas{color:var(--encre);font-weight:600}
+.fil-o .pas.mort{color:var(--doux);opacity:.35}
+.fil-o .rang{color:var(--doux);font-variant-numeric:tabular-nums}
+.filtres a{color:var(--doux);text-decoration:none}
+.filtres a.ici{color:var(--encre);font-weight:600}
+.offre{border:1px solid var(--trait);border-radius:6px;margin-bottom:14px;overflow:hidden}
+.offre.st-nouvelle{border-left:3px solid var(--jaune,#FFD24D)}
+.offre.st-acceptee{border-left:3px solid #7bb33a}
+.offre.st-refusee,.offre.st-sans_suite{opacity:.62}
+.tete-o{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:11px 16px;background:var(--fond2);font-size:14.5px}
+.quand{color:var(--doux);font-size:12.5px;margin-right:8px}
+.corps-o{padding:14px 16px}
+.corps-o dl{display:grid;grid-template-columns:130px 1fr;gap:5px 14px;margin:0 0 12px;font-size:14px}
+.corps-o dt{color:var(--doux);font-size:12.5px;padding-top:2px}
+.corps-o dd{margin:0}
+.msg-o{white-space:normal;max-width:70ch}
+.ni{color:#9a7a2a}
+.conv{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.conv button{padding:6px 15px;font-size:13px}
+.et-onouvelle{border-color:#d9a800;font-weight:600}
+.et-oacceptee{border-color:#7bb33a;font-weight:600}
+.et{font-size:12px;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid var(--trait)}
+@media (max-width:640px){.corps-o dl{grid-template-columns:1fr}.corps-o dt{padding-top:8px}}
+</style>
+<?php
+?>
 
 <?php /* LA GOUTTIÈRE DE 26 PX, QUI MANQUAIT À TOUT L'ÉCRAN. [Anna, 21.08.2026]
      « il y a encore des choses collées au menu ». Cet écran n'enveloppait rien
@@ -444,69 +522,6 @@ dash_haut('offres', $sousTitre);
      offre en cours, c'est la même chose vue de l'autre côté. */ ?>
 
 
-<style>
-.tofr td{vertical-align:top}
-.tofr .cp{font-size:11.5px;color:var(--doux)}
-.neuve{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;max-width:900px;margin:0 0 8px}
-.neuve .tb{grid-column:1/-1;margin:14px 0 0;font-size:12px;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--doux);border-bottom:1px solid var(--trait);padding-bottom:5px}
-.neuve label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.06em;color:var(--doux)}
-.neuve label.large{grid-column:1/-1}
-.neuve input,.neuve select,.neuve textarea{padding:8px 10px;font:inherit;font-size:14px;
-  font-weight:400;text-transform:none;letter-spacing:0;color:var(--encre);
-  border:1px solid var(--trait);border-radius:5px;box-sizing:border-box;width:100%}
-.neuve .req{color:#c8452f}
-.neuve .act{grid-column:1/-1;display:flex;gap:12px;align-items:center;margin-top:18px;
-  padding-top:16px;border-top:1px solid var(--trait)}
-.neuve .act button{padding:9px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
-  border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier)}
-.neuve .act .sec2{color:var(--doux);font-size:13.5px;text-decoration:none}
-@media (max-width:760px){ .neuve{grid-template-columns:1fr} }
-.pieces-o{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--trait)}
-.pieces-o h4{margin:0 0 8px;font-size:13px}
-.pieces-o .n{color:var(--doux);font-size:12px}
-.pieces-o .pl{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:5px}
-.pieces-o .pl li{display:flex;gap:10px;align-items:baseline;font-size:13.5px}
-.pieces-o .pl a{color:var(--encre)}
-.pieces-o .pl form{margin:0}
-.pieces-o .pl .x{border:0;background:none;color:var(--doux);cursor:pointer;font-size:15px;padding:0 4px}
-.pieces-o .pl .x:hover{color:#c8452f}
-.pieces-o .ajl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
-.pieces-o .fic{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--doux)}
-.pieces-o button[type=submit]{padding:6px 14px;font:inherit;font-size:13px;font-weight:600;
-  cursor:pointer;border:1px solid var(--encre);border-radius:5px;background:transparent;color:var(--encre)}
-.filtres{display:flex;gap:14px;flex-wrap:wrap;padding:0 0 18px;font-size:13.5px}
-/* Le fil de la fiche. Les fleches gardent leur place aux extremites: un bouton
-   qui disparait decale les autres sous le curseur. */
-.fil-o{display:flex;gap:16px;align-items:baseline;margin:0 0 20px;font-size:13px}
-.fil-o a{color:var(--doux);text-decoration:none}
-.fil-o a:hover{color:var(--encre)}
-.fil-o .pas{color:var(--encre);font-weight:600}
-.fil-o .pas.mort{color:var(--doux);opacity:.35}
-.fil-o .rang{color:var(--doux);font-variant-numeric:tabular-nums}
-.filtres a{color:var(--doux);text-decoration:none}
-.filtres a.ici{color:var(--encre);font-weight:600}
-.offre{border:1px solid var(--trait);border-radius:6px;margin-bottom:14px;overflow:hidden}
-.offre.st-nouvelle{border-left:3px solid var(--jaune,#FFD24D)}
-.offre.st-acceptee{border-left:3px solid #7bb33a}
-.offre.st-refusee,.offre.st-sans_suite{opacity:.62}
-.tete-o{display:flex;justify-content:space-between;align-items:center;gap:12px;
-  padding:11px 16px;background:var(--fond2);font-size:14.5px}
-.quand{color:var(--doux);font-size:12.5px;margin-right:8px}
-.corps-o{padding:14px 16px}
-.corps-o dl{display:grid;grid-template-columns:130px 1fr;gap:5px 14px;margin:0 0 12px;font-size:14px}
-.corps-o dt{color:var(--doux);font-size:12.5px;padding-top:2px}
-.corps-o dd{margin:0}
-.msg-o{white-space:normal;max-width:70ch}
-.ni{color:#9a7a2a}
-.conv{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.conv button{padding:6px 15px;font-size:13px}
-.et-onouvelle{border-color:#d9a800;font-weight:600}
-.et-oacceptee{border-color:#7bb33a;font-weight:600}
-.et{font-size:12px;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid var(--trait)}
-@media (max-width:640px){.corps-o dl{grid-template-columns:1fr}.corps-o dt{padding-top:8px}}
-</style>
 
 </div><!-- .zone -->
 
