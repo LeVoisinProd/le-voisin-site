@@ -27,6 +27,7 @@ $cid = (int)($_GET['c'] ?? 0);
 // ═══════════════════════════════════════════════════════════════════════════
 
 $CH_CONTACT = ['nom','prenom','nom_famille','nom_artistique','fonction','structure','categorie',
+               'numero',
                'ville_struct','pays_struct','region','adresse','cp','ville','dept','pays',
                'email1','email2','email_pro1','tel1','tel_pro1','site',
                'mots_cles','description','participations','notes',
@@ -208,6 +209,8 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         echo '<div class="titre-bloc">Adresse postale</div>';
         ch('adresse', 'Adresse', $v('adresse'), $err, ['large'=>true]);
+        /* Le numéro séparé, comme au Personnel: même raison, même jour. */
+        ch('numero', 'N°', $v('numero'), $err);
         ch('adresse2', 'Adresse (suite)', $v('adresse2'), $err, ['large'=>true]);
         ch('cp', 'Code postal', $v('cp'), $err);
         ch('ville', 'Ville', $v('ville'), $err);

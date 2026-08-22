@@ -116,6 +116,13 @@ dash_flash_html();
     <?php
     ch('prenom',   'Prénom',            $p['prenom']   ?? '');
     ch('nom',      'Nom',               $p['nom']      ?? '');
+    /* DEUX NOMS POUR DEUX USAGES, ET ILS NE SE REMPLACENT PAS.  [Anna, 22.08.2026]
+       Un contrat, une fiche de salaire ou une déclaration AVS au nom de scène est
+       nul; un dossier de diffusion au nom d'état civil ne désigne pas l'artiste
+       que le programmateur connaît. Le dossier prend celui-ci, la logistique
+       prend le nom officiel. */
+    ch('nom_artistique', 'Nom artistique ou d\'usage', $p['nom_artistique'] ?? '', [],
+       ['aide' => 'Laissé vide, c\'est le nom officiel qui sert partout.']);
     ch('pronom',   'Pronom',            $p['pronom']   ?? '', [], ['aide' => 'elle, il, iel']);
     ch('naissance','Date de naissance', $p['naissance'] ?? '', [], ['type' => 'date']);
     ch('nationalite','Nationalité',     $p['nationalite'] ?? '');
@@ -127,6 +134,11 @@ dash_flash_html();
     ch('email',     'Courriel',   $p['email']     ?? '', [], ['type' => 'email']);
     ch('telephone', 'Téléphone',  $p['telephone'] ?? '');
     ch('rue',       'Rue',        $p['rue']       ?? '', [], ['large' => true]);
+    /* Le numéro à part: il ne se trie ni ne se compare dans la même case que la
+       rue, et les formulaires suisses et français ne l'attendent pas du même
+       côté. Les adresses déjà saisies ne sont pas découpées — un découpage sur
+       l'espace casserait « Chemin du 23-Août ». */
+    ch('numero',    'N°',         $p['numero']    ?? '');
     ch('cp',        'Code postal',$p['cp']        ?? '');
     ch('ville',     'Ville',      $p['ville']     ?? '');
     ch('pays',      'Pays',       $p['pays']      ?? '');

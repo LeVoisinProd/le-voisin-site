@@ -52,9 +52,9 @@ $TYPES = ['interne' => 'interne', 'cdd' => 'CDD', 'cdi' => 'CDI',
 // ACTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-$CH_EMP = ['prenom','nom','pronom','email','telephone','fonction','role_interne','couleur',
+$CH_EMP = ['prenom','nom','nom_artistique','pronom','email','telephone','fonction','role_interne','couleur',
            'type_engagement','organisation_id','naissance','nationalite','permis',
-           'rue','cp','ville','pays','paie_mensuelle','paie_horaire','devise','notes','actif'];
+           'rue','numero','cp','ville','pays','paie_mensuelle','paie_horaire','devise','notes','actif'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireCsrf();

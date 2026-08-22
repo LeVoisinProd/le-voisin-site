@@ -8,10 +8,13 @@
  *   démontage — avec leurs dates et leur lieu. C'est ce qui va dans le dossier
  *   de subvention, et c'est ce que la feuille de route reprend.
  *
- *   LA GRILLE DES JOURS — du départ au retour, un bouton par jour, cochés ceux
- *   qui sont effectivement travaillés. C'est ce qui sert à la rémunération et
- *   aux défraiements: entre le 3 et le 12 mars, une équipe ne travaille pas
- *   forcément dix jours.
+ *   LE DÉPART ET LE RETOUR — les deux dates du déplacement, que la feuille de
+ *   route imprime.
+ *
+ * IL Y AVAIT UNE TROISIÈME CHOSE ICI, une grille d'un bouton par jour à cocher.
+ * Elle est partie le 22.08.2026: le nombre de jours travaillés n'est pas le même
+ * pour toute l'équipe, et il se saisit désormais ligne par ligne dans l'onglet
+ * Rémunération.
  */
 declare(strict_types=1);
 /** @var array $d */ /** @var int $pid */ /** @var bool $ecrit */ /** @var callable $lien */
@@ -76,10 +79,28 @@ $jours = $d['planning']['jours'] ?? [];
 </form>
 <?php endif; ?>
 
-<h3 class="sep">Jours travaillés</h3>
-<p class="aide">Entre le départ et le retour, cochez les jours effectivement travaillés.
-   C'est ce nombre qui sert à la rémunération et aux défraiements, et il n'est pas
-   toujours celui de la période.</p>
+<?php /* LA GRILLE DES JOURS EST PARTIE D'ICI.  [Anna, 22.08.2026]
+     « porque tem etapes de travail et jours travailles? na verdade os jours
+     travailles será uma informação de cada pessoa na parte remuneração ».
+
+     Elle a raison, et l'ancienne note en tête de ce fichier disait déjà le
+     pourquoi sans en tirer la conséquence: ce nombre sert à la rémunération et
+     aux défraiements. Or il n'est pas le même pour tout le monde — le régisseur
+     monte deux jours avant l'arrivée des interprètes, et quelqu'un ne fait que
+     la première. Un nombre unique pour toute la production était donc faux dès
+     que l'équipe n'entre pas et ne sort pas ensemble.
+
+     RIEN N'A ÉTÉ PERDU EN LA RETIRANT, et c'est mesuré et non supposé: aucun
+     des 21 projets n'avait un seul jour coché. La colonne « Jours » de l'onglet
+     Rémunération existait déjà, une par ligne, donc par personne.
+
+     LES DATES D'ARRIVÉE ET DE RETOUR RESTENT, et ce n'est pas un oubli:
+     `_prod_imprimer.php` les imprime dans la feuille de route, et une équipe a
+     bien un départ commun même quand ses journées diffèrent. */ ?>
+
+<h3 class="sep">Départ et retour</h3>
+<p class="aide">Les dates du déplacement, reprises par la Feuille de route. Le nombre de jours
+   travaillés se saisit personne par personne, dans l'onglet Rémunération.</p>
 
 <form method="post" action="<?= e($lien('planning')) ?>" class="ajl">
   <?= Auth::csrfField() ?>
@@ -88,54 +109,11 @@ $jours = $d['planning']['jours'] ?? [];
     value="<?= e((string)$d['planning']['dateArrivee']) ?>" <?= $ecrit ? '' : 'readonly' ?>></label>
   <label class="min">Retour <input type="date" name="v[planning.dateRetour]"
     value="<?= e((string)$d['planning']['dateRetour']) ?>" <?= $ecrit ? '' : 'readonly' ?>></label>
-  <?php if ($ecrit): ?><button type="submit">définir</button><?php endif; ?>
+  <?php if ($ecrit): ?><button type="submit">enregistrer</button><?php endif; ?>
 </form>
-
-<?php
-$a = (string)$d['planning']['dateArrivee'];
-$r = (string)$d['planning']['dateRetour'];
-if ($a !== '' && $r !== '' && $a <= $r):
-    $JOUR = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-    $MOIS = ['','jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-    $t = strtotime($a . ' 12:00:00'); $fin = strtotime($r . ' 12:00:00');
-    /* 400 jours de garde: une faute de frappe dans une année produirait sinon
-       une grille de plusieurs milliers de boutons. */
-    $n = 0;
-?>
-  <p class="cpt"><strong><?= count($jours) ?></strong> jour<?= count($jours) > 1 ? 's' : '' ?> coché<?= count($jours) > 1 ? 's' : '' ?></p>
-  <div class="grille">
-  <?php while ($t <= $fin && $n++ < 400): $ds = date('Y-m-d', $t); $sel = in_array($ds, $jours, true); ?>
-    <?php if ($ecrit): ?>
-      <form method="post" action="<?= e($lien('planning')) ?>" class="inline">
-        <?= Auth::csrfField() ?>
-        <input type="hidden" name="pf" value="jour">
-        <input type="hidden" name="jour" value="<?= $ds ?>">
-        <button type="submit" class="j <?= $sel ? 'on' : '' ?><?= in_array((int)date('w', $t), [0,6], true) ? ' we' : '' ?>">
-          <span class="dd"><?= (int)date('j', $t) ?></span>
-          <span class="dm"><?= $JOUR[(int)date('w', $t)] ?> <?= $MOIS[(int)date('n', $t)] ?></span>
-        </button>
-      </form>
-    <?php else: ?>
-      <span class="j <?= $sel ? 'on' : '' ?>"><span class="dd"><?= (int)date('j', $t) ?></span>
-        <span class="dm"><?= $JOUR[(int)date('w', $t)] ?> <?= $MOIS[(int)date('n', $t)] ?></span></span>
-    <?php endif; ?>
-    <?php $t = strtotime('+1 day', $t); endwhile; ?>
-  </div>
-<?php else: ?>
-  <p class="aide">Indiquez le départ et le retour pour voir la grille.</p>
-<?php endif; ?>
 
 <style>
 .ph{font-size:11.5px;padding:2px 8px;border-radius:10px;border:1px solid var(--trait);white-space:nowrap}
-.grille{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.j{display:inline-flex;flex-direction:column;align-items:center;min-width:46px;
-  padding:5px 7px;border:1px solid var(--trait);border-radius:6px;background:var(--papier);
-  color:var(--doux);cursor:pointer;font:inherit;line-height:1.15}
-.j.on{background:var(--encre);color:var(--papier);border-color:var(--encre);font-weight:700}
-.j.we{opacity:.62}
-.j .dd{font-size:14px;font-weight:700}
-.j .dm{font-size:10.5px}
-.cpt{font-size:13px;color:var(--doux);margin:14px 0 0}
 label.min{font-size:12.5px;color:var(--doux);display:inline-flex;align-items:center;gap:6px}
 label.min input{width:auto}
 </style>

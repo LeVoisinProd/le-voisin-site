@@ -14,17 +14,17 @@
 declare(strict_types=1);
 /** @var array $d */ /** @var bool $ecrit */ /** @var callable $lien */
 
-$nJours = count($d['planning']['jours'] ?? []);
 $tot = 0.0;
 foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)($r['montant'] ?? 0));
 ?>
-<?php if ($nJours > 0): ?>
-  <p class="aide top">Le Planning compte <strong><?= $nJours ?></strong> jour<?= $nJours > 1 ? 's' : '' ?>
-     travaillé<?= $nJours > 1 ? 's' : '' ?>. C'est le nombre à reprendre ci-dessous quand il s'applique.</p>
-<?php else: ?>
-  <p class="aide top">Aucun jour coché dans le Planning: le nombre de jours se saisit à la main
-     ici, mais mieux vaut le poser là-bas — la Feuille de route et les défraiements s'en servent.</p>
-<?php endif; ?>
+<?php /* LE NOMBRE DE JOURS SE SAISIT ICI, PERSONNE PAR PERSONNE.  [Anna, 22.08.2026]
+     Il y avait au-dessus un bandeau qui reprenait le compte de la grille du
+     Planning — « le Planning compte N jours travaillés, c'est le nombre à
+     reprendre ci-dessous ». La grille est partie: elle donnait UN nombre pour
+     toute la production, et le régisseur qui monte deux jours avant n'a pas
+     fait les mêmes journées que l'interprète qui arrive la veille. */ ?>
+<p class="aide top">Une ligne par personne et par période. Le nombre de jours est celui de cette
+   personne-là — ce n'est pas forcément la durée de la période.</p>
 
 <?php if ($d['remuneration']): ?>
   <div class="tbl"><table>
@@ -68,8 +68,37 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
   <?= Auth::csrfField() ?>
   <input type="hidden" name="pf" value="liste_ajouter">
   <input type="hidden" name="ou" value="remuneration">
-  <input type="text" name="l[personne]" placeholder="Personne" size="16" required>
-  <input type="text" name="l[fonction]" placeholder="Fonction" size="14">
+  <?php /* ── LA LISTE DES PERSONNES ────────────────────────────────────────
+       [Anna, 22.08.2026] « ainda não tem a listagem da parte remuneration ».
+       C'était un champ libre: on retapait un nom que le Personnel connaît, et
+       « Alessandra » écrite deux fois ne se rattache à personne — une feuille
+       de route ne peut alors ni écrire à la personne ni la payer.
+
+       LA LISTE SE PARCOURT PAR NOM ARTISTIQUE, MAIS C'EST LE NOM OFFICIEL QUI
+       S'INSCRIT, et la distinction n'est pas un détail: cette ligne finit en
+       contrat, en fiche de salaire et en déclaration AVS, et aucun de ces trois
+       documents n'accepte un nom de scène. L'option montre donc « nom de scène
+       — Prénom Nom » pour qu'on reconnaisse la personne, et dépose le nom
+       d'état civil dans le champ. Le nom artistique, lui, sert au Dossier.
+
+       La fonction se pré-remplit depuis la fiche, et seulement si le champ est
+       vide: un rôle déjà écrit sur cette production ne se fait pas remplacer
+       par le métier. */ ?>
+  <input type="text" name="l[personne]" id="qRem" list="lRem" size="20"
+         placeholder="Personne — chercher dans le personnel" autocomplete="off" required>
+  <datalist id="lRem">
+    <?php foreach (DB::all("SELECT prenom, nom, nom_artistique, fonction FROM rh_employe
+                            WHERE supprime_le IS NULL AND actif = 1
+                            ORDER BY prenom, nom") as $emp):
+      $officiel = trim(((string)$emp['prenom']) . ' ' . ((string)$emp['nom']));
+      if ($officiel === '') continue;
+      $scene = trim((string)($emp['nom_artistique'] ?? '')); ?>
+      <option value="<?= e($officiel) ?>"
+              label="<?= e($scene !== '' ? $scene . ' — ' . $officiel : $officiel) ?>"
+              data-f="<?= e((string)($emp['fonction'] ?? '')) ?>">
+    <?php endforeach; ?>
+  </datalist>
+  <input type="text" name="l[fonction]" id="fRem" placeholder="Fonction" size="14">
   <select name="l[contrat]">
     <option value="">— contrat —</option>
     <option value="CH">Suisse — CDDU mensuel</option>
@@ -78,10 +107,23 @@ foreach ($d['remuneration'] as $r) $tot += (float)str_replace(',', '.', (string)
     <option value="facture">Facture</option>
   </select>
   <input type="text" name="l[periode]" placeholder="Période" size="14">
-  <input type="text" name="l[jours]"   placeholder="Jours" size="5"
-         value="<?= $nJours > 0 ? $nJours : '' ?>">
+  <input type="text" name="l[jours]"   placeholder="Jours" size="5">
   <input type="text" name="l[montant]" placeholder="Montant" size="9">
   <select name="l[devise]"><option>CHF</option><option>EUR</option></select>
   <button type="submit">ajouter</button>
 </form>
+<script>
+/* Sans JavaScript la liste propose encore et les deux champs se saisissent à la
+   main: on perd le raccourci, pas la capacité. */
+(function () {
+  var q = document.getElementById('qRem'), f = document.getElementById('fRem');
+  if (!q || !f) return;
+  q.addEventListener('input', function () {
+    if (f.value.trim() !== '') return;
+    var v = q.value.trim(), o = null;
+    document.querySelectorAll('#lRem option').forEach(function (x) { if (x.value === v) o = x; });
+    if (o) f.value = o.getAttribute('data-f') || '';
+  });
+})();
+</script>
 <?php endif; ?>

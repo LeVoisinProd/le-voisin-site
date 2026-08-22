@@ -199,8 +199,14 @@ dash_haut('projets', '<a href="/dashboard.php?e=projets" class="ret">tous les sp
       <div class="ch"><label for="c-lieuc">Lieu de création</label>
         <input type="text" id="c-lieuc" name="prod[lieu_creation]" form="fSyn"
                value="<?= e((string)($prod['lieu_creation'] ?? '')) ?>" <?= $ecrit ? '' : 'readonly' ?>></div>
+      <?php /* LE CODE DU CMS SE TRADUIT.  [Anna, 22.08.2026] « na parte Public
+           não tem uma case, tem um texto lá colocado direto "all", o que é
+           isso? ». C'est la valeur brute de la liste fermée du CMS — `all` veut
+           dire « Tout public ». Elle s'affichait telle quelle, ce qui ne veut
+           rien dire pour qui lit. Même table que le site: `app/config/entities.php`. */ ?>
+      <?php $PUBLICS = ['young' => 'Jeune public', 'all' => 'Tout public', 'adult' => 'Adultes']; ?>
       <div class="ch"><label>Public</label>
-        <p class="fixe"><?= $p['public_cible'] ? e((string)$p['public_cible']) : '—' ?></p></div>
+        <p class="fixe"><?= e($PUBLICS[(string)($p['public_cible'] ?? '')] ?? '—') ?></p></div>
       <div class="ch"><label for="c-budget">Budget du projet</label>
         <div class="paire">
           <input type="text" id="c-budget" name="prod[budget]" form="fSyn"

@@ -339,11 +339,22 @@ if (isset($_GET['mod']) || $_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit"><?= $id > 0 ? 'Enregistrer' : 'Créer' ?></button>
         <a class="sec2" href="/dashboard.php?e=associations<?= $id > 0 ? '&amp;o=' . $id : '' ?>">annuler</a>
         <?php if ($id > 0): ?>
-        <a class="sup" href="#" onclick="if(confirm('Supprimer cette fiche ? Elle restera en base.')){
-             var f=document.createElement('form');f.method='post';
-             f.action='/dashboard.php?e=associations&o=<?= $id ?>&mod=1';
-             f.innerHTML='<?= addslashes(Auth::csrfField()) ?><input name=action value=supprimer>';
-             document.body.appendChild(f);f.submit();}return false;">supprimer</a>
+          <?php /* UN BOUTON DU FORMULAIRE, ET NON UN LIEN QUI EN FABRIQUE UN.
+               [Anna, 22.08.2026] « corriger le bouton effacer ». Il fabriquait
+               un formulaire en JavaScript dans un attribut `onclick`, et y
+               collait le champ CSRF passé à `addslashes()`. Or `addslashes`
+               échappe pour une chaîne JavaScript, pas pour un attribut HTML:
+               les guillemets du champ fermaient l'attribut, et la fin du code
+               s'affichait en rouge au bas de la page — « '; document.body.
+               appendChild(f);f.submit();}return false;">supprimer ».
+
+               C'est le troisième écran où ce même code est corrigé, après les
+               contacts et les dates: celui-ci avait été manqué. Aucun de ces
+               détours n'est nécessaire — le formulaire qui entoure ce bouton
+               est déjà en POST et porte déjà son jeton. `formnovalidate` pour
+               qu'un champ obligatoire vide n'empêche pas de supprimer. */ ?>
+          <button type="submit" name="action" value="supprimer" class="sup" formnovalidate
+                  onclick="return confirm('Supprimer cette fiche ? Elle restera en base.')">supprimer</button>
         <?php endif; ?>
       </div>
     </form>
