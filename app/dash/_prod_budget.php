@@ -33,10 +33,14 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
 
 <div class="bd-tete">
   <h3>Budget de production</h3>
-  <?php /* Le bouton d'impression à droite, comme partout ailleurs depuis le
-       16.08: ce n'est pas le geste principal de l'écran. */ ?>
-  <a class="bt-pdf" href="<?= e($lien('budget')) ?>&amp;imprimer=1" target="_blank" rel="noopener"
-     title="Ouvre une page nue. Dans la fenêtre qui s'ouvre: Imprimer, puis « Enregistrer au format PDF »">PDF — Budget</a>
+  <?php /* IL Y AVAIT ICI UN SECOND « PDF — Budget ».  [Anna, 22.08.2026]
+       « na parte budget tem dois botões de budget, deixar um só ».
+
+       Celui-ci datait du 16.08, quand chaque onglet portait son propre bouton
+       d'impression. La barre de documents posée depuis en haut de la fiche en
+       donne déjà un, sur tous les onglets, et il ouvre EXACTEMENT la même
+       adresse. Deux boutons identiques pour un seul document font douter qu'ils
+       soient identiques — on les compare au lieu de cliquer. */ ?>
 </div>
 
 <div class="bd">
@@ -164,10 +168,6 @@ $mt = static fn(float $v): string => number_format($v, 0, ',', ' ');
 <style>
 .bd-tete{display:flex;align-items:center;gap:16px;margin:0 0 16px}
 .bd-tete h3{margin:0;font-size:16px}
-.bd-tete .bt-pdf{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:8px 15px;
-  border:1px solid var(--encre);border-radius:5px;background:var(--encre);color:var(--papier);
-  text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
-.bd-tete .bt-pdf:hover{opacity:.86}
 .bd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 46px;align-items:start}
 @media (max-width:900px){ .bd{grid-template-columns:minmax(0,1fr)} }
 .bd-t{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
