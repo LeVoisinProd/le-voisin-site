@@ -86,6 +86,25 @@ if ($pcms > 0) {
 
         } elseif ($act === 'liste_ajouter') {
             $l = array_map(fn($x) => mb_substr(trim((string)$x), 0, 500), (array)($_POST['l'] ?? []));
+
+            /* LA LOGISTIQUE PROPOSE DEUX FAÇONS DE DIRE LA MÊME CHOSE, et une
+               seule est enregistrée. [Anna, 22.08.2026] « Quand » se choisit
+               dans les étapes du planning OU se pose sur une date; « Qui » se
+               prend dans l'équipe de la pièce OU s'écrit à la main.
+
+               LA LISTE L'EMPORTE SUR LA SAISIE LIBRE, et pas l'inverse: qui a
+               choisi dans un menu l'a fait exprès, alors qu'un champ resté
+               rempli d'un essai précédent part sans qu'on le relise. Les deux
+               champs auxiliaires ne sont jamais gardés — la fiche imprime
+               « Quand » et « Qui » tels quels et n'a que faire du chemin par
+               lequel ils sont arrivés. */
+            if (($l['quand'] ?? '') === '' && ($l['quand_date'] ?? '') !== '') {
+                $t = strtotime((string)$l['quand_date']);
+                $l['quand'] = $t ? date('d.m.Y', $t) : (string)$l['quand_date'];
+            }
+            if (($l['qui_choix'] ?? '') !== '') $l['qui'] = (string)$l['qui_choix'];
+            unset($l['quand_date'], $l['qui_choix']);
+
             ProdFiche::ajouter($pcms, (string)($_POST['ou'] ?? ''), $l);
             dash_flash('Ligne ajoutée.');
 
