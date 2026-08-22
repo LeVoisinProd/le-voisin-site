@@ -2,7 +2,17 @@
 /** Connexion à l'administration.   [V11-LANGUE-CACHE] */
 require __DIR__ . '/_inc.php';
 
-if (Auth::check()) redirect('/admin/');
+/* ── APRÈS LA CONNEXION, CHACUN CHEZ SOI.  [22.08.2026] ─────────────────────
+   Depuis que `/admin/` est réservé à la direction, y renvoyer tout le monde
+   ferait atterrir un compte `production` sur une page de refus juste après avoir
+   tapé son mot de passe. Il croirait que sa connexion a échoué. On l'emmène là
+   où son travail se fait. */
+function lv_apres_connexion(): string
+{
+    return Auth::role() === 'direction' ? '/admin/' : '/dashboard.php';
+}
+
+if (Auth::check()) redirect(lv_apres_connexion());
 
 /* ── DEUX ÉTAPES QUAND LE DEUXIÈME FACTEUR EST POSÉ.  [22.08.2026] ──────────
    La première n'accorde rien: `Auth::login()` retient seulement qui vient de
@@ -21,13 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = ta('log_throttled');
     } elseif (($_POST['code'] ?? '') !== '' || $etape === 'code') {
         if (Auth::loginCode((string)($_POST['code'] ?? ''))) {
-            redirect('/admin/');
+            redirect(lv_apres_connexion());
         }
         $error = ta('log_bad');
         $etape = Auth::attendCode() ? 'code' : 'mdp';
     } elseif (Auth::login((string)($_POST['email'] ?? ''), (string)($_POST['password'] ?? ''))) {
         if (Auth::attendCode()) { $etape = 'code'; }
-        else { redirect('/admin/'); }
+        else { redirect(lv_apres_connexion()); }
     } else {
         $error = ta('log_bad');
     }

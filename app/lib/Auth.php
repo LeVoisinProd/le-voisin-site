@@ -134,10 +134,70 @@ class Auth
         session_regenerate_id(true);
     }
 
-    /** À appeler en tête de chaque page d'administration. */
+    /** Le rôle du compte connecté, lu en base. '' si personne n'est connecté. */
+    public static function role(): string
+    {
+        $u = self::user();
+        if (!$u) return '';
+        static $r = null;
+        if ($r === null) $r = (string)(DB::val('SELECT role_dash FROM users WHERE id = ?', [(int)$u['id']]) ?: '');
+        return $r;
+    }
+
+    /**
+     * À appeler en tête de chaque page d'administration.
+     *
+     * ELLE EXIGE MAINTENANT LE RÔLE `direction`.  [22.08.2026, trouvé par Anna]
+     *
+     * « o perfil da Alessandra no CMS vê tudo como se fosse eu, ela pode até
+     * mudar as palavras-chave. »
+     *
+     * ELLE AVAIT RAISON, ET C'ÉTAIT PIRE QUE ÇA. Les douze pages de `/admin/`
+     * n'exigeaient que `Auth::check()` — « cette personne a un compte du
+     * bureau » — et aucune ne regardait le rôle. La grille de droits, si
+     * soigneusement écrite, ne protège que le dashboard. L'administration du
+     * site, elle, était ouverte à tout compte.
+     *
+     * CE QUE CELA PERMETTAIT, ET C'EST UNE ÉLÉVATION DE PRIVILÈGE COMPLÈTE:
+     * `users.php` change le mot de passe de n'importe qui, y compris celui de la
+     * direction. Un compte `production` pouvait donc se donner la direction en
+     * deux clics, et de là ouvrir Personnel et ses 91 AVS et IBAN. S'y ajoutaient
+     * les fiches des collaborateurs, leurs documents — contrats, salaires,
+     * pièces d'identité — les réglages du site et le journal des accès.
+     *
+     * LE TROU S'EST OUVERT LE MATIN MÊME, en créant deux comptes. Tant qu'il n'y
+     * en avait qu'un, la distinction ne se voyait pas. C'est le propre de ce
+     * genre de faille: elle n'existe qu'au moment où l'on croit avoir refermé
+     * quelque chose.
+     *
+     * ET MA REVUE DE SÉCURITÉ NE L'A PAS VUE. J'ai vérifié branche par branche
+     * la grille du dashboard et écrit « l'accès est vérifié à la porte » — cette
+     * porte-là est `dashboard.php`. Je n'ai pas ouvert celle de `/admin/`.
+     *
+     * `direction` POUR TOUT, ET ON RELÂCHERA ENSUITE. Refuser d'abord et ouvrir
+     * page par page quand le besoin se dit est le seul ordre sûr. L'inverse
+     * laisse ouvert ce qu'on a oublié de fermer.
+     */
     public static function requireAdmin(bool $api = false): void
     {
-        if (self::check()) return;
+        if (self::check() && self::role() === 'direction') return;
+        if (self::check()) {
+            /* Connecté mais pas au bon niveau: on le dit, on ne renvoie pas vers
+               la page de connexion — qui laisserait croire à une session
+               expirée et ferait ressaisir un mot de passe pour rien. */
+            if ($api) json_out(['error' => 'role'], 403);
+            http_response_code(403);
+            header('Content-Type: text/html; charset=utf-8');
+            echo '<!doctype html><meta charset="utf-8"><title>Réservé</title>'
+               . '<style>body{font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,'
+               . 'Arial,sans-serif;max-width:34rem;margin:16vh auto;padding:0 24px;color:#141414}'
+               . 'a{color:#141414}</style>'
+               . '<h1 style="font-size:19px">Cette partie est réservée à la direction.</h1>'
+               . '<p>L’administration du site — les pages publiques, les comptes, les réglages — '
+               . 'ne s’ouvre qu’avec le rôle « direction ». Votre travail se fait dans le '
+               . '<a href="/dashboard.php">dashboard</a>.</p>';
+            exit;
+        }
         if ($api) json_out(['error' => 'auth'], 401);
         redirect('/admin/login.php');
     }
