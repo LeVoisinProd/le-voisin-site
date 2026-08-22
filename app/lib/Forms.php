@@ -802,7 +802,23 @@ class Forms
         // On note donc le problème dans le journal et on continue.
         if (setting('keep_submissions', '0') === '1') {
             try {
-                DB::insert('submissions', ['form' => $form, 'data' => json_encode($values, JSON_UNESCAPED_UNICODE)]);
+                /* ── LA COPIE EST CHIFFRÉE.  [revue de sécurité, 22.08.2026] ──────
+                   Vingt-huit lignes de ce formulaire portaient un IBAN lisible en
+                   base, et dix-huit se retrouvaient en clair dans le dump déposé
+                   sur le Drive. C'était le dernier endroit du site où une donnée
+                   bancaire dormait sans chiffrement, alors que les 54 IBAN du
+                   Personnel et les 45 fiches de l'espace le sont depuis le 16.08.
+
+                   MÊME `Crypto::` QUE PARTOUT AILLEURS, et donc même clef, celle
+                   qui dérive du `secret` de `config.php`. Rien de nouveau à
+                   protéger, rien de nouveau à perdre.
+
+                   RIEN NE LIT CETTE TABLE aujourd'hui — aucun écran du dashboard,
+                   aucune page du site. Le jour où quelqu'un l'affichera, il devra
+                   passer par `Crypto::dechiffrer()`; le préfixe `sb1:` le lui
+                   dira. */
+                DB::insert('submissions', ['form' => $form,
+                    'data' => Crypto::chiffrer(json_encode($values, JSON_UNESCAPED_UNICODE))]);
             } catch (\Throwable $e) {
                 self::journal("Copie en base impossible pour $form (emails bien partis) : " . $e->getMessage());
             }

@@ -293,10 +293,30 @@ class MemberAuth
     /**
      * Ouvre la visite. Refuse un compte désactivé : l'espace le renverrait de
      * toute façon vers la page de connexion, autant le dire tout de suite.
+     *
+     * ELLE VÉRIFIE ELLE-MÊME QUI L'APPELLE.  [revue de sécurité, 22.08.2026]
+     *
+     * Cette fonction prend l'identité d'un collaborateur: elle donne accès à ses
+     * contrats, ses fiches de salaire et ses documents d'identité. Elle ne
+     * vérifiait rien — la garde était censée être chez l'appelant.
+     *
+     * ELLE N'EST APPELÉE NULLE PART AUJOURD'HUI, et c'est précisément pourquoi
+     * il fallait la fermer maintenant: le jour où quelqu'un la branchera à un
+     * bouton, il ne pensera pas à écrire la vérification, parce que rien dans la
+     * signature ne la réclame. Une fonction qui ouvre une porte doit porter sa
+     * propre serrure.
+     *
+     * `direction` ET NON « un compte du bureau »: regarder l'espace de quelqu'un
+     * n'est pas un geste de production. C'est le même niveau que l'écran
+     * Personnel, qui porte les mêmes données.
      */
     public static function visiteOuvrir(int $id): bool
     {
         session_boot();
+
+        if (!function_exists('dash_role') || !class_exists('Auth') || !Auth::check()) return false;
+        if (dash_role() !== 'direction') return false;
+
         $m = DB::one('SELECT id FROM collaborators WHERE id = ? AND active = 1', [$id]);
         if (!$m) return false;
         $_SESSION['lv_member_id']     = (int)$m['id'];
