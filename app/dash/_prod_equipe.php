@@ -65,14 +65,31 @@ declare(strict_types=1);
   <input type="hidden" name="ou" value="equipe">
   <input type="text" name="qui" id="qEquipe" list="lEquipe" size="26"
          placeholder="Chercher dans le personnel" autocomplete="off">
+  <?php /* LA LISTE VIENT DU PERSONNEL, ET NON DES COMPTES DE L'ESPACE.
+       [Anna, 22.08.2026] « a fonction tem que estar pré-preenchida com a
+       profissão da pessoa que está na ficha pessoal dela ».
+
+       `collaborators` porte les comptes en ligne — cinquante-six — et ne sait
+       pas ce que les gens font. `rh_employe` porte les quatre-vingt-onze
+       personnes du Personnel avec leur fonction, remplie sur quatre-vingt-
+       trois. C'est la seule source qui contient ce qu'Anna demande, et c'est
+       aussi celle qu'elle tient à jour.
+
+       LA FONCTION VOYAGE DANS L'OPTION, en `data-f`: rappeler le serveur pour
+       une information qu'on avait déjà au moment d'écrire la page serait un
+       aller-retour pour rien. */ ?>
   <datalist id="lEquipe">
-    <?php foreach (DB::all("SELECT name FROM collaborators WHERE active = 1 ORDER BY name") as $c): ?>
-      <option value="<?= e((string)$c['name']) ?>">
+    <?php foreach (DB::all("SELECT prenom, nom, fonction FROM rh_employe
+                            WHERE supprime_le IS NULL AND actif = 1
+                            ORDER BY prenom, nom") as $c):
+      $nc = trim(((string)$c['prenom']) . ' ' . ((string)$c['nom']));
+      if ($nc === '') continue; ?>
+      <option value="<?= e($nc) ?>" data-f="<?= e((string)($c['fonction'] ?? '')) ?>">
     <?php endforeach; ?>
   </datalist>
   <input type="text" name="l[prenom]"   id="pEquipe" placeholder="Prénom" size="12">
   <input type="text" name="l[nom]"      id="nEquipe" placeholder="Nom" size="14" required>
-  <input type="text" name="l[fonction]" placeholder="Fonction" size="20">
+  <input type="text" name="l[fonction]" id="fEquipeF" placeholder="Fonction" size="20">
   <button type="submit">ajouter</button>
 </form>
 <script>
@@ -89,6 +106,17 @@ declare(strict_types=1);
     if (i < 1) return;
     document.getElementById('pEquipe').value = v.slice(0, i);
     document.getElementById('nEquipe').value = v.slice(i + 1);
+
+    /* LA FONCTION SE PROPOSE, ELLE NE S'IMPOSE PAS. On ne l'écrit que si le
+       champ est vide: quelqu'un qui a déjà tapé « régie son » sur cette
+       production ne doit pas se le faire remplacer par « technicien », qui est
+       son métier mais pas son rôle ici. */
+    var f = document.getElementById('fEquipeF');
+    var o = null;
+    document.querySelectorAll('#lEquipe option').forEach(function (x) {
+      if (x.value === v) o = x;
+    });
+    if (f && o && f.value.trim() === '') f.value = o.getAttribute('data-f') || '';
   });
 })();
 </script>
